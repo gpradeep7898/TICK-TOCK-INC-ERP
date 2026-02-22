@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Tick Tock Inc. — Inventory</title>
+<title>Tick Tock Inc. — ERP</title>
 <style>
 /* ── Reset & Base ─────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -350,6 +350,40 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 .adj-lines-table td input { width: 90px; }
 .adj-lines-table tr:last-child td { border-bottom: none; }
 
+/* ── Sales Module ──────────────────────────────────────────── */
+.sales-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px;
+}
+.sales-stat {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px;
+}
+.sales-stat-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; }
+.sales-stat-value { font-size: 20px; font-weight: 700; }
+.sales-stat-sub   { font-size: 11px; color: var(--text2); }
+.so-lines-table { width: 100%; border-collapse: collapse; }
+.so-lines-table th { background: var(--bg3); padding: 7px 12px; font-size: 10px; font-weight: 600; color: var(--text2); text-transform: uppercase; text-align: left; }
+.so-lines-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 12px; }
+.so-lines-table tr:last-child td { border-bottom: none; }
+.so-lines-table tfoot td { background: var(--bg3); font-weight: 600; }
+.so-detail-section { margin-bottom: 20px; }
+.so-detail-section-title { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.so-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.so-info-item { font-size: 12px; }
+.so-info-label { color: var(--text2); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }
+.so-info-value { color: var(--text0); font-weight: 500; }
+.so-total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; }
+.so-total-row.grand { font-size: 15px; font-weight: 700; border-top: 1px solid var(--border); margin-top: 6px; padding-top: 10px; }
+.action-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.cust-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; display: flex; gap: 16px; align-items: flex-start; cursor: pointer; transition: background .15s; }
+.cust-card:hover { background: var(--bg3); }
+.cust-avatar { width: 38px; height: 38px; border-radius: 8px; background: linear-gradient(135deg,var(--accent),var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.cust-info { flex: 1; }
+.cust-name { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+.cust-meta { font-size: 11px; color: var(--text2); }
+.cust-tags { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.pill { font-size: 10px; padding: 2px 8px; border-radius: 10px; background: var(--bg4); color: var(--text1); }
+
 /* ── Loading spinner ───────────────────────────────────────── */
 .spinner {
   display: inline-block; width: 16px; height: 16px;
@@ -412,6 +446,10 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       </button>
       <button class="nav-item" data-section="adjustments" onclick="navigate('adjustments')">
         <span class="icon">📋</span> Adjustments
+      </button>
+      <div class="nav-label" style="margin-top:12px">Modules</div>
+      <button class="nav-item" onclick="window.location.href='/sales'">
+        <span class="icon">🧾</span> Sales Orders
       </button>
     </nav>
 

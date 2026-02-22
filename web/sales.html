@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tick Tock Inc. — Sales</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#0d0f14;--bg1:#131720;--bg2:#1a1f2e;--bg3:#222840;--bg4:#2a3250;
+  --border:#2e3650;--text0:#eef1f8;--text1:#a8b3cc;--text2:#6b7a99;
+  --accent:#4f8ef7;--accent2:#7c5cf5;--green:#22c575;--yellow:#f5c842;
+  --red:#f5524a;--orange:#f58c42;--purple:#9b59f5;--radius:8px;--sidebar:220px;
+}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  background:var(--bg0);color:var(--text0);font-size:13px;line-height:1.5}
+button{cursor:pointer;font-family:inherit}
+input,select,textarea{font-family:inherit;font-size:13px}
+#app{display:flex;height:100vh;overflow:hidden}
+
+/* Sidebar */
+#sidebar{width:var(--sidebar);min-width:var(--sidebar);background:var(--bg1);
+  border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.logo{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+.logo-mark{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;border-radius:8px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.logo-text{font-size:14px;font-weight:700;color:var(--text0);line-height:1.2}
+.logo-sub{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em}
+nav{padding:12px 8px;flex:1;overflow-y:auto}
+.nav-label{font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;
+  letter-spacing:.1em;padding:8px 8px 4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;
+  border-radius:var(--radius);color:var(--text1);font-size:13px;font-weight:500;
+  cursor:pointer;transition:all .15s;margin-bottom:2px;border:none;background:none;
+  width:100%;text-align:left}
+.nav-item:hover{background:var(--bg3);color:var(--text0)}
+.nav-item.active{background:var(--bg4);color:var(--accent)}
+.nav-item .icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;
+  font-weight:700;border-radius:10px;padding:1px 6px;min-width:18px;text-align:center}
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--text2)}
+.conn-dot{display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:var(--green);margin-right:5px;vertical-align:middle}
+.conn-dot.offline{background:var(--red)}
+
+/* Main */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg0)}
+#topbar{padding:0 24px;height:56px;min-height:56px;border-bottom:1px solid var(--border);
+  background:var(--bg1);display:flex;align-items:center;justify-content:space-between}
+.topbar-title{font-size:16px;font-weight:600}
+.topbar-actions{display:flex;gap:8px}
+
+/* Stats bar */
+#stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+  background:var(--border);border-bottom:1px solid var(--border)}
+.stat-card{background:var(--bg1);padding:16px 20px}
+.stat-label{font-size:11px;color:var(--text2);text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:4px}
+.stat-value{font-size:22px;font-weight:700;color:var(--text0)}
+.stat-sub{font-size:11px;color:var(--text2);margin-top:2px}
+
+/* Content */
+#content{flex:1;overflow-y:auto;padding:20px 24px}
+.section{display:none}.section.active{display:block}
+
+/* Toolbar */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.search-box{position:relative;flex:1;min-width:160px;max-width:300px}
+.search-box input{width:100%;padding:7px 10px 7px 32px;background:var(--bg2);
+  border:1px solid var(--border);border-radius:var(--radius);color:var(--text0);
+  outline:none;transition:border-color .15s}
+.search-box input:focus{border-color:var(--accent)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);
+  color:var(--text2);font-size:13px}
+select.filter{padding:7px 10px;background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius);color:var(--text0);outline:none;cursor:pointer}
+select.filter:focus{border-color:var(--accent)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:none;
+  border-radius:var(--radius);font-size:12px;font-weight:600;transition:all .15s;cursor:pointer}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#3a7ae0}
+.btn-secondary{background:var(--bg3);color:var(--text0);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--bg4)}
+.btn-success{background:var(--green);color:#0d0f14}.btn-success:hover{background:#1aad64}
+.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{background:#d94040}
+.btn-warning{background:var(--yellow);color:#0d0f14}.btn-warning:hover{background:#d4ac00}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-xs{padding:3px 8px;font-size:10px}
+
+/* Table */
+.table-wrap{background:var(--bg1);border:1px solid var(--border);
+  border-radius:var(--radius);overflow:hidden}
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{background:var(--bg2);padding:10px 14px;font-size:10px;font-weight:600;
+  color:var(--text2);text-transform:uppercase;letter-spacing:.06em;text-align:left;
+  white-space:nowrap;border-bottom:1px solid var(--border)}
+.data-table td{padding:11px 14px;border-bottom:1px solid var(--border);
+  white-space:nowrap;font-size:12px}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tbody tr{transition:background .1s;cursor:pointer}
+.data-table tbody tr:hover td{background:var(--bg2)}
+.empty-state{text-align:center;padding:48px 20px;color:var(--text2)}
+.empty-icon{font-size:32px;margin-bottom:10px}
+
+/* Badges */
+.status-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;
+  padding:3px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.05em}
+.badge-draft     {background:rgba(107,122,153,.15);color:var(--text1)}
+.badge-confirmed {background:rgba(79,142,247,.15); color:var(--accent)}
+.badge-partial   {background:rgba(245,140,66,.15); color:var(--orange)}
+.badge-shipped   {background:rgba(34,197,117,.15); color:var(--green)}
+.badge-invoiced  {background:rgba(155,89,245,.15); color:var(--purple)}
+.badge-closed    {background:rgba(34,197,117,.15); color:var(--green)}
+.badge-cancelled {background:rgba(245,82,74,.15);  color:var(--red)}
+.badge-sent      {background:rgba(79,142,247,.15); color:var(--accent)}
+.badge-paid      {background:rgba(34,197,117,.15); color:var(--green)}
+.badge-overdue   {background:rgba(245,82,74,.15);  color:var(--red)}
+.badge-partial_paid{background:rgba(245,140,66,.15);color:var(--orange)}
+.code-tag{font-family:'SF Mono','Fira Code',monospace;font-size:11px;color:var(--text1);
+  background:var(--bg3);padding:2px 6px;border-radius:4px}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);
+  z-index:1000;align-items:flex-start;justify-content:center;padding-top:40px;overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg1);border:1px solid var(--border);border-radius:12px;
+  width:90%;max-width:820px;display:flex;flex-direction:column;
+  box-shadow:0 24px 80px rgba(0,0,0,.6);margin:0 auto 40px}
+.modal-sm{max-width:480px}
+.modal-header{display:flex;align-items:center;padding:16px 20px;
+  border-bottom:1px solid var(--border);gap:10px}
+.modal-title{font-size:15px;font-weight:700;flex:1}
+.modal-close{width:28px;height:28px;border:none;background:var(--bg3);border-radius:6px;
+  color:var(--text1);font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.modal-close:hover{background:var(--bg4);color:var(--text0)}
+.modal-body{padding:20px;overflow-y:auto;max-height:70vh}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--border);
+  display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+
+/* Forms */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group.full{grid-column:1/-1}
+.form-group.third{grid-column:auto}
+.form-label{font-size:11px;font-weight:600;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.06em}
+.form-input{padding:8px 10px;background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius);color:var(--text0);outline:none;
+  transition:border-color .15s;width:100%}
+.form-input:focus{border-color:var(--accent)}
+textarea.form-input{resize:vertical;min-height:60px}
+
+/* SO Lines table in modal */
+.lines-table{width:100%;border-collapse:collapse;margin-top:8px}
+.lines-table th{background:var(--bg3);padding:7px 10px;font-size:10px;font-weight:600;
+  color:var(--text2);text-transform:uppercase;text-align:left}
+.lines-table td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
+.lines-table tr:last-child td{border-bottom:none}
+.lines-table input,.lines-table select{background:var(--bg2);border:1px solid var(--border);
+  border-radius:5px;color:var(--text0);padding:5px 7px;outline:none;font-size:12px}
+.lines-table input:focus,.lines-table select:focus{border-color:var(--accent)}
+
+/* SO Detail sections */
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+.detail-block{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.detail-block-title{font-size:10px;font-weight:600;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.detail-row{display:flex;justify-content:space-between;padding:3px 0;font-size:12px}
+.detail-label{color:var(--text2)}
+.detail-value{font-weight:500}
+.totals-block{background:var(--bg3);border-radius:var(--radius);padding:14px;
+  margin-top:12px;max-width:300px;margin-left:auto}
+.total-row{display:flex;justify-content:space-between;padding:3px 0;font-size:12px}
+.total-row.grand{font-size:15px;font-weight:700;border-top:1px solid var(--border);
+  margin-top:8px;padding-top:10px}
+
+/* AR Aging */
+.aging-table{width:100%;border-collapse:collapse}
+.aging-table th{background:var(--bg2);padding:10px 14px;font-size:10px;font-weight:600;
+  color:var(--text2);text-transform:uppercase;letter-spacing:.06em;text-align:right;border-bottom:1px solid var(--border)}
+.aging-table th:first-child{text-align:left}
+.aging-table td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
+.aging-table td:first-child{text-align:left;font-weight:500}
+.aging-table tfoot td{background:var(--bg3);font-weight:700;border-top:1px solid var(--border)}
+.aging-table tr:last-child td{border-bottom:none}
+.aging-table tbody tr:hover td{background:var(--bg2);cursor:pointer}
+.overdue-30{color:var(--yellow)}.overdue-60{color:var(--orange)}.overdue-90{color:var(--red)}
+
+/* Spinner / Toast */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);
+  border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#toast-container{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:9999}
+.toast{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:10px 16px;font-size:12px;color:var(--text0);box-shadow:0 4px 20px rgba(0,0,0,.4);
+  animation:slideIn .2s ease;display:flex;align-items:center;gap:8px}
+.toast.success{border-left:3px solid var(--green)}
+.toast.error  {border-left:3px solid var(--red)}
+.toast.info   {border-left:3px solid var(--accent)}
+@keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- Sidebar -->
+<aside id="sidebar">
+  <div class="logo">
+    <div class="logo-mark">
+      <div class="logo-icon">⌚</div>
+      <div>
+        <div class="logo-text">Tick Tock Inc.</div>
+        <div class="logo-sub">ERP · Sales</div>
+      </div>
+    </div>
+  </div>
+  <nav>
+    <div class="nav-label">Sales</div>
+    <button class="nav-item active" data-section="orders" onclick="navigate('orders')">
+      <span class="icon">🧾</span> Sales Orders
+      <span class="nav-badge" id="badge-orders">0</span>
+    </button>
+    <button class="nav-item" data-section="shipments" onclick="navigate('shipments')">
+      <span class="icon">🚚</span> Shipments
+    </button>
+    <button class="nav-item" data-section="invoices" onclick="navigate('invoices')">
+      <span class="icon">💰</span> Invoices
+      <span class="nav-badge" id="badge-invoices" style="background:var(--orange)">0</span>
+    </button>
+    <button class="nav-item" data-section="aging" onclick="navigate('aging')">
+      <span class="icon">📅</span> AR Aging
+    </button>
+    <button class="nav-item" data-section="customers" onclick="navigate('customers')">
+      <span class="icon">🏢</span> Customers
+    </button>
+    <div class="nav-label" style="margin-top:12px">Modules</div>
+    <button class="nav-item" onclick="window.location.href='/'">
+      <span class="icon">📦</span> Inventory
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <span class="conn-dot" id="conn-dot"></span>
+    <span id="conn-status">Connecting…</span>
+  </div>
+</aside>
+
+<!-- Main -->
+<div id="main">
+  <div id="topbar">
+    <div class="topbar-title" id="page-title">Sales Orders</div>
+    <div class="topbar-actions">
+      <button class="btn btn-secondary btn-sm" onclick="refreshAll()">↻ Refresh</button>
+      <button class="btn btn-primary btn-sm" id="top-action-btn" onclick="openNewSOModal()">+ New Order</button>
+    </div>
+  </div>
+
+  <!-- Stats Bar -->
+  <div id="stats-bar">
+    <div class="stat-card">
+      <div class="stat-label">Open Orders</div>
+      <div class="stat-value" id="stat-open">—</div>
+      <div class="stat-sub">confirmed + partial</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Revenue MTD</div>
+      <div class="stat-value" id="stat-mtd">—</div>
+      <div class="stat-sub">this month</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Overdue Invoices</div>
+      <div class="stat-value" id="stat-overdue" style="color:var(--red)">—</div>
+      <div class="stat-sub">past due date</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total AR</div>
+      <div class="stat-value" id="stat-ar">—</div>
+      <div class="stat-sub">outstanding balance</div>
+    </div>
+  </div>
+
+  <div id="content">
+
+    <!-- Sales Orders -->
+    <div class="section active" id="section-orders">
+      <div class="toolbar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="so-search" placeholder="Search order # or customer…" oninput="renderOrders()">
+        </div>
+        <select class="filter" id="so-status-filter" onchange="renderOrders()">
+          <option value="">All Statuses</option>
+          <option value="draft">Draft</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="partially_shipped">Partially Shipped</option>
+          <option value="fully_shipped">Fully Shipped</option>
+          <option value="invoiced">Invoiced</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Order #</th><th>Customer</th><th>Date</th><th>Ship By</th>
+              <th>Lines</th><th>Total</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="orders-tbody">
+            <tr><td colspan="8" class="empty-state"><div class="spinner"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Shipments -->
+    <div class="section" id="section-shipments">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Shipment #</th><th>Order #</th><th>Customer</th><th>Ship Date</th><th>Carrier</th><th>Tracking</th><th>Status</th></tr>
+          </thead>
+          <tbody id="shipments-tbody">
+            <tr><td colspan="7" class="empty-state"><div class="spinner"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Invoices -->
+    <div class="section" id="section-invoices">
+      <div class="toolbar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="inv-search" placeholder="Search invoice # or customer…" oninput="renderInvoices()">
+        </div>
+        <select class="filter" id="inv-status-filter" onchange="renderInvoices()">
+          <option value="">All Statuses</option>
+          <option value="draft">Draft</option>
+          <option value="sent">Sent</option>
+          <option value="partial_paid">Partial Paid</option>
+          <option value="paid">Paid</option>
+          <option value="void">Void</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Invoice #</th><th>Customer</th><th>Date</th><th>Due Date</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th></tr>
+          </thead>
+          <tbody id="invoices-tbody">
+            <tr><td colspan="8" class="empty-state"><div class="spinner"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- AR Aging -->
+    <div class="section" id="section-aging">
+      <div style="margin-bottom:16px;color:var(--text1);font-size:12px">
+        Outstanding balances by customer, bucketed by days past due.
+      </div>
+      <div class="table-wrap">
+        <table class="aging-table">
+          <thead>
+            <tr>
+              <th style="text-align:left">Customer</th>
+              <th>Current</th><th>1–30 Days</th><th>31–60 Days</th>
+              <th>61–90 Days</th><th>90+ Days</th><th>Total Due</th>
+            </tr>
+          </thead>
+          <tbody id="aging-tbody">
+            <tr><td colspan="7" class="empty-state"><div class="spinner"></div></td></tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td style="text-align:left;font-weight:700">Totals</td>
+              <td id="aging-tot-current">—</td><td id="aging-tot-30">—</td>
+              <td id="aging-tot-60">—</td><td id="aging-tot-90">—</td>
+              <td id="aging-tot-90p">—</td><td id="aging-tot-total">—</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- Customers -->
+    <div class="section" id="section-customers">
+      <div class="toolbar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="cust-search" placeholder="Search customer…" oninput="renderCustomers()">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openNewCustomerModal()">+ New Customer</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Code</th><th>Name</th><th>Email</th><th>Phone</th><th>Terms</th><th>Credit Limit</th><th>AR Balance</th><th>Status</th></tr>
+          </thead>
+          <tbody id="customers-tbody">
+            <tr><td colspan="8" class="empty-state"><div class="spinner"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ═══ NEW SALES ORDER MODAL ═══ -->
+<div class="modal-overlay" id="new-so-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">New Sales Order</div>
+      <button class="modal-close" onclick="closeModal('new-so-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid" style="margin-bottom:16px">
+        <div class="form-group">
+          <label class="form-label">Customer *</label>
+          <select class="form-input" id="so-customer" onchange="onSOCustomerChange()">
+            <option value="">Select customer…</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Warehouse *</label>
+          <select class="form-input" id="so-warehouse">
+            <option value="">Select warehouse…</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Order Date</label>
+          <input class="form-input" type="date" id="so-order-date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Requested Ship Date</label>
+          <input class="form-input" type="date" id="so-ship-date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tax Rate (%)</label>
+          <input class="form-input" type="number" id="so-tax-rate" value="8" step="0.01" min="0" max="100">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <input class="form-input" id="so-notes" placeholder="Optional notes">
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:600;color:var(--text1);text-transform:uppercase;letter-spacing:.07em">Order Lines</div>
+        <button class="btn btn-secondary btn-sm" onclick="addSOLine()">+ Add Line</button>
+      </div>
+      <div class="table-wrap">
+        <table class="lines-table">
+          <thead>
+            <tr><th style="min-width:220px">Item</th><th>Available</th><th>Qty</th><th>Unit Price</th><th>Disc %</th><th>Line Total</th><th></th></tr>
+          </thead>
+          <tbody id="so-lines-body">
+            <tr id="so-lines-empty"><td colspan="7" style="padding:16px;text-align:center;color:var(--text2)">Click "+ Add Line" to add items</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:14px;display:flex;justify-content:flex-end">
+        <div style="min-width:260px">
+          <div class="total-row"><span style="color:var(--text2)">Subtotal</span><span id="so-subtotal-display">$0.00</span></div>
+          <div class="total-row"><span style="color:var(--text2)">Tax</span><span id="so-tax-display">$0.00</span></div>
+          <div class="total-row grand"><span>Total</span><span id="so-total-display">$0.00</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('new-so-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitNewSO()">Create Order</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SO DETAIL MODAL ═══ -->
+<div class="modal-overlay" id="so-detail-modal">
+  <div class="modal" style="max-width:900px">
+    <div class="modal-header">
+      <div class="modal-title" id="so-detail-title">Order Detail</div>
+      <button class="modal-close" onclick="closeModal('so-detail-modal')">✕</button>
+    </div>
+    <div class="modal-body" id="so-detail-body">
+      <div class="empty-state"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SHIP MODAL ═══ -->
+<div class="modal-overlay" id="ship-modal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <div class="modal-title">Create Shipment</div>
+      <button class="modal-close" onclick="closeModal('ship-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ship-order-id">
+      <div class="form-grid" style="margin-bottom:16px">
+        <div class="form-group">
+          <label class="form-label">Ship Date</label>
+          <input class="form-input" type="date" id="ship-date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Carrier</label>
+          <input class="form-input" id="ship-carrier" placeholder="UPS, FedEx, USPS…">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tracking Number</label>
+          <input class="form-input" id="ship-tracking" placeholder="Optional">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <input class="form-input" id="ship-notes" placeholder="Optional">
+        </div>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:var(--text1);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Lines to Ship</div>
+      <div class="table-wrap">
+        <table class="lines-table">
+          <thead><tr><th>Item</th><th>Ordered</th><th>Shipped</th><th>Remaining</th><th>Ship Qty</th></tr></thead>
+          <tbody id="ship-lines-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('ship-modal')">Cancel</button>
+      <button class="btn btn-success" onclick="submitShipment()">Post Shipment</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ NEW CUSTOMER MODAL ═══ -->
+<div class="modal-overlay" id="new-customer-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">New Customer</div>
+      <button class="modal-close" onclick="closeModal('new-customer-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Code *</label>
+          <input class="form-input" id="nc-code" placeholder="CUST-006">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Name *</label>
+          <input class="form-input" id="nc-name" placeholder="Company Name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="nc-email" type="email" placeholder="orders@company.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input class="form-input" id="nc-phone" placeholder="212-555-0100">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Terms (days)</label>
+          <input class="form-input" id="nc-terms" type="number" value="30" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Credit Limit ($)</label>
+          <input class="form-input" id="nc-credit" type="number" value="10000" min="0">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Billing Address</label>
+          <input class="form-input" id="nc-addr" placeholder="Street address">
+        </div>
+        <div class="form-group">
+          <label class="form-label">City</label>
+          <input class="form-input" id="nc-city" placeholder="New York">
+        </div>
+        <div class="form-group">
+          <label class="form-label">State / Zip</label>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" id="nc-state" placeholder="NY" style="width:70px">
+            <input class="form-input" id="nc-zip" placeholder="10001">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('new-customer-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitNewCustomer()">Create Customer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAYMENT MODAL ═══ -->
+<div class="modal-overlay" id="payment-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">Record Payment</div>
+      <button class="modal-close" onclick="closeModal('payment-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pay-invoice-id">
+      <input type="hidden" id="pay-customer-id">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Payment Date</label>
+          <input class="form-input" type="date" id="pay-date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount ($)</label>
+          <input class="form-input" type="number" id="pay-amount" step="0.01" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Method</label>
+          <select class="form-input" id="pay-method">
+            <option value="check">Check</option>
+            <option value="wire">Wire</option>
+            <option value="ach">ACH</option>
+            <option value="credit_card">Credit Card</option>
+            <option value="cash">Cash</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reference #</label>
+          <input class="form-input" id="pay-ref" placeholder="Check or wire ref">
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text2)" id="pay-invoice-info"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('payment-modal')">Cancel</button>
+      <button class="btn btn-success" onclick="submitPayment()">Record Payment</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+const API = 'http://localhost:3001';
+let apiOnline = false;
+let allOrders = [], allShipments = [], allInvoices = [], allCustomers = [], allItems = [], allWarehouses = [];
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(`${API}${path}`, {
+    ...opts, headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) }
+  });
+  if (!res.ok) { const b = await res.json().catch(() => ({})); throw new Error(b.error || `HTTP ${res.status}`); }
+  return res.json();
+}
+
+const $ = id => document.getElementById(id);
+const fmt = n => parseFloat(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtDate = d => d ? String(d).slice(0, 10) : '—';
+const today = () => new Date().toISOString().slice(0, 10);
+
+function statusBadge(s) {
+  const map = {
+    draft:'badge-draft', confirmed:'badge-confirmed',
+    partially_shipped:'badge-partial', fully_shipped:'badge-shipped',
+    invoiced:'badge-invoiced', closed:'badge-closed', cancelled:'badge-cancelled',
+    sent:'badge-sent', paid:'badge-paid', partial_paid:'badge-partial_paid', void:'badge-cancelled',
+    shipped:'badge-shipped', delivered:'badge-shipped'
+  };
+  return `<span class="status-badge ${map[s]||'badge-draft'}">${(s||'').replace(/_/g,' ')}</span>`;
+}
+
+function invoiceStatusBadge(inv) {
+  const overdue = inv.status !== 'paid' && inv.status !== 'void' && new Date(inv.due_date) < new Date();
+  if (overdue) return `<span class="status-badge badge-overdue">⚠ Overdue</span>`;
+  return statusBadge(inv.status);
+}
+
+function toast(msg, type = 'info') {
+  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+  $('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function openModal(id) { $(id).classList.add('open'); }
+function closeModal(id) { $(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+
+// ═══════════════════════════════════════════════════════════
+// CONNECTION
+// ═══════════════════════════════════════════════════════════
+async function checkConnection() {
+  try {
+    await apiFetch('/health');
+    apiOnline = true;
+    $('conn-dot').classList.remove('offline');
+    $('conn-status').textContent = 'API Connected';
+  } catch {
+    apiOnline = false;
+    $('conn-dot').classList.add('offline');
+    $('conn-status').textContent = 'API Offline';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// DATA LOADING
+// ═══════════════════════════════════════════════════════════
+async function loadDashboard() {
+  try {
+    const [dash, aging, invoices] = await Promise.all([
+      apiFetch('/api/sales-orders/dashboard'),
+      apiFetch('/api/ar-aging'),
+      apiFetch('/api/invoices')
+    ]);
+    $('stat-open').textContent   = dash.open_orders;
+    $('stat-mtd').textContent    = '$' + fmt(dash.revenue_mtd);
+    const overdue = invoices.filter(i => i.status !== 'paid' && i.status !== 'void' && new Date(i.due_date) < new Date()).length;
+    $('stat-overdue').textContent = overdue;
+    $('stat-ar').textContent     = '$' + fmt(aging.totals?.total_due || 0);
+    $('badge-invoices').textContent = overdue;
+  } catch (e) { console.error('Dashboard error:', e.message); }
+}
+
+async function loadOrders() {
+  try {
+    allOrders = await apiFetch('/api/sales-orders');
+    $('badge-orders').textContent = allOrders.filter(o => ['confirmed','partially_shipped'].includes(o.status)).length;
+    renderOrders();
+  } catch (e) { $('orders-tbody').innerHTML = `<tr><td colspan="8" class="empty-state">Failed to load orders</td></tr>`; }
+}
+
+async function loadShipments() {
+  try {
+    allShipments = await apiFetch('/api/shipments');
+    renderShipments();
+  } catch (e) { $('shipments-tbody').innerHTML = `<tr><td colspan="7" class="empty-state">Failed to load shipments</td></tr>`; }
+}
+
+async function loadInvoices() {
+  try {
+    allInvoices = await apiFetch('/api/invoices');
+    renderInvoices();
+  } catch (e) { $('invoices-tbody').innerHTML = `<tr><td colspan="8" class="empty-state">Failed to load invoices</td></tr>`; }
+}
+
+async function loadCustomers() {
+  try {
+    allCustomers = await apiFetch('/api/customers');
+    // Populate selectors
+    const sel = $('so-customer');
+    const existing = sel.innerHTML.split('\n')[0];
+    sel.innerHTML = '<option value="">Select customer…</option>';
+    allCustomers.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.id; o.textContent = `${c.code} — ${c.name}`;
+      sel.appendChild(o);
+    });
+    renderCustomers();
+  } catch (e) { console.error('Customers error:', e.message); }
+}
+
+async function loadWarehouses() {
+  try {
+    allWarehouses = await apiFetch('/api/warehouses');
+    const sel = $('so-warehouse');
+    sel.innerHTML = '<option value="">Select warehouse…</option>';
+    allWarehouses.forEach(w => {
+      const o = document.createElement('option');
+      o.value = w.id; o.textContent = `${w.code} — ${w.name}`;
+      sel.appendChild(o);
+    });
+  } catch (e) { console.error('Warehouses error:', e.message); }
+}
+
+async function loadItems() {
+  try {
+    allItems = await apiFetch('/api/items');
+  } catch (e) { console.error('Items error:', e.message); }
+}
+
+async function loadAging() {
+  try {
+    const { customers, totals } = await apiFetch('/api/ar-aging');
+    const tbody = $('aging-tbody');
+    if (!customers.length) {
+      tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><div class="empty-icon">✅</div>No outstanding AR balances</td></tr>`;
+    } else {
+      tbody.innerHTML = customers.map(c => `
+        <tr onclick="navigate('customers')">
+          <td><div style="font-weight:600">${c.customer_name}</div><div style="font-size:10px;color:var(--text2)">${c.customer_code}</div></td>
+          <td>${c.current_due > 0 ? '$'+fmt(c.current_due) : '—'}</td>
+          <td class="${c.days_1_30 > 0 ? 'overdue-30' : ''}">${c.days_1_30 > 0 ? '$'+fmt(c.days_1_30) : '—'}</td>
+          <td class="${c.days_31_60 > 0 ? 'overdue-60' : ''}">${c.days_31_60 > 0 ? '$'+fmt(c.days_31_60) : '—'}</td>
+          <td class="${c.days_61_90 > 0 ? 'overdue-90' : ''}">${c.days_61_90 > 0 ? '$'+fmt(c.days_61_90) : '—'}</td>
+          <td class="${c.days_90plus > 0 ? 'overdue-90' : ''}">${c.days_90plus > 0 ? '$'+fmt(c.days_90plus) : '—'}</td>
+          <td style="font-weight:700;color:${c.total_due>0?'var(--red)':'var(--text0)'}">$${fmt(c.total_due)}</td>
+        </tr>
+      `).join('');
+    }
+    if (totals) {
+      $('aging-tot-current').textContent = '$' + fmt(totals.current_due);
+      $('aging-tot-30').textContent      = '$' + fmt(totals.days_1_30);
+      $('aging-tot-60').textContent      = '$' + fmt(totals.days_31_60);
+      $('aging-tot-90').textContent      = '$' + fmt(totals.days_61_90);
+      $('aging-tot-90p').textContent     = '$' + fmt(totals.days_90plus);
+      $('aging-tot-total').textContent   = '$' + fmt(totals.total_due);
+    }
+  } catch (e) { $('aging-tbody').innerHTML = `<tr><td colspan="7" class="empty-state">Failed to load AR aging</td></tr>`; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════════════
+function renderOrders() {
+  const q   = ($('so-search').value || '').toLowerCase();
+  const st  = $('so-status-filter').value;
+  const rows = allOrders.filter(o => {
+    if (st && o.status !== st) return false;
+    if (q && !o.number.toLowerCase().includes(q) && !(o.customer_name||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  const tbody = $('orders-tbody');
+  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🧾</div>No orders found</div></td></tr>`; return; }
+  tbody.innerHTML = rows.map(o => `
+    <tr onclick="openSODetail('${o.id}')">
+      <td><span class="code-tag">${o.number}</span></td>
+      <td><div style="font-weight:500">${o.customer_name}</div><div style="font-size:10px;color:var(--text2)">${o.customer_code}</div></td>
+      <td>${fmtDate(o.order_date)}</td>
+      <td style="color:${o.requested_ship_date && new Date(o.requested_ship_date)<new Date()?'var(--red)':'var(--text1)'}">
+        ${fmtDate(o.requested_ship_date)}</td>
+      <td>${o.line_count}</td>
+      <td style="font-weight:600">$${fmt(o.total)}</td>
+      <td>${statusBadge(o.status)}</td>
+      <td onclick="event.stopPropagation()">
+        ${o.status==='draft' ? `<button class="btn btn-success btn-xs" onclick="confirmOrder('${o.id}')">Confirm</button>` : ''}
+        ${['confirmed','partially_shipped'].includes(o.status) ? `<button class="btn btn-primary btn-xs" onclick="openShipModal('${o.id}')">Ship</button>` : ''}
+        ${['draft','confirmed'].includes(o.status) ? `<button class="btn btn-danger btn-xs" onclick="cancelOrder('${o.id}')">Cancel</button>` : ''}
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderShipments() {
+  const tbody = $('shipments-tbody');
+  if (!allShipments.length) { tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🚚</div>No shipments yet</div></td></tr>`; return; }
+  tbody.innerHTML = allShipments.map(s => `
+    <tr>
+      <td><span class="code-tag">${s.number}</span></td>
+      <td><span class="code-tag">${s.order_number}</span></td>
+      <td>${s.customer_name}</td>
+      <td>${fmtDate(s.ship_date)}</td>
+      <td>${s.carrier || '—'}</td>
+      <td style="font-size:11px;color:var(--text2)">${s.tracking_number || '—'}</td>
+      <td>${statusBadge(s.status)}</td>
+    </tr>
+  `).join('');
+}
+
+function renderInvoices() {
+  const q  = ($('inv-search').value || '').toLowerCase();
+  const st = $('inv-status-filter').value;
+  const rows = allInvoices.filter(i => {
+    if (st && i.status !== st) return false;
+    if (q && !i.number.toLowerCase().includes(q) && !(i.customer_name||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  const tbody = $('invoices-tbody');
+  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">💰</div>No invoices found</div></td></tr>`; return; }
+  tbody.innerHTML = rows.map(i => {
+    const overdue = i.status !== 'paid' && i.status !== 'void' && new Date(i.due_date) < new Date();
+    return `
+    <tr onclick="openPaymentModal('${i.id}','${i.customer_id}','${i.number}',${i.balance_due})">
+      <td><span class="code-tag">${i.number}</span></td>
+      <td>${i.customer_name}</td>
+      <td>${fmtDate(i.invoice_date)}</td>
+      <td style="color:${overdue?'var(--red)':'var(--text1)'}">${fmtDate(i.due_date)}</td>
+      <td style="font-weight:600">$${fmt(i.total)}</td>
+      <td style="color:var(--green)">$${fmt(i.amount_paid)}</td>
+      <td style="font-weight:700;color:${parseFloat(i.balance_due)>0?(overdue?'var(--red)':'var(--orange)'):'var(--green)'}">$${fmt(i.balance_due)}</td>
+      <td>${invoiceStatusBadge(i)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderCustomers() {
+  const q = ($('cust-search').value || '').toLowerCase();
+  const rows = allCustomers.filter(c =>
+    !q || c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q)
+  );
+  const tbody = $('customers-tbody');
+  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🏢</div>No customers found</div></td></tr>`; return; }
+  tbody.innerHTML = rows.map(c => `
+    <tr>
+      <td><span class="code-tag">${c.code}</span></td>
+      <td style="font-weight:500">${c.name}</td>
+      <td style="color:var(--text2)">${c.email||'—'}</td>
+      <td style="color:var(--text2)">${c.phone||'—'}</td>
+      <td>NET${c.payment_terms_days}</td>
+      <td>$${fmt(c.credit_limit)}</td>
+      <td style="font-weight:600;color:${parseFloat(c.ar_balance||0)>0?'var(--orange)':'var(--text0)'}">
+        $${fmt(c.ar_balance||0)}</td>
+      <td>${c.is_active ? '<span class="status-badge badge-shipped">Active</span>' : '<span class="status-badge badge-cancelled">Inactive</span>'}</td>
+    </tr>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════
+const pageTitles = { orders:'Sales Orders', shipments:'Shipments', invoices:'Invoices', aging:'AR Aging', customers:'Customers' };
+const pageActions = {
+  orders:    { label:'+ New Order',    fn: 'openNewSOModal' },
+  shipments: { label:'',               fn: '' },
+  invoices:  { label:'',               fn: '' },
+  aging:     { label:'',               fn: '' },
+  customers: { label:'+ New Customer', fn: 'openNewCustomerModal' },
+};
+
+function navigate(section) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  $(`section-${section}`)?.classList.add('active');
+  document.querySelector(`[data-section="${section}"]`)?.classList.add('active');
+  $('page-title').textContent = pageTitles[section] || section;
+  const act = pageActions[section];
+  const btn = $('top-action-btn');
+  btn.textContent = act?.label || '';
+  btn.style.display = act?.label ? '' : 'none';
+  if (act?.fn) btn.onclick = () => window[act.fn]();
+
+  if (section === 'shipments') loadShipments();
+  if (section === 'invoices')  loadInvoices();
+  if (section === 'aging')     loadAging();
+  if (section === 'customers') { loadCustomers(); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SO DETAIL
+// ═══════════════════════════════════════════════════════════
+async function openSODetail(orderId) {
+  openModal('so-detail-modal');
+  $('so-detail-title').textContent = 'Loading…';
+  $('so-detail-body').innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
+  try {
+    const o = await apiFetch(`/api/sales-orders/${orderId}`);
+    $('so-detail-title').textContent = `${o.number} — ${o.customer_name}`;
+
+    const addr = o.billing_address ? (typeof o.billing_address === 'string' ? JSON.parse(o.billing_address) : o.billing_address) : null;
+
+    const canConfirm = o.status === 'draft';
+    const canShip    = ['confirmed','partially_shipped'].includes(o.status);
+    const canCancel  = ['draft','confirmed'].includes(o.status);
+
+    $('so-detail-body').innerHTML = `
+      <div class="detail-grid">
+        <div class="detail-block">
+          <div class="detail-block-title">Order Info</div>
+          <div class="detail-row"><span class="detail-label">Number</span><span class="detail-value">${o.number}</span></div>
+          <div class="detail-row"><span class="detail-label">Status</span><span>${statusBadge(o.status)}</span></div>
+          <div class="detail-row"><span class="detail-label">Order Date</span><span class="detail-value">${fmtDate(o.order_date)}</span></div>
+          <div class="detail-row"><span class="detail-label">Ship By</span><span class="detail-value">${fmtDate(o.requested_ship_date)}</span></div>
+          <div class="detail-row"><span class="detail-label">Warehouse</span><span class="detail-value">${o.warehouse_code}</span></div>
+        </div>
+        <div class="detail-block">
+          <div class="detail-block-title">Customer</div>
+          <div class="detail-row"><span class="detail-label">Code</span><span class="detail-value">${o.customer_code}</span></div>
+          <div class="detail-row"><span class="detail-label">Name</span><span class="detail-value">${o.customer_name}</span></div>
+          <div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">${o.customer_email||'—'}</span></div>
+          <div class="detail-row"><span class="detail-label">Phone</span><span class="detail-value">${o.customer_phone||'—'}</span></div>
+          <div class="detail-row"><span class="detail-label">Terms</span><span class="detail-value">NET${o.payment_terms_days||30}</span></div>
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Order Lines</div>
+      <div class="table-wrap" style="margin-bottom:16px">
+        <table class="data-table">
+          <thead><tr><th>SKU</th><th>Item</th><th>Ordered</th><th>Shipped</th><th>Backorder</th><th>Unit Price</th><th>Disc</th><th>Line Total</th><th>Status</th></tr></thead>
+          <tbody>
+            ${(o.lines||[]).map(l => `
+              <tr>
+                <td><span class="code-tag">${l.item_code}</span></td>
+                <td>${l.item_name}</td>
+                <td>${l.qty_ordered}</td>
+                <td>${l.qty_shipped}</td>
+                <td style="color:${parseFloat(l.qty_backordered)>0?'var(--orange)':'var(--text2)'}">${l.qty_backordered}</td>
+                <td>$${fmt(l.unit_price)}</td>
+                <td>${l.discount_pct > 0 ? (parseFloat(l.discount_pct)*100).toFixed(1)+'%' : '—'}</td>
+                <td style="font-weight:600">$${fmt(l.line_total)}</td>
+                <td>${statusBadge(l.status)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+        <div style="min-width:260px">
+          <div class="total-row"><span style="color:var(--text2)">Subtotal</span><span>$${fmt(o.subtotal)}</span></div>
+          <div class="total-row"><span style="color:var(--text2)">Tax (${(parseFloat(o.tax_rate||0)*100).toFixed(1)}%)</span><span>$${fmt(o.tax_amount)}</span></div>
+          <div class="total-row grand"><span>Total</span><span>$${fmt(o.total)}</span></div>
+        </div>
+      </div>
+
+      ${(o.shipments||[]).length ? `
+      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Shipments</div>
+      <div class="table-wrap" style="margin-bottom:16px">
+        <table class="data-table">
+          <thead><tr><th>Shipment #</th><th>Ship Date</th><th>Carrier</th><th>Tracking</th><th>Status</th></tr></thead>
+          <tbody>
+            ${o.shipments.map(s=>`<tr>
+              <td><span class="code-tag">${s.number}</span></td>
+              <td>${fmtDate(s.ship_date)}</td><td>${s.carrier||'—'}</td>
+              <td style="font-size:11px;color:var(--text2)">${s.tracking_number||'—'}</td>
+              <td>${statusBadge(s.status)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>` : ''}
+
+      ${(o.invoices||[]).length ? `
+      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Invoices</div>
+      <div class="table-wrap" style="margin-bottom:16px">
+        <table class="data-table">
+          <thead><tr><th>Invoice #</th><th>Date</th><th>Due</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
+          <tbody>
+            ${o.invoices.map(i=>`<tr onclick="openPaymentModal('${i.id}','${o.customer_id}','${i.number}',${i.balance_due})">
+              <td><span class="code-tag">${i.number}</span></td>
+              <td>${fmtDate(i.invoice_date)}</td><td>${fmtDate(i.due_date)}</td>
+              <td>$${fmt(i.total)}</td><td style="color:var(--green)">$${fmt(i.amount_paid)}</td>
+              <td style="font-weight:700">$${fmt(i.balance_due)}</td>
+              <td>${invoiceStatusBadge(i)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>` : ''}
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:4px">
+        ${canConfirm ? `<button class="btn btn-success" onclick="confirmOrder('${o.id}',true)">✓ Confirm Order</button>` : ''}
+        ${canShip    ? `<button class="btn btn-primary" onclick="openShipModal('${o.id}')">🚚 Create Shipment</button>` : ''}
+        ${canCancel  ? `<button class="btn btn-danger"  onclick="cancelOrder('${o.id}',true)">✕ Cancel Order</button>` : ''}
+        <button class="btn btn-secondary" onclick="closeModal('so-detail-modal')">Close</button>
+      </div>
+    `;
+  } catch (e) {
+    $('so-detail-body').innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div>${e.message}</div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// ORDER ACTIONS
+// ═══════════════════════════════════════════════════════════
+async function confirmOrder(orderId, fromDetail = false) {
+  if (!confirm('Confirm this order? Stock will be reserved.')) return;
+  try {
+    await apiFetch(`/api/sales-orders/${orderId}/confirm`, { method: 'POST', body: '{}' });
+    toast('Order confirmed — stock reserved!', 'success');
+    await Promise.all([loadOrders(), loadDashboard()]);
+    if (fromDetail) openSODetail(orderId);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function cancelOrder(orderId, fromDetail = false) {
+  if (!confirm('Cancel this order? Any reservations will be released.')) return;
+  try {
+    await apiFetch(`/api/sales-orders/${orderId}/cancel`, { method: 'POST', body: '{}' });
+    toast('Order cancelled', 'info');
+    await Promise.all([loadOrders(), loadDashboard()]);
+    if (fromDetail) closeModal('so-detail-modal');
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// NEW SALES ORDER
+// ═══════════════════════════════════════════════════════════
+function openNewSOModal() {
+  $('so-order-date').value = today();
+  $('so-ship-date').value  = '';
+  $('so-notes').value = '';
+  $('so-tax-rate').value = '8';
+  $('so-lines-body').innerHTML = `<tr id="so-lines-empty"><td colspan="7" style="padding:16px;text-align:center;color:var(--text2)">Click "+ Add Line" to add items</td></tr>`;
+  updateSOTotals();
+  openModal('new-so-modal');
+}
+
+function addSOLine() {
+  const empty = $('so-lines-empty');
+  if (empty) empty.remove();
+  const tbody = $('so-lines-body');
+  const tr = document.createElement('tr');
+  const opts = allItems.map(i => `<option value="${i.id}" data-price="${i.sale_price}">${i.code} — ${i.name}</option>`).join('');
+  tr.innerHTML = `
+    <td><select class="sol-item" style="width:220px;font-size:12px" onchange="onSOLineItemChange(this)">${opts.length ? '<option value="">Select item…</option>'+opts : '<option>No items loaded</option>'}</select></td>
+    <td><span class="sol-avail" style="font-size:11px;color:var(--text2)">—</span></td>
+    <td><input class="sol-qty" type="number" value="1" min="1" step="1" style="width:60px" oninput="updateSOTotals()"></td>
+    <td><input class="sol-price" type="number" step="0.01" min="0" style="width:80px" placeholder="0.00" oninput="updateSOTotals()"></td>
+    <td><input class="sol-disc" type="number" step="0.01" min="0" max="100" value="0" style="width:55px" oninput="updateSOTotals()"></td>
+    <td class="sol-total" style="font-weight:600;text-align:right">$0.00</td>
+    <td><button class="btn btn-danger btn-xs" onclick="this.closest('tr').remove();updateSOTotals()">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+async function onSOLineItemChange(sel) {
+  const tr         = sel.closest('tr');
+  const priceInput = tr.querySelector('.sol-price');
+  const availSpan  = tr.querySelector('.sol-avail');
+  const itemId     = sel.value;
+  const customerId = $('so-customer').value;
+  if (!itemId) return;
+
+  // Get price via pricing engine
+  try {
+    const qty    = tr.querySelector('.sol-qty').value || 1;
+    const params = new URLSearchParams({ itemId, qty });
+    if (customerId) params.set('customerId', customerId);
+    const { price } = await apiFetch(`/api/pricing/resolve?${params}`);
+    priceInput.value = parseFloat(price).toFixed(2);
+  } catch {
+    const opt = sel.options[sel.selectedIndex];
+    if (opt?.dataset?.price) priceInput.value = parseFloat(opt.dataset.price).toFixed(2);
+  }
+
+  // Get available stock
+  try {
+    const whId = $('so-warehouse').value;
+    if (whId) {
+      const avail = await apiFetch(`/api/stock/${itemId}/availability`);
+      const wh = avail.find(a => a.warehouse_id === whId);
+      availSpan.textContent = wh ? `${wh.qty_available} avail` : '0 avail';
+      availSpan.style.color = wh && parseFloat(wh.qty_available) > 0 ? 'var(--green)' : 'var(--red)';
+    }
+  } catch { availSpan.textContent = '—'; }
+
+  updateSOTotals();
+}
+
+function onSOCustomerChange() {
+  // Re-resolve prices for existing lines
+  document.querySelectorAll('#so-lines-body .sol-item').forEach(sel => {
+    if (sel.value) onSOLineItemChange(sel);
+  });
+}
+
+function updateSOTotals() {
+  let subtotal = 0;
+  document.querySelectorAll('#so-lines-body tr:not(#so-lines-empty)').forEach(tr => {
+    const qty   = parseFloat(tr.querySelector('.sol-qty')?.value || 0);
+    const price = parseFloat(tr.querySelector('.sol-price')?.value || 0);
+    const disc  = parseFloat(tr.querySelector('.sol-disc')?.value || 0) / 100;
+    const lt    = qty * price * (1 - disc);
+    const totEl = tr.querySelector('.sol-total');
+    if (totEl) totEl.textContent = '$' + fmt(lt);
+    subtotal += lt;
+  });
+  const taxRate = parseFloat($('so-tax-rate').value || 0) / 100;
+  const tax     = subtotal * taxRate;
+  $('so-subtotal-display').textContent = '$' + fmt(subtotal);
+  $('so-tax-display').textContent      = '$' + fmt(tax);
+  $('so-total-display').textContent    = '$' + fmt(subtotal + tax);
+}
+
+async function submitNewSO() {
+  const customerId  = $('so-customer').value;
+  const warehouseId = $('so-warehouse').value;
+  if (!customerId)  { toast('Select a customer', 'error'); return; }
+  if (!warehouseId) { toast('Select a warehouse', 'error'); return; }
+
+  const lines = [];
+  let valid = true;
+  document.querySelectorAll('#so-lines-body tr:not(#so-lines-empty)').forEach(tr => {
+    const itemId = tr.querySelector('.sol-item')?.value;
+    const qty    = parseFloat(tr.querySelector('.sol-qty')?.value || 0);
+    const price  = parseFloat(tr.querySelector('.sol-price')?.value || 0);
+    const disc   = parseFloat(tr.querySelector('.sol-disc')?.value || 0) / 100;
+    if (!itemId || qty <= 0) { valid = false; return; }
+    lines.push({ item_id: itemId, qty_ordered: qty, unit_price: price, discount_pct: disc });
+  });
+  if (!valid) { toast('All lines need an item and quantity > 0', 'error'); return; }
+  if (!lines.length) { toast('Add at least one line', 'error'); return; }
+
+  try {
+    const so = await apiFetch('/api/sales-orders', {
+      method: 'POST',
+      body: JSON.stringify({
+        customer_id: customerId, warehouse_id: warehouseId,
+        order_date: $('so-order-date').value,
+        requested_ship_date: $('so-ship-date').value || null,
+        tax_rate: parseFloat($('so-tax-rate').value || 0) / 100,
+        notes: $('so-notes').value || null,
+        lines
+      })
+    });
+    toast(`${so.number} created!`, 'success');
+    closeModal('new-so-modal');
+    await Promise.all([loadOrders(), loadDashboard()]);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SHIP MODAL
+// ═══════════════════════════════════════════════════════════
+async function openShipModal(orderId) {
+  $('ship-order-id').value = orderId;
+  $('ship-date').value     = today();
+  $('ship-carrier').value  = '';
+  $('ship-tracking').value = '';
+  $('ship-notes').value    = '';
+  $('ship-lines-body').innerHTML = '<tr><td colspan="5" style="padding:14px;text-align:center"><div class="spinner"></div></td></tr>';
+  openModal('ship-modal');
+  closeModal('so-detail-modal');
+
+  try {
+    const order = await apiFetch(`/api/sales-orders/${orderId}`);
+    const openLines = (order.lines || []).filter(l => parseFloat(l.qty_backordered) > 0 && l.status !== 'cancelled');
+    $('ship-lines-body').innerHTML = openLines.map(l => `
+      <tr>
+        <td><div style="font-weight:500">${l.item_code}</div><div style="font-size:11px;color:var(--text2)">${l.item_name}</div></td>
+        <td>${l.qty_ordered}</td><td>${l.qty_shipped}</td>
+        <td style="color:var(--orange)">${l.qty_backordered}</td>
+        <td><input type="number" data-line-id="${l.id}" class="ship-qty-input"
+              value="${l.qty_backordered}" min="0.01" max="${l.qty_backordered}" step="0.01"
+              style="width:70px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;
+                     color:var(--text0);padding:5px 7px;font-size:12px"></td>
+      </tr>
+    `).join('');
+  } catch (e) { $('ship-lines-body').innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--red)">${e.message}</td></tr>`; }
+}
+
+async function submitShipment() {
+  const orderId  = $('ship-order-id').value;
+  const shipDate = $('ship-date').value;
+  const lines    = [];
+
+  document.querySelectorAll('.ship-qty-input').forEach(inp => {
+    const qty = parseFloat(inp.value);
+    if (qty > 0) lines.push({ order_line_id: inp.dataset.lineId, qty_shipped: qty });
+  });
+
+  if (!lines.length) { toast('No lines to ship', 'error'); return; }
+
+  try {
+    // 1. Create shipment (draft)
+    const shp = await apiFetch('/api/shipments', {
+      method: 'POST',
+      body: JSON.stringify({
+        sales_order_id: orderId,
+        ship_date: shipDate,
+        carrier: $('ship-carrier').value || null,
+        tracking_number: $('ship-tracking').value || null,
+        notes: $('ship-notes').value || null,
+        lines
+      })
+    });
+    // 2. Post shipment (deducts stock, creates invoice)
+    const result = await apiFetch(`/api/shipments/${shp.id}/post`, { method: 'POST', body: '{}' });
+    toast(`${shp.number} shipped! Invoice ${result.invoice.number} created.`, 'success');
+    closeModal('ship-modal');
+    await Promise.all([loadOrders(), loadShipments(), loadInvoices(), loadDashboard()]);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// NEW CUSTOMER
+// ═══════════════════════════════════════════════════════════
+function openNewCustomerModal() { openModal('new-customer-modal'); }
+
+async function submitNewCustomer() {
+  const code = $('nc-code').value.trim();
+  const name = $('nc-name').value.trim();
+  if (!code || !name) { toast('Code and Name are required', 'error'); return; }
+
+  const city  = $('nc-city').value.trim();
+  const state = $('nc-state').value.trim();
+  const zip   = $('nc-zip').value.trim();
+  const addr  = $('nc-addr').value.trim();
+
+  try {
+    const cust = await apiFetch('/api/customers', {
+      method: 'POST',
+      body: JSON.stringify({
+        code, name,
+        email: $('nc-email').value || null,
+        phone: $('nc-phone').value || null,
+        billing_address: addr ? { line1: addr, city, state, zip, country: 'US' } : null,
+        payment_terms_days: parseInt($('nc-terms').value) || 30,
+        credit_limit: parseFloat($('nc-credit').value) || 0
+      })
+    });
+    toast(`Customer ${cust.code} created!`, 'success');
+    closeModal('new-customer-modal');
+    await loadCustomers();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAYMENT MODAL
+// ═══════════════════════════════════════════════════════════
+function openPaymentModal(invoiceId, customerId, invoiceNumber, balanceDue) {
+  $('pay-invoice-id').value   = invoiceId;
+  $('pay-customer-id').value  = customerId;
+  $('pay-date').value         = today();
+  $('pay-amount').value       = parseFloat(balanceDue).toFixed(2);
+  $('pay-ref').value          = '';
+  $('pay-invoice-info').textContent = `Invoice ${invoiceNumber} — Balance Due: $${fmt(balanceDue)}`;
+  openModal('payment-modal');
+}
+
+async function submitPayment() {
+  const invoiceId  = $('pay-invoice-id').value;
+  const customerId = $('pay-customer-id').value;
+  const amount     = parseFloat($('pay-amount').value);
+  if (!amount || amount <= 0) { toast('Enter a valid amount', 'error'); return; }
+
+  try {
+    await apiFetch('/api/payments', {
+      method: 'POST',
+      body: JSON.stringify({
+        customer_id: customerId,
+        payment_date: $('pay-date').value,
+        amount,
+        method: $('pay-method').value,
+        reference_number: $('pay-ref').value || null,
+        applications: [{ invoice_id: invoiceId, amount_applied: amount }]
+      })
+    });
+    toast(`Payment of $${fmt(amount)} recorded!`, 'success');
+    closeModal('payment-modal');
+    await Promise.all([loadInvoices(), loadDashboard(), loadCustomers()]);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// REFRESH
+// ═══════════════════════════════════════════════════════════
+async function refreshAll() {
+  await checkConnection();
+  await Promise.all([loadDashboard(), loadOrders(), loadCustomers()]);
+  toast('Refreshed', 'info');
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+(async function init() {
+  await checkConnection();
+  await Promise.all([loadWarehouses(), loadItems(), loadCustomers()]);
+  await Promise.all([loadDashboard(), loadOrders()]);
+})();
+</script>
+</body>
+</html>
