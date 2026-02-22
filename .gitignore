@@ -1,0 +1,7 @@
+node_modules/
+.env
+*.log
+.DS_Store
+.claude/
+api/src/inspect_excel.js
+api/src/import_excel.js
