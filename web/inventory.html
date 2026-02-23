@@ -699,6 +699,21 @@ textarea.form-input { resize: vertical; min-height: 70px; }
           <label class="form-label">Lead Time (days)</label>
           <input class="form-input" name="lead_time_days" type="number" step="1" min="0" placeholder="0">
         </div>
+        <div class="form-group">
+          <label class="form-label">UPC / Barcode</label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input class="form-input" name="upc_code" id="upc-input" placeholder="012345678901" style="flex:1">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openBarcodeScanner()" title="Scan barcode with camera">📷 Scan</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Weight (lbs)</label>
+          <input class="form-input" name="weight_lb" type="number" step="0.01" min="0" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Country of Origin</label>
+          <input class="form-input" name="country_of_origin" placeholder="China">
+        </div>
       </form>
     </div>
     <div class="modal-footer">
@@ -756,6 +771,35 @@ textarea.form-input { resize: vertical; min-height: 70px; }
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('new-adj-modal')">Cancel</button>
       <button class="btn btn-primary" onclick="submitAdj()">Save as Draft</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Barcode Scanner Modal ── -->
+<div class="modal-overlay" id="barcode-modal" style="z-index:2000">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">Scan Barcode</div>
+      <button class="modal-close" onclick="closeBarcodeScanner()">✕</button>
+    </div>
+    <div class="modal-body" style="text-align:center">
+      <div id="barcode-status" style="margin-bottom:10px;font-size:13px;color:var(--text2)">Starting camera…</div>
+      <video id="barcode-video" style="width:100%;max-width:400px;border-radius:6px;background:#000" autoplay muted playsinline></video>
+      <canvas id="barcode-canvas" style="display:none"></canvas>
+      <div style="margin-top:12px;font-size:12px;color:var(--text2)">
+        Point the camera at a UPC barcode.<br>
+        <span style="font-size:11px;color:var(--text3)">BarcodeDetector API required (Chrome/Edge).</span>
+      </div>
+      <div style="margin-top:10px">
+        <label class="form-label" style="margin-bottom:4px">Or enter manually:</label>
+        <div style="display:flex;gap:6px">
+          <input class="form-input" id="barcode-manual-input" placeholder="Enter barcode…" style="flex:1">
+          <button class="btn btn-primary btn-sm" onclick="applyBarcode($('barcode-manual-input').value)">Apply</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeBarcodeScanner()">Cancel</button>
     </div>
   </div>
 </div>
@@ -1243,6 +1287,10 @@ async function submitNewItem() {
   if (!data.code || !data.name) { toast('Code and Name are required', 'error'); return; }
   ['standard_cost','sale_price','reorder_point','reorder_qty','lead_time_days']
     .forEach(k => { if (data[k] !== undefined) data[k] = parseFloat(data[k])||0; });
+  if (data.weight_lb !== undefined && data.weight_lb !== '') data.weight_lb = parseFloat(data.weight_lb) || null;
+  else delete data.weight_lb;
+  if (!data.upc_code) delete data.upc_code;
+  if (!data.country_of_origin) delete data.country_of_origin;
 
   if (!apiOnline) {
     toast('API offline — cannot save items in mock mode', 'error'); return;
@@ -1391,6 +1439,73 @@ function toast(msg, type='info') {
   el.innerHTML = `<span>${icons[type]||''}</span><span>${msg}</span>`;
   document.getElementById('toast-container').appendChild(el);
   setTimeout(() => el.remove(), 3500);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BARCODE SCANNER
+// ═══════════════════════════════════════════════════════════════════
+let barcodeStream = null;
+let barcodeDetector = null;
+let barcodeScanInterval = null;
+
+function $b(id) { return document.getElementById(id); }
+
+async function openBarcodeScanner() {
+  openModal('barcode-modal');
+  $b('barcode-status').textContent = 'Starting camera…';
+  $b('barcode-manual-input').value = '';
+
+  // Check BarcodeDetector support
+  if (!('BarcodeDetector' in window)) {
+    $b('barcode-status').textContent = 'Camera scan not supported in this browser. Use manual entry below.';
+    return;
+  }
+
+  try {
+    barcodeDetector = new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39'] });
+    barcodeStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    const video = $b('barcode-video');
+    video.srcObject = barcodeStream;
+    await video.play();
+    $b('barcode-status').textContent = 'Camera ready — point at barcode';
+
+    // Scan every 500ms
+    barcodeScanInterval = setInterval(async () => {
+      try {
+        const canvas  = $b('barcode-canvas');
+        const ctx     = canvas.getContext('2d');
+        canvas.width  = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+        const codes = await barcodeDetector.detect(canvas);
+        if (codes.length > 0) {
+          applyBarcode(codes[0].rawValue);
+        }
+      } catch { /* ignore decode errors */ }
+    }, 500);
+  } catch (err) {
+    $b('barcode-status').textContent = `Camera error: ${err.message}. Use manual entry below.`;
+  }
+}
+
+function closeBarcodeScanner() {
+  clearInterval(barcodeScanInterval);
+  if (barcodeStream) { barcodeStream.getTracks().forEach(t => t.stop()); barcodeStream = null; }
+  const video = $b('barcode-video');
+  if (video) video.srcObject = null;
+  closeModal('barcode-modal');
+}
+
+function applyBarcode(code) {
+  if (!code) return;
+  closeBarcodeScanner();
+  const upcInput = document.getElementById('upc-input');
+  if (upcInput) {
+    upcInput.value = code.trim();
+    toast(`Barcode scanned: ${code}`, 'success');
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════

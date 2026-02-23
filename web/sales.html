@@ -351,7 +351,7 @@ textarea.form-input{resize:vertical;min-height:60px}
       <div class="table-wrap">
         <table class="data-table">
           <thead>
-            <tr><th>Invoice #</th><th>Customer</th><th>Date</th><th>Due Date</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th></tr>
+            <tr><th>Invoice #</th><th>Customer</th><th>Date</th><th>Due Date</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th><th></th></tr>
           </thead>
           <tbody id="invoices-tbody">
             <tr><td colspan="8" class="empty-state"><div class="spinner"></div></td></tr>
@@ -633,6 +633,7 @@ textarea.form-input{resize:vertical;min-height:60px}
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('payment-modal')">Cancel</button>
+      <button class="btn btn-secondary" id="pay-print-btn" onclick="printCurrentInvoice()" title="Print Invoice">🖨️ Print Invoice</button>
       <button class="btn btn-success" onclick="submitPayment()">Record Payment</button>
     </div>
   </div>
@@ -879,7 +880,7 @@ function renderInvoices() {
   tbody.innerHTML = rows.map(i => {
     const overdue = i.status !== 'paid' && i.status !== 'void' && new Date(i.due_date) < new Date();
     return `
-    <tr onclick="openPaymentModal('${i.id}','${i.customer_id}','${i.number}',${i.balance_due})">
+    <tr onclick="openPaymentModal('${i.id}','${i.customer_id}','${i.number}',${i.balance_due})" style="cursor:pointer">
       <td><span class="code-tag">${i.number}</span></td>
       <td>${i.customer_name}</td>
       <td>${fmtDate(i.invoice_date)}</td>
@@ -888,6 +889,7 @@ function renderInvoices() {
       <td style="color:var(--green)">$${fmt(i.amount_paid)}</td>
       <td style="font-weight:700;color:${parseFloat(i.balance_due)>0?(overdue?'var(--red)':'var(--orange)'):'var(--green)'}">$${fmt(i.balance_due)}</td>
       <td>${invoiceStatusBadge(i)}</td>
+      <td onclick="event.stopPropagation()"><button class="btn btn-secondary btn-xs" onclick="window.open('/print/invoice.html?invoiceId=${i.id}','_blank')" title="Print Invoice">🖨️ Print</button></td>
     </tr>`;
   }).join('');
 }
@@ -1015,13 +1017,14 @@ async function openSODetail(orderId) {
       <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Shipments</div>
       <div class="table-wrap" style="margin-bottom:16px">
         <table class="data-table">
-          <thead><tr><th>Shipment #</th><th>Ship Date</th><th>Carrier</th><th>Tracking</th><th>Status</th></tr></thead>
+          <thead><tr><th>Shipment #</th><th>Ship Date</th><th>Carrier</th><th>Tracking</th><th>Status</th><th></th></tr></thead>
           <tbody>
             ${o.shipments.map(s=>`<tr>
               <td><span class="code-tag">${s.number}</span></td>
               <td>${fmtDate(s.ship_date)}</td><td>${s.carrier||'—'}</td>
               <td style="font-size:11px;color:var(--text2)">${s.tracking_number||'—'}</td>
               <td>${statusBadge(s.status)}</td>
+              <td><button class="btn btn-secondary btn-xs" onclick="window.open('/print/picklist.html?shipmentId=${s.id}','_blank')" title="Print Pick List">🖨️ Pick List</button></td>
             </tr>`).join('')}
           </tbody>
         </table>
@@ -1031,14 +1034,17 @@ async function openSODetail(orderId) {
       <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Invoices</div>
       <div class="table-wrap" style="margin-bottom:16px">
         <table class="data-table">
-          <thead><tr><th>Invoice #</th><th>Date</th><th>Due</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
+          <thead><tr><th>Invoice #</th><th>Date</th><th>Due</th><th>Total</th><th>Tax</th><th>Paid</th><th>Balance</th><th>Status</th><th></th></tr></thead>
           <tbody>
-            ${o.invoices.map(i=>`<tr onclick="openPaymentModal('${i.id}','${o.customer_id}','${i.number}',${i.balance_due})">
+            ${o.invoices.map(i=>`<tr onclick="openPaymentModal('${i.id}','${o.customer_id}','${i.number}',${i.balance_due})" style="cursor:pointer">
               <td><span class="code-tag">${i.number}</span></td>
               <td>${fmtDate(i.invoice_date)}</td><td>${fmtDate(i.due_date)}</td>
-              <td>$${fmt(i.total)}</td><td style="color:var(--green)">$${fmt(i.amount_paid)}</td>
+              <td>$${fmt(i.total)}</td>
+              <td style="font-size:11px;color:var(--text2)">${i.tax_exempt ? '<span title="Tax Exempt">✓ Exempt</span>' : (i.tax_amount > 0 ? `$${fmt(i.tax_amount)}<br><span style="color:var(--text2)">${i.state_code||''} ${i.tax_rate ? (parseFloat(i.tax_rate)*100).toFixed(2)+'%':''}</span>` : '—')}</td>
+              <td style="color:var(--green)">$${fmt(i.amount_paid)}</td>
               <td style="font-weight:700">$${fmt(i.balance_due)}</td>
               <td>${invoiceStatusBadge(i)}</td>
+              <td onclick="event.stopPropagation()"><button class="btn btn-secondary btn-xs" onclick="window.open('/print/invoice.html?invoiceId=${i.id}','_blank')" title="Print Invoice">🖨️</button></td>
             </tr>`).join('')}
           </tbody>
         </table>
@@ -1102,7 +1108,10 @@ function addSOLine() {
     <td><select class="sol-item" style="width:220px;font-size:12px" onchange="onSOLineItemChange(this)">${opts.length ? '<option value="">Select item…</option>'+opts : '<option>No items loaded</option>'}</select></td>
     <td><span class="sol-avail" style="font-size:11px;color:var(--text2)">—</span></td>
     <td><input class="sol-qty" type="number" value="1" min="1" step="1" style="width:60px" oninput="updateSOTotals()"></td>
-    <td><input class="sol-price" type="number" step="0.01" min="0" style="width:80px" placeholder="0.00" oninput="updateSOTotals()"></td>
+    <td style="white-space:nowrap">
+      <input class="sol-price" type="number" step="0.01" min="0" style="width:80px" placeholder="0.00" oninput="updateSOTotals()">
+      <span class="sol-price-src" title="" style="font-size:13px;cursor:default;margin-left:2px"></span>
+    </td>
     <td><input class="sol-disc" type="number" step="0.01" min="0" max="100" value="0" style="width:55px" oninput="updateSOTotals()"></td>
     <td class="sol-total" style="font-weight:600;text-align:right">$0.00</td>
     <td><button class="btn btn-danger btn-xs" onclick="this.closest('tr').remove();updateSOTotals()">✕</button></td>
@@ -1118,13 +1127,26 @@ async function onSOLineItemChange(sel) {
   const customerId = $('so-customer').value;
   if (!itemId) return;
 
-  // Get price via pricing engine
+  // Get price via pricing engine (with lock support)
   try {
     const qty    = tr.querySelector('.sol-qty').value || 1;
     const params = new URLSearchParams({ itemId, qty });
     if (customerId) params.set('customerId', customerId);
-    const { price } = await apiFetch(`/api/pricing/resolve?${params}`);
-    priceInput.value = parseFloat(price).toFixed(2);
+    const priceData = await apiFetch(`/api/pricing/resolve?${params}`);
+    priceInput.value = parseFloat(priceData.price).toFixed(2);
+    const srcSpan = tr.querySelector('.sol-price-src');
+    if (srcSpan) {
+      if (priceData.source === 'locked') {
+        srcSpan.textContent = '🔒';
+        srcSpan.title = `VIP Locked Price${priceData.lock_reason ? ': '+priceData.lock_reason : ''}`;
+      } else if (priceData.source === 'price_list') {
+        srcSpan.textContent = '📋';
+        srcSpan.title = 'From customer price list';
+      } else {
+        srcSpan.textContent = '';
+        srcSpan.title = '';
+      }
+    }
   } catch {
     const opt = sel.options[sel.selectedIndex];
     if (opt?.dataset?.price) priceInput.value = parseFloat(opt.dataset.price).toFixed(2);
@@ -1313,6 +1335,11 @@ function openPaymentModal(invoiceId, customerId, invoiceNumber, balanceDue) {
   $('pay-ref').value          = '';
   $('pay-invoice-info').textContent = `Invoice ${invoiceNumber} — Balance Due: $${fmt(balanceDue)}`;
   openModal('payment-modal');
+}
+
+function printCurrentInvoice() {
+  const id = $('pay-invoice-id').value;
+  if (id) window.open(`/print/invoice.html?invoiceId=${id}`, '_blank');
 }
 
 async function submitPayment() {

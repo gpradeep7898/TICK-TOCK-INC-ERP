@@ -199,6 +199,12 @@ tr:hover td { background: rgba(255,255,255,.02); }
   <a href="#" data-view="reorder"   onclick="show('reorder',this)">
     <span class="ico">🔔</span> Reorder
   </a>
+  <a href="#" data-view="price-change" onclick="show('price-change',this)">
+    <span class="ico">💲</span> Price Change
+  </a>
+  <a href="#" data-view="import-tool" onclick="show('import-tool',this)">
+    <span class="ico">📂</span> Import Tool
+  </a>
   <div class="nav-module">Other Modules</div>
   <div class="module-links">
     <a href="/"><span class="ico">📦</span> Inventory</a>
@@ -345,6 +351,111 @@ tr:hover td { background: rgba(255,255,255,.02); }
           </tr></thead>
           <tbody id="reorderBody"><tr><td colspan="8" class="loading">Loading…</td></tr></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- ── Price Change Tool ── -->
+    <div class="view" id="view-price-change">
+      <div class="cards">
+        <div class="card" style="max-width:560px">
+          <h3>Cost Update Tool</h3>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:14px">
+            Update an item's cost when a vendor charges a new price. The system maintains margin % and updates all customer price lists (VIP locked prices are protected).
+          </p>
+          <div class="form-grid">
+            <div class="field form-full">
+              <label>Item *</label>
+              <select id="pcItemSel" onchange="pcClearPreview()">
+                <option value="">Select item…</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>New Cost ($) *</label>
+              <input type="number" id="pcNewCost" step="0.01" min="0" placeholder="0.00" oninput="pcClearPreview()">
+            </div>
+            <div class="field">
+              <label>Notes</label>
+              <input type="text" id="pcNotes" placeholder="Reason for cost change">
+            </div>
+          </div>
+          <div style="margin-top:10px">
+            <button class="btn btn-warn" onclick="pcPreview()">Preview Change</button>
+          </div>
+
+          <div id="pcPreviewBox" style="display:none;margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px">
+            <div style="font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Preview</div>
+            <table style="width:100%;font-size:13px;border-collapse:collapse" id="pcPreviewTable"></table>
+            <div style="margin-top:14px;display:flex;gap:8px">
+              <button class="btn btn-success" onclick="pcConfirm()">✓ Apply Change</button>
+              <button class="btn btn-ghost" onclick="pcClearPreview()">Cancel</button>
+            </div>
+          </div>
+
+          <div id="pcHistoryBox" style="margin-top:20px">
+            <div style="font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">
+              Recent Changes <button class="btn btn-ghost btn-sm" onclick="pcLoadHistory()" style="margin-left:8px">Refresh</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Item</th><th>Old Cost</th><th>New Cost</th><th>Old Price</th><th>New Price</th><th>Updated</th><th>Locked</th><th>Date</th></tr></thead>
+                <tbody id="pcHistoryBody"><tr><td colspan="8" class="loading">Click Refresh to load</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Import Tool ── -->
+    <div class="view" id="view-import-tool">
+      <div class="cards">
+        <div class="card" style="max-width:760px">
+          <h3>CSV / Excel Import</h3>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:14px">
+            Import items, customers, or vendors from a CSV or Excel file. Existing records are updated by code; new records are inserted.
+          </p>
+
+          <div class="form-grid">
+            <div class="field">
+              <label>Import Type</label>
+              <select id="importTable">
+                <option value="items">Items (inventory)</option>
+                <option value="customers">Customers</option>
+                <option value="vendors">Vendors</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>File (.csv, .xls, .xlsx)</label>
+              <input type="file" id="importFile" accept=".csv,.xls,.xlsx" onchange="importFileSelected()">
+            </div>
+          </div>
+
+          <div style="margin-top:10px;display:flex;gap:8px">
+            <button class="btn btn-warn" onclick="importPreview()">Preview</button>
+            <button class="btn btn-success" onclick="importConfirm()" id="importConfirmBtn" disabled>Import</button>
+          </div>
+
+          <!-- Migration Status -->
+          <div style="margin-top:16px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;display:flex;gap:24px;font-size:13px" id="importStatusBar">
+            <span>Items: <strong id="isItems">—</strong></span>
+            <span>Customers: <strong id="isCustomers">—</strong></span>
+            <span>Vendors: <strong id="isVendors">—</strong></span>
+            <button class="btn btn-ghost btn-sm" onclick="loadImportStatus()">Refresh Counts</button>
+          </div>
+
+          <!-- Preview box -->
+          <div id="importPreviewBox" style="display:none;margin-top:14px">
+            <div style="font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Preview</div>
+            <div id="importPreviewStats" style="font-size:13px;margin-bottom:8px"></div>
+            <div class="table-wrap" style="max-height:260px;overflow-y:auto">
+              <table><thead id="importPreviewHead"></thead><tbody id="importPreviewBody"></tbody></table>
+            </div>
+            <div id="importPreviewErrors" style="margin-top:8px;font-size:12px;color:var(--danger)"></div>
+          </div>
+
+          <!-- Result box -->
+          <div id="importResultBox" style="display:none;margin-top:14px;padding:12px 16px;border-radius:6px"></div>
+        </div>
       </div>
     </div>
 
@@ -767,6 +878,7 @@ async function viewPO(id) {
   `;
 
   const ftBtns = [`<button class="btn btn-ghost" onclick="closeModal('poDetailModal')">Close</button>`];
+  ftBtns.push(`<button class="btn btn-ghost" onclick="window.open('/print/purchase-order.html?poId=${po.id}','_blank')" title="Print Purchase Order">🖨️ Print PO</button>`);
   if (po.status==='draft') ftBtns.push(`<button class="btn btn-warn" onclick="sendPO('${po.id}');closeModal('poDetailModal')">Send to Vendor</button>`);
   if (['sent','partially_received'].includes(po.status)) ftBtns.push(`<button class="btn btn-success" onclick="openReceiveModal('${po.id}');closeModal('poDetailModal')">Receive</button>`);
   if (!['fully_received','closed','cancelled'].includes(po.status)) ftBtns.push(`<button class="btn btn-danger" onclick="cancelPO('${po.id}')">Cancel</button>`);
@@ -1191,31 +1303,37 @@ async function submitPayment() {
 
 // ── Navigation ────────────────────────────────────────────────────────────────
 const viewLoaders = {
-  dashboard: loadDashboard,
-  pos:       loadPOs,
-  receiving: loadReceipts,
-  vinvoices: loadVendorInvoices,
-  apaging:   loadAPAging,
-  vendors:   loadVendors,
-  reorder:   loadReorderSuggestions
+  dashboard:    loadDashboard,
+  pos:          loadPOs,
+  receiving:    loadReceipts,
+  vinvoices:    loadVendorInvoices,
+  apaging:      loadAPAging,
+  vendors:      loadVendors,
+  reorder:      loadReorderSuggestions,
+  'price-change': () => { pcPopulateItems(); pcLoadHistory(); loadImportStatus(); },
+  'import-tool':  () => loadImportStatus()
 };
 const viewTitles = {
-  dashboard: 'Purchasing Dashboard',
-  pos:       'Purchase Orders',
-  receiving: 'Receiving',
-  vinvoices: 'Vendor Invoices',
-  apaging:   'AP Aging',
-  vendors:   'Vendors',
-  reorder:   'Reorder Suggestions'
+  dashboard:    'Purchasing Dashboard',
+  pos:          'Purchase Orders',
+  receiving:    'Receiving',
+  vinvoices:    'Vendor Invoices',
+  apaging:      'AP Aging',
+  vendors:      'Vendors',
+  reorder:      'Reorder Suggestions',
+  'price-change': 'Price Change Tool',
+  'import-tool':  'Import Tool'
 };
 const viewActions = {
-  dashboard: { label:'+ New PO',       action:()=>openPOModal() },
-  pos:       { label:'+ New PO',       action:()=>openPOModal() },
-  receiving: { label:'+ Receive',      action:()=>openReceiveModal(null) },
-  vinvoices: { label:'+ Vendor Invoice',action:()=>openVIModal() },
-  apaging:   { label:'AP Aging',       action:null },
-  vendors:   { label:'+ New Vendor',   action:null },
-  reorder:   { label:'Auto-Generate POs', action:()=>generatePOs() }
+  dashboard:    { label:'+ New PO',          action:()=>openPOModal() },
+  pos:          { label:'+ New PO',          action:()=>openPOModal() },
+  receiving:    { label:'+ Receive',         action:()=>openReceiveModal(null) },
+  vinvoices:    { label:'+ Vendor Invoice',  action:()=>openVIModal() },
+  apaging:      { label:'AP Aging',          action:null },
+  vendors:      { label:'+ New Vendor',      action:null },
+  reorder:      { label:'Auto-Generate POs', action:()=>generatePOs() },
+  'price-change': { label:'Price Change',    action:null },
+  'import-tool':  { label:'Import',          action:null }
 };
 
 function show(view, el) {
@@ -1278,6 +1396,213 @@ function toast(msg, type='ok') {
 // Close overlays on backdrop click
 document.querySelectorAll('.overlay').forEach(el=>
   el.addEventListener('click', e=>{ if(e.target===el) el.classList.remove('open'); }));
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PRICE CHANGE TOOL
+// ══════════════════════════════════════════════════════════════════════════════
+let pcPreviewData = null;
+
+function pcPopulateItems() {
+  const sel = document.getElementById('pcItemSel');
+  if (sel.options.length > 1) return; // already populated
+  (allItems || []).forEach(i => {
+    const opt = document.createElement('option');
+    opt.value = i.id;
+    opt.textContent = `${i.code} — ${i.name} (cost: $${fmt(i.standard_cost)})`;
+    sel.appendChild(opt);
+  });
+}
+
+function pcClearPreview() {
+  pcPreviewData = null;
+  document.getElementById('pcPreviewBox').style.display = 'none';
+  document.getElementById('pcPreviewTable').innerHTML = '';
+}
+
+async function pcPreview() {
+  const itemId  = document.getElementById('pcItemSel').value;
+  const newCost = document.getElementById('pcNewCost').value;
+  if (!itemId || !newCost) { toast('Select an item and enter new cost', 'err'); return; }
+  try {
+    const r = await fetch(`${API}/api/pricing/update-cost`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ itemId, newCost: parseFloat(newCost), notes: document.getElementById('pcNotes').value })
+    });
+    const d = await r.json();
+    if (d.error) { toast(d.error, 'err'); return; }
+    pcPreviewData = d;
+
+    const rows = [
+      ['Item', `${d.item_code} — ${d.item_name}`],
+      ['Old Cost', `$${fmt(d.old_cost)}`],
+      ['New Cost', `$${fmt(d.new_cost)}`],
+      ['Old Sale Price', `$${fmt(d.old_sale_price)}`],
+      ['Suggested Sale Price', `$${fmt(d.suggested_sale_price)}`],
+      ['Margin Maintained', `${d.old_margin_pct || '—'}%`],
+      ['Customers to Update', `${d.customers_affected} (price lists will update)`],
+      ['VIP Locked (Protected)', `${d.customers_locked} (will NOT change)`],
+    ];
+
+    document.getElementById('pcPreviewTable').innerHTML = rows.map(([k,v])=>
+      `<tr><td style="padding:5px 8px;color:var(--muted);width:200px">${k}</td>
+           <td style="padding:5px 8px;font-weight:600">${v}</td></tr>`
+    ).join('');
+    document.getElementById('pcPreviewBox').style.display = 'block';
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function pcConfirm() {
+  if (!pcPreviewData) return;
+  if (!confirm(`Apply cost change for ${pcPreviewData.item_code}? This will update ${pcPreviewData.customers_affected} customer price lists.`)) return;
+  try {
+    const r = await fetch(`${API}/api/pricing/update-cost/${pcPreviewData.item_id}/confirm`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        newCost: pcPreviewData.new_cost,
+        newSalePrice: pcPreviewData.suggested_sale_price,
+        notes: document.getElementById('pcNotes').value
+      })
+    });
+    const d = await r.json();
+    if (d.error) { toast(d.error, 'err'); return; }
+    toast(`Cost updated! ${d.customers_updated} prices updated, ${d.customers_locked} VIP locks protected.`, 'ok');
+    pcClearPreview();
+    document.getElementById('pcItemSel').value = '';
+    document.getElementById('pcNewCost').value = '';
+    document.getElementById('pcNotes').value = '';
+    // refresh items cache
+    fetch(`${API}/api/items`).then(r=>r.json()).then(d=>{ allItems=d; pcPopulateItems(); });
+    pcLoadHistory();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function pcLoadHistory() {
+  const tbody = document.getElementById('pcHistoryBody');
+  tbody.innerHTML = '<tr><td colspan="8" class="loading">Loading…</td></tr>';
+  try {
+    const rows = await fetch(`${API}/api/pricing/change-log`).then(r=>r.json());
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No changes yet</td></tr>'; return; }
+    tbody.innerHTML = rows.map(r=>`
+      <tr>
+        <td class="mono">${r.item_code}</td>
+        <td>$${fmt(r.old_cost)}</td>
+        <td>$${fmt(r.new_cost)}</td>
+        <td>$${fmt(r.old_sale_price)}</td>
+        <td>$${fmt(r.new_sale_price)}</td>
+        <td>${r.customers_updated}</td>
+        <td>${r.customers_locked}</td>
+        <td style="font-size:11px;color:var(--muted)">${r.changed_at ? new Date(r.changed_at).toLocaleDateString() : '—'}</td>
+      </tr>`).join('');
+  } catch { tbody.innerHTML = '<tr><td colspan="8" class="empty">Error loading history</td></tr>'; }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// IMPORT TOOL
+// ══════════════════════════════════════════════════════════════════════════════
+let importPreviewResult = null;
+
+async function loadImportStatus() {
+  try {
+    const d = await fetch(`${API}/api/migration/status`).then(r=>r.json());
+    document.getElementById('isItems').textContent     = d.items?.toLocaleString() || '—';
+    document.getElementById('isCustomers').textContent = d.customers?.toLocaleString() || '—';
+    document.getElementById('isVendors').textContent   = d.vendors?.toLocaleString() || '—';
+  } catch { /* silent */ }
+}
+
+function importFileSelected() {
+  importPreviewResult = null;
+  document.getElementById('importPreviewBox').style.display = 'none';
+  document.getElementById('importResultBox').style.display = 'none';
+  document.getElementById('importConfirmBtn').disabled = true;
+}
+
+async function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function importPreview() {
+  const fileInput = document.getElementById('importFile');
+  const table     = document.getElementById('importTable').value;
+  if (!fileInput.files.length) { toast('Select a file first', 'err'); return; }
+  const file = fileInput.files[0];
+  try {
+    const fileContent = await readFileAsBase64(file);
+    const r = await fetch(`${API}/api/migration/preview-csv`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ table, fileContent, fileName: file.name })
+    });
+    const d = await r.json();
+    if (d.error) { toast(d.error, 'err'); return; }
+    importPreviewResult = { table, fileContent, fileName: file.name };
+
+    document.getElementById('importPreviewStats').innerHTML =
+      `Found <strong>${d.rows_found}</strong> rows &nbsp;·&nbsp; ` +
+      `<span style="color:var(--success)"><strong>${d.rows_valid}</strong> valid</span> &nbsp;·&nbsp; ` +
+      `<span style="color:var(--danger)"><strong>${d.rows_with_errors}</strong> with errors</span>`;
+
+    // Build preview table from sample_data
+    const samples = d.sample_data || [];
+    if (samples.length) {
+      const cols = Object.keys(samples[0]);
+      document.getElementById('importPreviewHead').innerHTML =
+        `<tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr>`;
+      document.getElementById('importPreviewBody').innerHTML = samples.map(row=>
+        `<tr>${cols.map(c=>`<td style="font-size:11px">${row[c]||''}</td>`).join('')}</tr>`
+      ).join('');
+    }
+
+    const errHtml = d.errors && d.errors.length
+      ? `<strong>Errors:</strong><br>` + d.errors.map(e=>`Row ${e.row}: ${e.error || 'Missing: '+e.missing?.join(', ')}`).join('<br>')
+      : '';
+    document.getElementById('importPreviewErrors').innerHTML = errHtml;
+    document.getElementById('importPreviewBox').style.display = 'block';
+    document.getElementById('importConfirmBtn').disabled = d.rows_valid === 0;
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function importConfirm() {
+  if (!importPreviewResult) return;
+  const { table, fileContent, fileName } = importPreviewResult;
+  if (!confirm(`Import ${table} from ${fileName}? Existing records will be updated.`)) return;
+  document.getElementById('importConfirmBtn').disabled = true;
+  try {
+    const r = await fetch(`${API}/api/migration/import-csv`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ table, fileContent, fileName, skipErrors: true })
+    });
+    const d = await r.json();
+    if (d.error) { toast(d.error, 'err'); return; }
+
+    const box = document.getElementById('importResultBox');
+    box.style.display = 'block';
+    box.style.background = d.skipped > 0 ? 'var(--surface)' : '#dcfce7';
+    box.style.borderLeft = `4px solid ${d.skipped > 0 ? 'orange' : '#16a34a'}`;
+    box.innerHTML = `
+      <strong>Import Complete</strong><br>
+      ✅ Imported: ${d.imported} &nbsp; ⚠️ Skipped: ${d.skipped}
+      ${d.errors && d.errors.length ? `<details style="margin-top:8px"><summary>View errors</summary>
+        <div style="font-size:11px;margin-top:6px">${d.errors.map(e=>`Row ${e.row}: ${e.error}`).join('<br>')}</div>
+      </details>` : ''}
+    `;
+    toast(`Imported ${d.imported} records.`, 'ok');
+    loadImportStatus();
+    // refresh caches
+    if (table === 'items') fetch(`${API}/api/items`).then(r=>r.json()).then(d=>{ allItems=d; });
+  } catch (e) {
+    toast(e.message, 'err');
+    document.getElementById('importConfirmBtn').disabled = false;
+  }
+}
 
 init();
 </script>

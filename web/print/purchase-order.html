@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Purchase Order — Tick Tock Inc.</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; color: #111; background: #fff; }
+  .page { width: 8.5in; margin: 0 auto; padding: 0.5in; }
+
+  /* Header */
+  .hdr { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; }
+  .company-name { font-size: 24px; font-weight: 900; letter-spacing: -1px; color: #1a1a2e; }
+  .company-sub  { font-size: 11px; color: #555; margin-top: 4px; line-height: 1.7; }
+  .po-label  { text-align: right; }
+  .po-label h1 { font-size: 30px; font-weight: 900; letter-spacing: 2px; color: #1a1a2e; }
+  .po-meta { text-align: right; margin-top: 6px; font-size: 12px; line-height: 1.9; }
+  .po-meta .key { color: #888; }
+  .po-meta .val { font-weight: 700; margin-left: 8px; }
+
+  .divider { border: none; border-top: 2px solid #1a1a2e; margin: 18px 0; }
+
+  /* Vendor / Ship To row */
+  .party-row { display: flex; gap: 32px; margin-bottom: 24px; }
+  .party-box { flex: 1; border: 1px solid #ddd; border-radius: 4px; padding: 12px 14px; }
+  .party-box .lbl { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+                     color: #888; margin-bottom: 6px; }
+  .party-box .nm  { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .party-box .ln  { font-size: 12px; color: #444; line-height: 1.6; }
+
+  /* Status badge */
+  .status-badge { display: inline-block; padding: 2px 10px; border-radius: 3px; font-size: 10px;
+                  font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .badge-draft  { background: #f3f4f6; color: #374151; }
+  .badge-sent   { background: #dbeafe; color: #1d4ed8; }
+  .badge-recv   { background: #dcfce7; color: #166534; }
+  .badge-closed { background: #e5e7eb; color: #6b7280; }
+  .badge-canc   { background: #fee2e2; color: #991b1b; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  thead tr { background: #1a1a2e; color: #fff; }
+  thead th { padding: 9px 10px; text-align: left; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
+  thead th.r { text-align: right; }
+  tbody tr { border-bottom: 1px solid #e5e7eb; }
+  tbody tr:nth-child(even) { background: #fafafa; }
+  tbody td { padding: 9px 10px; font-size: 12px; vertical-align: top; }
+  tbody td.r { text-align: right; }
+  tfoot tr { background: #f3f4f6; }
+  tfoot td { padding: 10px; font-size: 13px; font-weight: 700; text-align: right; }
+
+  /* Terms */
+  .terms-box { border: 1px solid #ddd; border-radius: 4px; padding: 14px 16px; margin: 20px 0;
+               font-size: 11px; color: #555; line-height: 1.7; }
+  .terms-box h4 { font-size: 12px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
+
+  /* Signature */
+  .sig-row { display: flex; gap: 48px; margin-top: 28px; }
+  .sig-box  { flex: 1; }
+  .sig-lbl  { font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+              color: #888; margin-bottom: 4px; }
+  .sig-line { border-bottom: 1.5px solid #333; height: 32px; }
+  .sig-hint { font-size: 10px; color: #aaa; margin-top: 3px; }
+
+  .loading { text-align: center; padding: 80px; font-size: 18px; color: #888; }
+  .error   { text-align: center; padding: 80px; font-size: 16px; color: #dc2626; }
+
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page { padding: 0.25in; }
+  }
+</style>
+</head>
+<body>
+<div class="page" id="content">
+  <div class="loading">Loading purchase order…</div>
+</div>
+
+<script>
+const API = 'http://localhost:3001';
+
+function fmt(n) {
+  return Number(n || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+}
+function addr(obj) {
+  if (!obj) return '';
+  if (typeof obj === 'string') { try { obj = JSON.parse(obj); } catch { return obj; } }
+  return [obj.line1, obj.line2, obj.city && `${obj.city}${obj.state ? ', '+obj.state : ''} ${obj.zip||''}`.trim()]
+    .filter(Boolean).join('<br>');
+}
+function badge(s) {
+  const map = { draft:'badge-draft', sent:'badge-sent', partially_received:'badge-recv',
+                fully_received:'badge-recv', closed:'badge-closed', cancelled:'badge-canc' };
+  return `<span class="status-badge ${map[s]||'badge-draft'}">${s.replace(/_/g,' ')}</span>`;
+}
+
+async function load() {
+  const params = new URLSearchParams(location.search);
+  const poId = params.get('poId');
+  if (!poId) {
+    document.getElementById('content').innerHTML = '<div class="error">No poId in URL. Add ?poId=... to the URL.</div>';
+    return;
+  }
+
+  try {
+    const r = await fetch(`${API}/api/print/purchase-order/${poId}`);
+    if (!r.ok) throw new Error((await r.json()).error || r.statusText);
+    const { po, lines } = await r.json();
+
+    const subtotal = lines.reduce((s, l) => s + Number(l.line_total), 0);
+
+    const linesHtml = lines.map(l => `
+      <tr>
+        <td style="font-size:11px;color:#888">${l.line_number}</td>
+        <td><strong>${l.item_code}</strong></td>
+        <td>${l.item_name}${l.description ? `<br><span style="font-size:11px;color:#888">${l.description}</span>` : ''}</td>
+        <td class="r">${Number(l.qty_ordered).toLocaleString()} ${l.unit_of_measure}</td>
+        <td class="r">${fmt(l.unit_cost)}</td>
+        <td class="r">${fmt(l.line_total)}</td>
+      </tr>`).join('');
+
+    const vendorAddr = addr(po.vendor_address);
+
+    document.getElementById('content').innerHTML = `
+      <div class="hdr">
+        <div>
+          <div class="company-name">TICK TOCK INC.</div>
+          <div class="company-sub">
+            123 Timepiece Ave, Suite 200<br>
+            New York, NY 10001<br>
+            Phone: (212) 555-8000 &nbsp;·&nbsp; purchasing@ticktockinc.com<br>
+            Tax ID: 12-3456789
+          </div>
+        </div>
+        <div class="po-label">
+          <h1>PURCHASE ORDER</h1>
+          <div class="po-meta">
+            <div><span class="key">PO Number</span><span class="val">${po.number}</span></div>
+            <div><span class="key">Date</span><span class="val">${fmtDate(po.order_date)}</span></div>
+            ${po.expected_date ? `<div><span class="key">Expected</span><span class="val">${fmtDate(po.expected_date)}</span></div>` : ''}
+            <div style="margin-top:6px">${badge(po.status)}</div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <div class="party-row">
+        <div class="party-box">
+          <div class="lbl">Vendor (Sell To)</div>
+          <div class="nm">${po.vendor_name}</div>
+          <div class="ln">${po.vendor_code}</div>
+          ${vendorAddr ? `<div class="ln">${vendorAddr}</div>` : ''}
+          ${po.vendor_email ? `<div class="ln">${po.vendor_email}</div>` : ''}
+          ${po.vendor_phone ? `<div class="ln">${po.vendor_phone}</div>` : ''}
+        </div>
+        <div class="party-box">
+          <div class="lbl">Ship To (Warehouse)</div>
+          <div class="nm">${po.warehouse_name}</div>
+          <div class="ln">Tick Tock Inc. — ${po.warehouse_code}</div>
+          <div class="ln">123 Timepiece Ave<br>New York, NY 10001</div>
+        </div>
+        <div class="party-box">
+          <div class="lbl">Order Details</div>
+          <div class="ln">Created by: <strong>${po.created_by_name || 'Purchasing Dept'}</strong></div>
+          <div class="ln">Payment Terms: <strong>Net 30</strong></div>
+          ${po.notes ? `<div class="ln" style="margin-top:6px">${po.notes}</div>` : ''}
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width:36px">#</th>
+            <th>SKU</th>
+            <th>Description</th>
+            <th class="r">Qty / UOM</th>
+            <th class="r">Unit Cost</th>
+            <th class="r">Total</th>
+          </tr>
+        </thead>
+        <tbody>${linesHtml}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="5" style="text-align:right;padding-right:10px">ORDER TOTAL</td>
+            <td style="padding-right:10px">${fmt(subtotal)}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="terms-box">
+        <h4>Terms &amp; Conditions</h4>
+        1. All prices are in USD. Payment terms: Net 30 from invoice date.<br>
+        2. Vendor must confirm this PO within 2 business days. Unconfirmed POs expire automatically.<br>
+        3. All goods must match the specifications. Non-conforming goods will be returned at vendor's expense.<br>
+        4. This PO number must appear on all invoices, packing slips, and correspondence.<br>
+        5. Tick Tock Inc. reserves the right to cancel this order if goods are not shipped by the expected date.
+      </div>
+
+      <div class="sig-row">
+        <div class="sig-box">
+          <div class="sig-lbl">Authorized By (Tick Tock Inc.)</div>
+          <div class="sig-line"></div>
+          <div class="sig-hint">Signature / Title</div>
+        </div>
+        <div class="sig-box">
+          <div class="sig-lbl">Date</div>
+          <div class="sig-line"></div>
+          <div class="sig-hint">MM/DD/YYYY</div>
+        </div>
+        <div class="sig-box">
+          <div class="sig-lbl">Vendor Acknowledgment</div>
+          <div class="sig-line"></div>
+          <div class="sig-hint">Vendor signature confirms acceptance</div>
+        </div>
+      </div>
+    `;
+
+    window.addEventListener('load', () => setTimeout(() => window.print(), 300));
+
+  } catch (err) {
+    document.getElementById('content').innerHTML = `<div class="error">Error: ${err.message}</div>`;
+  }
+}
+
+load();
+</script>
+</body>
+</html>

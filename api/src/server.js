@@ -115,10 +115,22 @@ app.post('/api/items', async (req, res) => {
     }
 });
 
+// Look up item by UPC barcode
+app.get('/api/items/by-upc/:upc', async (req, res) => {
+    try {
+        const { rows } = await query(
+            `SELECT * FROM items WHERE upc_code = $1`, [req.params.upc]
+        );
+        if (!rows.length) return res.status(404).json({ error: 'No item found with that UPC' });
+        res.json(rows[0]);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.patch('/api/items/:id', async (req, res) => {
     const allowed = ['name','description','unit_of_measure','cost_method',
                      'standard_cost','sale_price','reorder_point','reorder_qty',
-                     'lead_time_days','category','is_active'];
+                     'lead_time_days','category','is_active',
+                     'upc_code','weight_lb','country_of_origin'];
     const fields  = Object.keys(req.body).filter(k => allowed.includes(k));
     if (!fields.length) return res.status(400).json({ error: 'No valid fields to update' });
 
@@ -425,17 +437,22 @@ app.get('/api/customers/:id', async (req, res) => {
 
 app.post('/api/customers', async (req, res) => {
     const { code, name, email, phone, billing_address, shipping_address,
-            payment_terms_days = 30, credit_limit = 0, currency = 'USD', notes } = req.body;
+            payment_terms_days = 30, credit_limit = 0, currency = 'USD', notes,
+            tax_exempt = false, tax_exempt_certificate, tax_exempt_expiry,
+            state_code, vip_tier = 'standard' } = req.body;
     if (!code || !name) return res.status(400).json({ error: 'code and name are required' });
     try {
         const { rows } = await query(
             `INSERT INTO parties (type,code,name,email,phone,billing_address,shipping_address,
-                                  payment_terms_days,credit_limit,currency,notes)
-             VALUES ('customer',$1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+                                  payment_terms_days,credit_limit,currency,notes,
+                                  tax_exempt,tax_exempt_certificate,tax_exempt_expiry,state_code,vip_tier)
+             VALUES ('customer',$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
             [code, name, email, phone,
              billing_address ? JSON.stringify(billing_address) : null,
              shipping_address ? JSON.stringify(shipping_address) : null,
-             payment_terms_days, credit_limit, currency, notes]
+             payment_terms_days, credit_limit, currency, notes,
+             tax_exempt, tax_exempt_certificate || null, tax_exempt_expiry || null,
+             state_code || null, vip_tier]
         );
         res.status(201).json(rows[0]);
     } catch (err) {
@@ -446,7 +463,9 @@ app.post('/api/customers', async (req, res) => {
 
 app.patch('/api/customers/:id', async (req, res) => {
     const allowed = ['name','email','phone','billing_address','shipping_address',
-                     'payment_terms_days','credit_limit','currency','notes','is_active'];
+                     'payment_terms_days','credit_limit','currency','notes','is_active',
+                     'tax_exempt','tax_exempt_certificate','tax_exempt_expiry',
+                     'state_code','vip_tier'];
     const fields  = Object.keys(req.body).filter(k => allowed.includes(k));
     if (!fields.length) return res.status(400).json({ error: 'No valid fields' });
     const sets   = fields.map((f, i) => `${f} = $${i + 2}`).join(', ');
@@ -466,37 +485,81 @@ app.patch('/api/customers/:id', async (req, res) => {
 });
 
 // ── Pricing Engine ────────────────────────────────────────────────────────────
+
+// Internal helper: resolve price with lock support
+async function resolvePriceForCustomer(customerId, itemId, qty, date) {
+    const checkDate = date || new Date().toISOString().slice(0, 10);
+
+    // Priority 1: VIP item lock
+    if (customerId) {
+        const { rows: locked } = await query(
+            `SELECT locked_price, lock_reason FROM customer_item_price_locks
+             WHERE customer_id = $1 AND item_id = $2 AND is_active = true`,
+            [customerId, itemId]
+        );
+        if (locked.length) {
+            return { price: locked[0].locked_price, source: 'locked',
+                     is_locked: true, lock_reason: locked[0].lock_reason };
+        }
+
+        // Priority 2: customer price lists by priority
+        const { rows } = await query(
+            `SELECT pli.price
+             FROM   customer_price_lists cpl
+             JOIN   price_list_items pli ON pli.price_list_id = cpl.price_list_id
+             JOIN   price_lists pl       ON pl.id = cpl.price_list_id
+             WHERE  cpl.customer_id = $1
+               AND  pli.item_id = $2
+               AND  pli.min_qty <= $3
+               AND  (pli.valid_from IS NULL OR pli.valid_from <= $4)
+               AND  (pli.valid_to   IS NULL OR pli.valid_to   >= $4)
+               AND  (pl.valid_from  IS NULL OR pl.valid_from  <= $4)
+               AND  (pl.valid_to    IS NULL OR pl.valid_to    >= $4)
+             ORDER  BY cpl.priority ASC, pli.min_qty DESC
+             LIMIT  1`,
+            [customerId, itemId, qty, checkDate]
+        );
+        if (rows.length) {
+            return { price: rows[0].price, source: 'price_list', is_locked: false };
+        }
+    }
+
+    // Priority 3: catalog sale_price
+    const { rows: [item] } = await query(
+        `SELECT sale_price AS price FROM items WHERE id = $1`, [itemId]
+    );
+    return { price: item ? item.price : 0, source: 'default', is_locked: false };
+}
+
+// Internal helper: calculate tax for a customer + subtotal
+async function calculateInvoiceTax(customerId, subtotal) {
+    const { rows: [cust] } = await query(
+        `SELECT tax_exempt, state_code FROM parties WHERE id = $1`, [customerId]
+    );
+    if (!cust) return { tax_amount: 0, rate: 0, state_code: null, exempt: false };
+    if (cust.tax_exempt) return { tax_amount: 0, rate: 0, state_code: cust.state_code, exempt: true };
+    if (!cust.state_code) return { tax_amount: 0, rate: 0, state_code: null, exempt: false };
+
+    const { rows: [stateRow] } = await query(
+        `SELECT tax_rate FROM state_tax_rates WHERE state_code = $1 AND is_active = true`,
+        [cust.state_code]
+    );
+    const rate = stateRow ? parseFloat(stateRow.tax_rate) : 0;
+    return {
+        tax_amount:  parseFloat((subtotal * rate).toFixed(4)),
+        rate,
+        state_code:  cust.state_code,
+        exempt:      false
+    };
+}
+
 // GET /api/pricing/resolve?customerId=X&itemId=Y&qty=Z&date=D
 app.get('/api/pricing/resolve', async (req, res) => {
     const { customerId, itemId, qty = 1, date } = req.query;
     if (!itemId) return res.status(400).json({ error: 'itemId required' });
-    const checkDate = date || new Date().toISOString().slice(0, 10);
     try {
-        // Check customer-specific price lists by priority
-        if (customerId) {
-            const { rows } = await query(
-                `SELECT pli.price
-                 FROM   customer_price_lists cpl
-                 JOIN   price_list_items pli ON pli.price_list_id = cpl.price_list_id
-                 JOIN   price_lists pl       ON pl.id = cpl.price_list_id
-                 WHERE  cpl.customer_id = $1
-                   AND  pli.item_id = $2
-                   AND  pli.min_qty <= $3
-                   AND  (pli.valid_from IS NULL OR pli.valid_from <= $4)
-                   AND  (pli.valid_to   IS NULL OR pli.valid_to   >= $4)
-                   AND  (pl.valid_from  IS NULL OR pl.valid_from  <= $4)
-                   AND  (pl.valid_to    IS NULL OR pl.valid_to    >= $4)
-                 ORDER  BY cpl.priority ASC, pli.min_qty DESC
-                 LIMIT  1`,
-                [customerId, itemId, qty, checkDate]
-            );
-            if (rows.length) return res.json({ price: rows[0].price, source: 'price_list' });
-        }
-        // Fall back to items.sale_price
-        const { rows: [item] } = await query(
-            `SELECT sale_price AS price FROM items WHERE id = $1`, [itemId]
-        );
-        res.json({ price: item ? item.price : 0, source: 'catalog' });
+        const result = await resolvePriceForCustomer(customerId, itemId, qty, date);
+        res.json(result);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -922,9 +985,9 @@ app.post('/api/shipments/:id/post', async (req, res) => {
             `UPDATE shipments SET status='shipped' WHERE id=$1`, [shp.id]
         );
 
-        // 6. Auto-generate invoice
-        const taxAmount  = invoiceSubtotal * parseFloat(order.tax_rate);
-        const invTotal   = invoiceSubtotal + taxAmount;
+        // 6. Auto-generate invoice with state-based tax
+        const taxInfo    = await calculateInvoiceTax(order.customer_id, invoiceSubtotal);
+        const invTotal   = invoiceSubtotal + taxInfo.tax_amount;
         const invNumber  = await nextDocNumber(client, 'sales_invoices', 'number', 'INV');
         const { rows: [cust] } = await client.query(
             `SELECT payment_terms_days FROM parties WHERE id = $1`, [order.customer_id]
@@ -935,11 +998,13 @@ app.post('/api/shipments/:id/post', async (req, res) => {
         const { rows: [invoice] } = await client.query(
             `INSERT INTO sales_invoices
                 (number, customer_id, sales_order_id, shipment_id, status,
-                 invoice_date, due_date, subtotal, tax_amount, total)
-             VALUES ($1,$2,$3,$4,'sent',$5,$6,$7,$8,$9) RETURNING *`,
+                 invoice_date, due_date, subtotal, tax_amount, total,
+                 tax_rate, state_code, tax_exempt)
+             VALUES ($1,$2,$3,$4,'sent',$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
             [invNumber, order.customer_id, order.id, shp.id,
              shp.ship_date, dueDate.toISOString().slice(0,10),
-             invoiceSubtotal.toFixed(4), taxAmount.toFixed(4), invTotal.toFixed(4)]
+             invoiceSubtotal.toFixed(4), taxInfo.tax_amount.toFixed(4), invTotal.toFixed(4),
+             taxInfo.rate, taxInfo.state_code || null, taxInfo.exempt]
         );
 
         // 7. Audit log
@@ -1909,6 +1974,673 @@ async function checkBackordersForAllItems(client, itemIds) {
         );
     }
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// MODULE 4 — REAL-WORLD LAYER
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── Tax Rates ─────────────────────────────────────────────────────────────────
+
+app.get('/api/tax/rates', async (_req, res) => {
+    try {
+        const { rows } = await query(
+            `SELECT * FROM state_tax_rates ORDER BY state_name`
+        );
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/tax/rates/:stateCode', async (req, res) => {
+    try {
+        const { rows } = await query(
+            `SELECT * FROM state_tax_rates WHERE state_code = $1`,
+            [req.params.stateCode.toUpperCase()]
+        );
+        if (!rows.length) return res.status(404).json({ error: 'State not found' });
+        res.json(rows[0]);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.put('/api/tax/rates/:stateCode', async (req, res) => {
+    const { tax_rate, is_active } = req.body;
+    if (tax_rate == null) return res.status(400).json({ error: 'tax_rate required' });
+    try {
+        const { rows } = await query(
+            `UPDATE state_tax_rates
+             SET tax_rate = $1, is_active = COALESCE($2, is_active), updated_at = NOW()
+             WHERE state_code = $3 RETURNING *`,
+            [tax_rate, is_active ?? null, req.params.stateCode.toUpperCase()]
+        );
+        if (!rows.length) return res.status(404).json({ error: 'State not found' });
+        res.json(rows[0]);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/tax/calculate', async (req, res) => {
+    const { customerId, subtotal } = req.query;
+    if (!customerId || subtotal == null) return res.status(400).json({ error: 'customerId and subtotal required' });
+    try {
+        const taxInfo = await calculateInvoiceTax(customerId, parseFloat(subtotal));
+        res.json({ ...taxInfo, subtotal: parseFloat(subtotal),
+                   total: parseFloat(subtotal) + taxInfo.tax_amount });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── VIP Pricing — customer-level routes ───────────────────────────────────────
+
+// All items with their resolved price for a customer (shows locks)
+app.get('/api/pricing/customer/:customerId', async (req, res) => {
+    try {
+        const { rows: items } = await query(
+            `SELECT i.id, i.code, i.name, i.sale_price, i.standard_cost, i.category
+             FROM items i WHERE i.is_active = true ORDER BY i.category, i.code`
+        );
+        const { rows: locks } = await query(
+            `SELECT item_id, locked_price, lock_reason, locked_at
+             FROM customer_item_price_locks
+             WHERE customer_id = $1 AND is_active = true`,
+            [req.params.customerId]
+        );
+        const lockMap = {};
+        for (const l of locks) lockMap[l.item_id] = l;
+
+        const { rows: priceLists } = await query(
+            `SELECT pli.item_id, pli.price
+             FROM customer_price_lists cpl
+             JOIN price_list_items pli ON pli.price_list_id = cpl.price_list_id
+             JOIN price_lists pl ON pl.id = cpl.price_list_id
+             WHERE cpl.customer_id = $1
+               AND (pl.valid_to IS NULL OR pl.valid_to >= CURRENT_DATE)
+             ORDER BY cpl.priority ASC, pli.min_qty ASC`,
+            [req.params.customerId]
+        );
+        const listMap = {};
+        for (const p of priceLists) {
+            if (!listMap[p.item_id]) listMap[p.item_id] = p.price;
+        }
+
+        const result = items.map(item => {
+            if (lockMap[item.id]) {
+                return { ...item, price: lockMap[item.id].locked_price,
+                         source: 'locked', is_locked: true,
+                         lock_reason: lockMap[item.id].lock_reason,
+                         locked_at: lockMap[item.id].locked_at };
+            }
+            if (listMap[item.id]) {
+                return { ...item, price: listMap[item.id], source: 'price_list', is_locked: false };
+            }
+            return { ...item, price: item.sale_price, source: 'default', is_locked: false };
+        });
+        res.json(result);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Lock a VIP price for a customer + item
+app.post('/api/pricing/lock', async (req, res) => {
+    const { customerId, itemId, lockedPrice, reason, lockedBy } = req.body;
+    if (!customerId || !itemId || lockedPrice == null)
+        return res.status(400).json({ error: 'customerId, itemId, and lockedPrice required' });
+    try {
+        const { rows } = await query(
+            `INSERT INTO customer_item_price_locks
+                (customer_id, item_id, locked_price, lock_reason, locked_by, is_active)
+             VALUES ($1,$2,$3,$4,$5,true)
+             ON CONFLICT (customer_id, item_id)
+             DO UPDATE SET locked_price=$3, lock_reason=$4, locked_by=$5,
+                           locked_at=NOW(), is_active=true
+             RETURNING *`,
+            [customerId, itemId, lockedPrice, reason || null, lockedBy || null]
+        );
+        res.status(201).json(rows[0]);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Unlock a VIP price (revert to standard price list)
+app.post('/api/pricing/unlock', async (req, res) => {
+    const { customerId, itemId } = req.body;
+    if (!customerId || !itemId) return res.status(400).json({ error: 'customerId and itemId required' });
+    try {
+        const { rows } = await query(
+            `UPDATE customer_item_price_locks SET is_active = false
+             WHERE customer_id = $1 AND item_id = $2 RETURNING *`,
+            [customerId, itemId]
+        );
+        if (!rows.length) return res.status(404).json({ error: 'No active lock found' });
+        res.json({ message: 'Lock removed', ...rows[0] });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Preview a cost update (does NOT apply it)
+app.post('/api/pricing/update-cost', async (req, res) => {
+    const { itemId, newCost, notes } = req.body;
+    if (!itemId || newCost == null) return res.status(400).json({ error: 'itemId and newCost required' });
+    try {
+        const { rows: [item] } = await query(
+            `SELECT id, code, name, standard_cost, sale_price FROM items WHERE id = $1`, [itemId]
+        );
+        if (!item) return res.status(404).json({ error: 'Item not found' });
+
+        const oldCost      = parseFloat(item.standard_cost);
+        const oldSalePrice = parseFloat(item.sale_price);
+        const newCostF     = parseFloat(newCost);
+
+        // Maintain margin: new_price = new_cost * (old_price / old_cost)
+        const suggested_sale_price = oldCost > 0
+            ? parseFloat((newCostF * (oldSalePrice / oldCost)).toFixed(4))
+            : oldSalePrice;
+        const old_margin_pct = oldCost > 0 ? ((oldSalePrice - oldCost) / oldCost * 100).toFixed(2) : null;
+
+        // Count affected customers
+        const { rows: [counts] } = await query(
+            `SELECT
+                COUNT(*) FILTER (WHERE cipl.is_active = true) AS locked_count,
+                COUNT(DISTINCT pli.id) FILTER (WHERE cipl.id IS NULL OR cipl.is_active = false) AS list_count
+             FROM price_list_items pli
+             LEFT JOIN customer_price_lists cpl ON cpl.price_list_id = pli.price_list_id
+             LEFT JOIN customer_item_price_locks cipl
+                    ON cipl.customer_id = cpl.customer_id AND cipl.item_id = pli.item_id AND cipl.is_active = true
+             WHERE pli.item_id = $1`, [itemId]
+        );
+
+        res.json({
+            item_id:             item.id,
+            item_code:           item.code,
+            item_name:           item.name,
+            old_cost:            oldCost,
+            new_cost:            newCostF,
+            old_sale_price:      oldSalePrice,
+            suggested_sale_price,
+            old_margin_pct,
+            customers_affected:  parseInt(counts.list_count || 0),
+            customers_locked:    parseInt(counts.locked_count || 0),
+            notes
+        });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Confirm and apply the cost update
+app.post('/api/pricing/update-cost/:itemId/confirm', async (req, res) => {
+    const { newCost, newSalePrice, notes, changedBy } = req.body;
+    if (newCost == null) return res.status(400).json({ error: 'newCost required' });
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        const { rows: [item] } = await client.query(
+            `SELECT id, standard_cost, sale_price FROM items WHERE id = $1 FOR UPDATE`,
+            [req.params.itemId]
+        );
+        if (!item) throw Object.assign(new Error('Item not found'), { status: 404 });
+
+        const oldCost      = parseFloat(item.standard_cost);
+        const oldSalePrice = parseFloat(item.sale_price);
+        const newCostF     = parseFloat(newCost);
+        const newSaleF     = newSalePrice != null
+            ? parseFloat(newSalePrice)
+            : (oldCost > 0 ? parseFloat((newCostF * (oldSalePrice / oldCost)).toFixed(4)) : oldSalePrice);
+
+        // Update the item
+        await client.query(
+            `UPDATE items SET standard_cost=$1, sale_price=$2, updated_at=NOW() WHERE id=$3`,
+            [newCostF, newSaleF, req.params.itemId]
+        );
+
+        // Update non-locked price list entries
+        const { rows: listItems } = await client.query(
+            `SELECT pli.id AS pli_id, cpl.customer_id
+             FROM price_list_items pli
+             JOIN customer_price_lists cpl ON cpl.price_list_id = pli.price_list_id
+             LEFT JOIN customer_item_price_locks cipl
+                    ON cipl.customer_id = cpl.customer_id AND cipl.item_id = pli.item_id AND cipl.is_active = true
+             WHERE pli.item_id = $1 AND cipl.id IS NULL`, [req.params.itemId]
+        );
+
+        let customersUpdated = 0;
+        const seenPli = new Set();
+        for (const row of listItems) {
+            if (seenPli.has(row.pli_id)) continue;
+            seenPli.add(row.pli_id);
+            await client.query(
+                `UPDATE price_list_items SET price=$1 WHERE id=$2`, [newSaleF, row.pli_id]
+            );
+            customersUpdated++;
+        }
+
+        // Count locked
+        const { rows: [lockCount] } = await client.query(
+            `SELECT COUNT(*) AS cnt FROM customer_item_price_locks
+             WHERE item_id = $1 AND is_active = true`, [req.params.itemId]
+        );
+
+        // Log the change
+        await client.query(
+            `INSERT INTO price_change_log
+                (item_id, old_cost, new_cost, old_sale_price, new_sale_price,
+                 customers_updated, customers_locked, changed_by, notes)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+            [req.params.itemId, oldCost, newCostF, oldSalePrice, newSaleF,
+             customersUpdated, parseInt(lockCount.cnt), changedBy || null, notes || null]
+        );
+
+        await client.query('COMMIT');
+        res.json({ old_cost: oldCost, new_cost: newCostF,
+                   old_sale_price: oldSalePrice, new_sale_price: newSaleF,
+                   customers_updated: customersUpdated,
+                   customers_locked: parseInt(lockCount.cnt) });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(err.status || 500).json({ error: err.message });
+    } finally { client.release(); }
+});
+
+// Price change history
+app.get('/api/pricing/change-log', async (_req, res) => {
+    try {
+        const { rows } = await query(
+            `SELECT pcl.*, i.code AS item_code, i.name AS item_name, u.name AS changed_by_name
+             FROM price_change_log pcl
+             JOIN items i ON i.id = pcl.item_id
+             LEFT JOIN users u ON u.id = pcl.changed_by
+             ORDER BY pcl.changed_at DESC LIMIT 100`
+        );
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── Backup ────────────────────────────────────────────────────────────────────
+
+const { execFile } = require('child_process');
+const fs  = require('fs');
+const fsp = require('fs').promises;
+const zlib = require('zlib');
+const BACKUP_DIR = require('path').join(__dirname, '..', '..', 'backups');
+
+app.post('/api/backup/run', async (req, res) => {
+    const backupType = req.body.backup_type || 'manual';
+    const startedAt  = new Date();
+
+    // Ensure backup dir exists
+    fs.mkdirSync(BACKUP_DIR, { recursive: true });
+
+    const ts       = startedAt.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const sqlFile  = require('path').join(BACKUP_DIR, `ticktock_${ts}.sql`);
+    const gzFile   = sqlFile + '.gz';
+
+    // Parse DATABASE_URL for pg_dump args
+    let pgArgs;
+    try {
+        const url = new URL(process.env.DATABASE_URL);
+        pgArgs = [
+            '-h', url.hostname,
+            '-p', url.port || '5432',
+            '-U', url.username,
+            '-F', 'p',   // plain SQL
+            '-f', sqlFile,
+            url.pathname.slice(1)  // database name
+        ];
+    } catch {
+        return res.status(500).json({ error: 'Invalid DATABASE_URL' });
+    }
+
+    // Log as started
+    const { rows: [logRow] } = await query(
+        `INSERT INTO backup_log (backup_type, file_path, status, started_at)
+         VALUES ($1,$2,'failed',$3) RETURNING id`,
+        [backupType, gzFile, startedAt]
+    );
+
+    const env = { ...process.env, PGPASSWORD: new URL(process.env.DATABASE_URL).password };
+
+    execFile('pg_dump', pgArgs, { env }, async (err) => {
+        if (err) {
+            await query(
+                `UPDATE backup_log SET status='failed', completed_at=NOW(), error_message=$1 WHERE id=$2`,
+                [err.message, logRow.id]
+            );
+            return res.status(500).json({ error: err.message });
+        }
+
+        // Gzip compress
+        try {
+            await new Promise((resolve, reject) => {
+                const input  = fs.createReadStream(sqlFile);
+                const output = fs.createWriteStream(gzFile);
+                const gz     = zlib.createGzip();
+                input.pipe(gz).pipe(output);
+                output.on('finish', resolve);
+                output.on('error', reject);
+            });
+            fs.unlinkSync(sqlFile); // remove uncompressed copy
+
+            const stat = fs.statSync(gzFile);
+            const completedAt = new Date();
+            await query(
+                `UPDATE backup_log
+                 SET status='success', completed_at=$1, file_size_bytes=$2, file_path=$3
+                 WHERE id=$4`,
+                [completedAt, stat.size, gzFile, logRow.id]
+            );
+
+            // Prune old backups (keep 30)
+            const files = fs.readdirSync(BACKUP_DIR)
+                .filter(f => f.startsWith('ticktock_') && f.endsWith('.sql.gz'))
+                .map(f => require('path').join(BACKUP_DIR, f))
+                .sort();
+            while (files.length > 30) {
+                try { fs.unlinkSync(files.shift()); } catch { /* ignore */ }
+            }
+
+            res.json({
+                file_path:    gzFile,
+                file_size:    stat.size,
+                duration_ms:  completedAt - startedAt,
+                backup_id:    logRow.id
+            });
+        } catch (gzErr) {
+            await query(
+                `UPDATE backup_log SET status='failed', completed_at=NOW(), error_message=$1 WHERE id=$2`,
+                [gzErr.message, logRow.id]
+            );
+            res.status(500).json({ error: gzErr.message });
+        }
+    });
+});
+
+app.get('/api/backup/list', async (_req, res) => {
+    try {
+        const { rows } = await query(
+            `SELECT * FROM backup_log ORDER BY started_at DESC LIMIT 50`
+        );
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/backup/schedule', async (req, res) => {
+    const { cron_expression = '0 2 * * *' } = req.body;
+    const configPath = require('path').join(__dirname, '..', 'backup-schedule.json');
+    try {
+        fs.writeFileSync(configPath, JSON.stringify({ cron_expression, updated_at: new Date() }, null, 2));
+        res.json({ message: 'Schedule saved', cron_expression, config_file: configPath });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── CSV / Excel Migration ─────────────────────────────────────────────────────
+
+const XLSX = require('xlsx');
+
+// Column mappings for each importable table
+const COLUMN_MAPS = {
+    items: {
+        'code': 'code', 'sku': 'code', 'item code': 'code', 'item_code': 'code',
+        'name': 'name', 'description': 'description', 'uom': 'unit_of_measure',
+        'unit_of_measure': 'unit_of_measure', 'cost': 'standard_cost', 'standard_cost': 'standard_cost',
+        'price': 'sale_price', 'sale_price': 'sale_price', 'reorder_point': 'reorder_point',
+        'reorder point': 'reorder_point', 'reorder_qty': 'reorder_qty', 'category': 'category',
+        'upc': 'upc_code', 'upc_code': 'upc_code', 'weight': 'weight_lb', 'weight_lb': 'weight_lb',
+        'country': 'country_of_origin', 'country_of_origin': 'country_of_origin'
+    },
+    customers: {
+        'code': 'code', 'customer code': 'code', 'customer_code': 'code',
+        'name': 'name', 'company': 'name', 'email': 'email', 'phone': 'phone',
+        'terms': 'payment_terms_days', 'payment terms': 'payment_terms_days', 'payment_terms_days': 'payment_terms_days',
+        'credit limit': 'credit_limit', 'credit_limit': 'credit_limit',
+        'state': 'state_code', 'state_code': 'state_code',
+        'vip': 'vip_tier', 'vip_tier': 'vip_tier',
+        'tax exempt': 'tax_exempt', 'tax_exempt': 'tax_exempt',
+        'tax cert': 'tax_exempt_certificate', 'tax_exempt_certificate': 'tax_exempt_certificate'
+    },
+    vendors: {
+        'code': 'code', 'vendor code': 'code', 'vendor_code': 'code',
+        'name': 'name', 'company': 'name', 'email': 'email', 'phone': 'phone',
+        'terms': 'payment_terms_days', 'payment_terms_days': 'payment_terms_days',
+        'address': 'billing_address_line1', 'city': 'billing_address_city',
+        'state': 'billing_address_state', 'zip': 'billing_address_zip'
+    }
+};
+
+function parseFileContent(fileContent, fileName) {
+    // fileContent is base64 encoded
+    const buf = Buffer.from(fileContent, 'base64');
+    if (fileName && (fileName.endsWith('.xlsx') || fileName.endsWith('.xls'))) {
+        const wb = XLSX.read(buf, { type: 'buffer' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        return XLSX.utils.sheet_to_json(ws, { defval: '' });
+    }
+    // CSV: parse manually
+    const text = buf.toString('utf8');
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (!lines.length) return [];
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,''));
+    return lines.slice(1).map(line => {
+        const vals = line.match(/(".*?"|[^,]+|(?<=,)(?=,))/g) || line.split(',');
+        const row  = {};
+        headers.forEach((h, i) => {
+            row[h] = (vals[i] || '').trim().replace(/^"|"$/g,'');
+        });
+        return row;
+    });
+}
+
+function mapColumns(rows, table) {
+    const map = COLUMN_MAPS[table] || {};
+    return rows.map(row => {
+        const out = {};
+        for (const [k, v] of Object.entries(row)) {
+            const mapped = map[k.toLowerCase().trim()];
+            if (mapped) out[mapped] = v;
+        }
+        return out;
+    });
+}
+
+app.post('/api/migration/preview-csv', async (req, res) => {
+    const { table, fileContent, fileName } = req.body;
+    if (!table || !fileContent) return res.status(400).json({ error: 'table and fileContent required' });
+    if (!['items','customers','vendors'].includes(table))
+        return res.status(400).json({ error: 'table must be items, customers, or vendors' });
+    try {
+        const raw  = parseFileContent(fileContent, fileName);
+        const mapped = mapColumns(raw, table);
+        const requiredFields = { items: ['code','name'], customers: ['code','name'], vendors: ['code','name'] };
+        const required = requiredFields[table];
+        let valid = 0, errors = [];
+        for (let i = 0; i < mapped.length; i++) {
+            const missing = required.filter(f => !mapped[i][f]);
+            if (missing.length) errors.push({ row: i + 2, missing, data: mapped[i] });
+            else valid++;
+        }
+        res.json({
+            rows_found:      raw.length,
+            rows_valid:      valid,
+            rows_with_errors: errors.length,
+            sample_data:     mapped.slice(0, 10),
+            column_mapping:  COLUMN_MAPS[table],
+            errors:          errors.slice(0, 20)
+        });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/migration/import-csv', async (req, res) => {
+    const { table, fileContent, fileName, skipErrors = true } = req.body;
+    if (!table || !fileContent) return res.status(400).json({ error: 'table and fileContent required' });
+    if (!['items','customers','vendors'].includes(table))
+        return res.status(400).json({ error: 'table must be items, customers, or vendors' });
+
+    const raw    = parseFileContent(fileContent, fileName);
+    const mapped = mapColumns(raw, table);
+
+    let imported = 0, skipped = 0;
+    const errors = [];
+
+    for (let i = 0; i < mapped.length; i++) {
+        const row = mapped[i];
+        try {
+            if (table === 'items') {
+                if (!row.code || !row.name) throw new Error('code and name required');
+                await query(
+                    `INSERT INTO items (code, name, description, unit_of_measure, standard_cost,
+                                        sale_price, reorder_point, reorder_qty, category,
+                                        upc_code, weight_lb, country_of_origin)
+                     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+                     ON CONFLICT (code) DO UPDATE
+                       SET name=EXCLUDED.name, description=EXCLUDED.description,
+                           standard_cost=EXCLUDED.standard_cost, sale_price=EXCLUDED.sale_price,
+                           upc_code=COALESCE(EXCLUDED.upc_code,items.upc_code),
+                           updated_at=NOW()`,
+                    [row.code, row.name, row.description || null,
+                     row.unit_of_measure || 'EA', parseFloat(row.standard_cost) || 0,
+                     parseFloat(row.sale_price) || 0, parseInt(row.reorder_point) || 0,
+                     parseInt(row.reorder_qty) || 0, row.category || null,
+                     row.upc_code || null, row.weight_lb ? parseFloat(row.weight_lb) : null,
+                     row.country_of_origin || null]
+                );
+            } else if (table === 'customers') {
+                if (!row.code || !row.name) throw new Error('code and name required');
+                await query(
+                    `INSERT INTO parties (type, code, name, email, phone,
+                                          payment_terms_days, credit_limit, state_code, vip_tier)
+                     VALUES ('customer',$1,$2,$3,$4,$5,$6,$7,$8)
+                     ON CONFLICT (code) DO UPDATE
+                       SET name=EXCLUDED.name, email=EXCLUDED.email,
+                           state_code=COALESCE(EXCLUDED.state_code,parties.state_code),
+                           updated_at=NOW()`,
+                    [row.code, row.name, row.email || null, row.phone || null,
+                     parseInt(row.payment_terms_days) || 30,
+                     parseFloat(row.credit_limit) || 0,
+                     row.state_code || null, row.vip_tier || 'standard']
+                );
+            } else if (table === 'vendors') {
+                if (!row.code || !row.name) throw new Error('code and name required');
+                const addr = (row.billing_address_line1 || row.billing_address_city)
+                    ? JSON.stringify({ line1: row.billing_address_line1 || '',
+                                       city:  row.billing_address_city || '',
+                                       state: row.billing_address_state || '',
+                                       zip:   row.billing_address_zip || '' })
+                    : null;
+                await query(
+                    `INSERT INTO parties (type, code, name, email, phone,
+                                          payment_terms_days, billing_address)
+                     VALUES ('vendor',$1,$2,$3,$4,$5,$6)
+                     ON CONFLICT (code) DO UPDATE
+                       SET name=EXCLUDED.name, email=EXCLUDED.email, updated_at=NOW()`,
+                    [row.code, row.name, row.email || null, row.phone || null,
+                     parseInt(row.payment_terms_days) || 30, addr]
+                );
+            }
+            imported++;
+        } catch (err) {
+            skipped++;
+            errors.push({ row: i + 2, error: err.message, data: row });
+            if (!skipErrors) break;
+        }
+    }
+    res.json({ imported, skipped, errors: errors.slice(0, 50) });
+});
+
+app.get('/api/migration/status', async (_req, res) => {
+    try {
+        const [items, customers, vendors] = await Promise.all([
+            query(`SELECT COUNT(*) AS cnt FROM items WHERE is_active = true`),
+            query(`SELECT COUNT(*) AS cnt FROM parties WHERE type IN ('customer','both')`),
+            query(`SELECT COUNT(*) AS cnt FROM parties WHERE type IN ('vendor','both')`)
+        ]);
+        res.json({
+            items:     parseInt(items.rows[0].cnt),
+            customers: parseInt(customers.rows[0].cnt),
+            vendors:   parseInt(vendors.rows[0].cnt)
+        });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── Print Data Endpoints ───────────────────────────────────────────────────────
+
+app.get('/api/print/invoice/:id', async (req, res) => {
+    try {
+        const { rows: [inv] } = await query(
+            `SELECT si.*, p.name AS customer_name, p.code AS customer_code,
+                    p.email AS customer_email, p.phone AS customer_phone,
+                    p.billing_address, p.shipping_address,
+                    so.number AS order_number, shp.number AS shipment_number,
+                    shp.carrier, shp.tracking_number
+             FROM sales_invoices si
+             JOIN parties p ON p.id = si.customer_id
+             LEFT JOIN sales_orders so ON so.id = si.sales_order_id
+             LEFT JOIN shipments shp ON shp.id = si.shipment_id
+             WHERE si.id = $1`, [req.params.id]
+        );
+        if (!inv) return res.status(404).json({ error: 'Invoice not found' });
+
+        const { rows: lines } = await query(
+            `SELECT sol.line_number, sol.qty_ordered AS qty, sol.unit_price,
+                    sol.discount_pct, sol.line_total,
+                    i.code AS item_code, i.name AS item_name, i.unit_of_measure
+             FROM shipment_lines sl
+             JOIN sales_order_lines sol ON sol.id = sl.sales_order_line_id
+             JOIN items i ON i.id = sl.item_id
+             WHERE sl.shipment_id = $1
+             ORDER BY sol.line_number`, [inv.shipment_id]
+        );
+        res.json({ invoice: inv, lines });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/print/picklist/:shipmentId', async (req, res) => {
+    try {
+        const { rows: [shp] } = await query(
+            `SELECT s.*, so.number AS order_number, so.notes AS order_notes,
+                    p.name AS customer_name, p.shipping_address,
+                    w.name AS warehouse_name, w.code AS warehouse_code
+             FROM shipments s
+             JOIN sales_orders so ON so.id = s.sales_order_id
+             JOIN parties p ON p.id = so.customer_id
+             JOIN warehouses w ON w.id = s.warehouse_id
+             WHERE s.id = $1`, [req.params.shipmentId]
+        );
+        if (!shp) return res.status(404).json({ error: 'Shipment not found' });
+
+        const { rows: lines } = await query(
+            `SELECT sol.line_number, sl.qty_shipped,
+                    i.code AS item_code, i.name AS item_name,
+                    i.unit_of_measure, i.upc_code
+             FROM shipment_lines sl
+             JOIN sales_order_lines sol ON sol.id = sl.sales_order_line_id
+             JOIN items i ON i.id = sl.item_id
+             WHERE sl.shipment_id = $1
+             ORDER BY sol.line_number`, [req.params.shipmentId]
+        );
+        res.json({ shipment: shp, lines });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/print/purchase-order/:id', async (req, res) => {
+    try {
+        const { rows: [po] } = await query(
+            `SELECT po.*, v.name AS vendor_name, v.code AS vendor_code,
+                    v.email AS vendor_email, v.phone AS vendor_phone,
+                    v.billing_address AS vendor_address,
+                    w.name AS warehouse_name, w.address AS warehouse_address,
+                    u.name AS created_by_name
+             FROM purchase_orders po
+             JOIN parties v ON v.id = po.vendor_id
+             JOIN warehouses w ON w.id = po.warehouse_id
+             LEFT JOIN users u ON u.id = po.created_by
+             WHERE po.id = $1`, [req.params.id]
+        );
+        if (!po) return res.status(404).json({ error: 'PO not found' });
+
+        const { rows: lines } = await query(
+            `SELECT pol.line_number, pol.qty_ordered, pol.unit_cost, pol.line_total,
+                    pol.description, i.code AS item_code, i.name AS item_name,
+                    i.unit_of_measure, i.upc_code
+             FROM purchase_order_lines pol
+             JOIN items i ON i.id = pol.item_id
+             WHERE pol.purchase_order_id = $1
+             ORDER BY pol.line_number`, [req.params.id]
+        );
+        res.json({ po, lines });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
 
 // ─── 404 fallback ─────────────────────────────────────────────────────────────
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));

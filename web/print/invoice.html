@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Invoice — Tick Tock Inc.</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; color: #111; background: #fff; }
+  .page { width: 8.5in; margin: 0 auto; padding: 0.5in; }
+
+  /* Header */
+  .hdr { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+  .company-name { font-size: 26px; font-weight: 900; letter-spacing: -1px; color: #1a1a2e; }
+  .company-sub  { font-size: 11px; color: #555; margin-top: 4px; line-height: 1.6; }
+  .invoice-label { text-align: right; }
+  .invoice-label h1 { font-size: 32px; font-weight: 900; letter-spacing: 2px; color: #1a1a2e; }
+  .invoice-meta { text-align: right; margin-top: 6px; font-size: 12px; line-height: 1.8; }
+  .invoice-meta .key { color: #888; }
+  .invoice-meta .val { font-weight: 700; margin-left: 8px; }
+
+  /* Divider */
+  .divider { border: none; border-top: 2px solid #1a1a2e; margin: 20px 0; }
+  .divider-light { border: none; border-top: 1px solid #ddd; margin: 12px 0; }
+
+  /* Addresses */
+  .addr-row { display: flex; gap: 40px; margin-bottom: 28px; }
+  .addr-box { flex: 1; }
+  .addr-box .label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #888; margin-bottom: 6px; }
+  .addr-box .name  { font-size: 13px; font-weight: 700; }
+  .addr-box .line  { font-size: 12px; color: #444; line-height: 1.6; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  thead tr { background: #1a1a2e; color: #fff; }
+  thead th { padding: 8px 10px; text-align: left; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
+  thead th:last-child, thead th:nth-last-child(2), thead th:nth-last-child(3) { text-align: right; }
+  tbody tr { border-bottom: 1px solid #eee; }
+  tbody tr:nth-child(even) { background: #fafafa; }
+  tbody td { padding: 8px 10px; font-size: 12px; vertical-align: top; }
+  tbody td:last-child, tbody td:nth-last-child(2), tbody td:nth-last-child(3) { text-align: right; }
+
+  /* Totals */
+  .totals { margin-left: auto; width: 280px; }
+  .totals-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 12px; }
+  .totals-row.subtotal { color: #444; }
+  .totals-row.tax { color: #444; }
+  .totals-row.grand { font-size: 16px; font-weight: 900; border-top: 2px solid #1a1a2e; margin-top: 6px; padding-top: 10px; }
+  .totals-row .tax-detail { font-size: 10px; color: #888; }
+
+  /* Status badge */
+  .status-badge { display: inline-block; padding: 3px 10px; border-radius: 3px; font-size: 10px;
+                  font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .badge-sent    { background: #dbeafe; color: #1d4ed8; }
+  .badge-paid    { background: #dcfce7; color: #166534; }
+  .badge-partial { background: #fef3c7; color: #92400e; }
+  .badge-void    { background: #fee2e2; color: #991b1b; }
+  .badge-draft   { background: #f3f4f6; color: #374151; }
+
+  /* Footer */
+  .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #ddd; }
+  .footer .thanks { font-size: 13px; font-weight: 700; color: #1a1a2e; margin-bottom: 8px; }
+  .footer .terms  { font-size: 11px; color: #666; line-height: 1.6; }
+
+  /* Tax exempt notice */
+  .tax-exempt-notice { background: #f0fdf4; border: 1px solid #86efac; padding: 6px 10px;
+                        border-radius: 4px; font-size: 11px; color: #166534; margin-bottom: 8px; }
+
+  /* Error/loading */
+  .loading { text-align: center; padding: 80px; font-size: 18px; color: #888; }
+  .error   { text-align: center; padding: 80px; font-size: 16px; color: #dc2626; }
+
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page { padding: 0.25in; }
+    .no-print { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page" id="content">
+  <div class="loading">Loading invoice…</div>
+</div>
+
+<script>
+const API = 'http://localhost:3001';
+
+function fmt(n) {
+  return Number(n || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+}
+function addr(obj) {
+  if (!obj) return '';
+  if (typeof obj === 'string') { try { obj = JSON.parse(obj); } catch { return obj; } }
+  return [obj.line1, obj.line2, obj.city && `${obj.city}, ${obj.state || ''} ${obj.zip || ''}`.trim(), obj.country]
+    .filter(Boolean).join('<br>');
+}
+function statusBadge(s) {
+  const cls = {sent:'badge-sent',paid:'badge-paid',partial_paid:'badge-partial',void:'badge-void',draft:'badge-draft'}[s] || 'badge-draft';
+  return `<span class="status-badge ${cls}">${s.replace('_',' ')}</span>`;
+}
+
+async function load() {
+  const params = new URLSearchParams(location.search);
+  const invoiceId = params.get('invoiceId');
+  if (!invoiceId) {
+    document.getElementById('content').innerHTML = '<div class="error">No invoiceId in URL. Add ?invoiceId=... to the URL.</div>';
+    return;
+  }
+
+  try {
+    const r = await fetch(`${API}/api/print/invoice/${invoiceId}`);
+    if (!r.ok) throw new Error((await r.json()).error || r.statusText);
+    const { invoice: inv, lines } = await r.json();
+
+    const billAddr = addr(inv.billing_address);
+    const shipAddr = addr(inv.shipping_address);
+    const hasDiffShip = shipAddr && shipAddr !== billAddr;
+
+    const linesHtml = lines.map(l => {
+      const discountStr = parseFloat(l.discount_pct) > 0
+        ? `<br><span style="font-size:10px;color:#888">${(l.discount_pct*100).toFixed(1)}% disc</span>` : '';
+      return `<tr>
+        <td><strong>${l.item_code}</strong></td>
+        <td>${l.item_name}</td>
+        <td style="text-align:right">${Number(l.qty).toLocaleString()} ${l.unit_of_measure}</td>
+        <td style="text-align:right">${fmt(l.unit_price)}${discountStr}</td>
+        <td style="text-align:right">${fmt(l.line_total)}</td>
+      </tr>`;
+    }).join('');
+
+    const taxRate   = parseFloat(inv.tax_rate || 0);
+    const subtotal  = parseFloat(inv.subtotal || 0);
+    const taxAmt    = parseFloat(inv.tax_amount || 0);
+    const total     = parseFloat(inv.total || 0);
+    const stateCode = inv.state_code || '';
+
+    const taxRow = inv.tax_exempt
+      ? `<div class="tax-exempt-notice">Tax Exempt</div>
+         <div class="totals-row tax"><span>Tax</span><span>$0.00</span></div>`
+      : `<div class="totals-row tax">
+           <span>Tax <span class="tax-detail">(${(taxRate*100).toFixed(2)}% ${stateCode})</span></span>
+           <span>${fmt(taxAmt)}</span>
+         </div>`;
+
+    document.getElementById('content').innerHTML = `
+      <div class="hdr">
+        <div>
+          <div class="company-name">TICK TOCK INC.</div>
+          <div class="company-sub">
+            123 Timepiece Ave, Suite 200<br>
+            New York, NY 10001<br>
+            Phone: (212) 555-8000 &nbsp;·&nbsp; ar@ticktockinc.com
+          </div>
+        </div>
+        <div class="invoice-label">
+          <h1>INVOICE</h1>
+          <div class="invoice-meta">
+            <div><span class="key">Invoice #</span><span class="val">${inv.number}</span></div>
+            <div><span class="key">Date</span><span class="val">${fmtDate(inv.invoice_date)}</span></div>
+            <div><span class="key">Due Date</span><span class="val">${fmtDate(inv.due_date)}</span></div>
+            ${inv.order_number ? `<div><span class="key">Order #</span><span class="val">${inv.order_number}</span></div>` : ''}
+            <div style="margin-top:6px">${statusBadge(inv.status)}</div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <div class="addr-row">
+        <div class="addr-box">
+          <div class="label">Bill To</div>
+          <div class="name">${inv.customer_name}</div>
+          <div class="line">${inv.customer_code}</div>
+          <div class="line">${billAddr}</div>
+          ${inv.customer_email ? `<div class="line">${inv.customer_email}</div>` : ''}
+          ${inv.customer_phone ? `<div class="line">${inv.customer_phone}</div>` : ''}
+        </div>
+        ${hasDiffShip ? `
+        <div class="addr-box">
+          <div class="label">Ship To</div>
+          <div class="line">${shipAddr}</div>
+        </div>` : ''}
+        ${inv.shipment_number ? `
+        <div class="addr-box" style="text-align:right">
+          <div class="label">Shipping</div>
+          <div class="line"><strong>${inv.shipment_number}</strong></div>
+          ${inv.carrier ? `<div class="line">${inv.carrier}</div>` : ''}
+          ${inv.tracking_number ? `<div class="line">Tracking: ${inv.tracking_number}</div>` : ''}
+        </div>` : ''}
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>SKU</th>
+            <th>Description</th>
+            <th style="text-align:right">Qty</th>
+            <th style="text-align:right">Unit Price</th>
+            <th style="text-align:right">Total</th>
+          </tr>
+        </thead>
+        <tbody>${linesHtml}</tbody>
+      </table>
+
+      <div style="display:flex;justify-content:flex-end">
+        <div class="totals">
+          <div class="totals-row subtotal"><span>Subtotal</span><span>${fmt(subtotal)}</span></div>
+          ${taxRow}
+          <div class="totals-row grand"><span>TOTAL DUE</span><span>${fmt(total)}</span></div>
+          ${parseFloat(inv.amount_paid) > 0 ? `
+          <div class="totals-row" style="color:#16a34a;font-weight:600">
+            <span>Paid</span><span>${fmt(inv.amount_paid)}</span>
+          </div>
+          <div class="totals-row" style="font-weight:700;font-size:13px">
+            <span>Balance Due</span><span>${fmt(inv.balance_due)}</span>
+          </div>` : ''}
+        </div>
+      </div>
+
+      <hr class="divider-light">
+
+      <div class="footer">
+        <div class="thanks">Thank you for your business!</div>
+        <div class="terms">
+          Payment is due within the agreed terms. Please include invoice number with your payment.<br>
+          Wire transfers: Contact ar@ticktockinc.com &nbsp;·&nbsp; Checks payable to: Tick Tock Inc.
+          ${inv.notes ? `<br><strong>Notes:</strong> ${inv.notes}` : ''}
+        </div>
+      </div>
+    `;
+
+    // Auto-print
+    window.addEventListener('load', () => setTimeout(() => window.print(), 300));
+
+  } catch (err) {
+    document.getElementById('content').innerHTML = `<div class="error">Error: ${err.message}</div>`;
+  }
+}
+
+load();
+</script>
+</body>
+</html>
