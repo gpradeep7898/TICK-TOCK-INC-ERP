@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tick Tock Inc. — Financial Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#1a1a2e;min-height:100vh}
+
+  /* ── NAV ── */
+  nav{background:#1a1a2e;color:#fff;display:flex;align-items:center;gap:0;height:52px;padding:0 20px}
+  .nav-brand{font-weight:700;font-size:1rem;letter-spacing:.5px;margin-right:28px;white-space:nowrap}
+  .nav-brand span{color:#f5a623}
+  nav a{color:#ccc;text-decoration:none;font-size:.82rem;padding:0 14px;height:52px;display:flex;align-items:center;transition:background .15s}
+  nav a:hover{background:#2d2d4e;color:#fff}
+  nav a.active{background:#2d2d4e;color:#f5a623;border-bottom:2px solid #f5a623}
+
+  /* ── HEADER ── */
+  .page-header{background:#fff;border-bottom:1px solid #e2e8f0;padding:18px 28px;display:flex;align-items:center;justify-content:space-between}
+  .page-header h1{font-size:1.3rem;font-weight:700;color:#1a1a2e}
+  .page-header small{color:#64748b;font-size:.8rem}
+  .refresh-btn{background:#1a1a2e;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:600}
+  .refresh-btn:hover{background:#2d2d4e}
+
+  /* ── LAYOUT ── */
+  .main{padding:24px 28px;max-width:1500px;margin:0 auto}
+
+  /* ── KPI CARDS ── */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:28px}
+  .kpi-card{background:#fff;border-radius:10px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06);border-left:4px solid #e2e8f0}
+  .kpi-card.green {border-left-color:#22c55e}
+  .kpi-card.blue  {border-left-color:#3b82f6}
+  .kpi-card.amber {border-left-color:#f59e0b}
+  .kpi-card.red   {border-left-color:#ef4444}
+  .kpi-card.purple{border-left-color:#8b5cf6}
+  .kpi-card.teal  {border-left-color:#14b8a6}
+  .kpi-label{font-size:.73rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+  .kpi-value{font-size:1.55rem;font-weight:700;color:#1a1a2e;line-height:1}
+  .kpi-sub  {font-size:.75rem;color:#94a3b8;margin-top:5px}
+
+  /* ── SECTION TITLE ── */
+  .section-title{font-size:.85rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .section-title::after{content:'';flex:1;height:1px;background:#e2e8f0}
+
+  /* ── CHARTS ROW ── */
+  .charts-row{display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:28px}
+  .chart-card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .chart-card h3{font-size:.85rem;font-weight:700;color:#475569;margin-bottom:16px}
+  .chart-wrap{position:relative;height:260px}
+
+  /* ── TABLES ROW ── */
+  .tables-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px}
+  .table-card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:auto}
+  .table-card h3{font-size:.85rem;font-weight:700;color:#475569;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:.82rem}
+  th{text-align:left;padding:8px 10px;font-size:.72rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid #f1f5f9;white-space:nowrap}
+  td{padding:8px 10px;border-bottom:1px solid #f1f5f9;color:#334155}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:#f8fafc}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+  td.pct{text-align:right;font-weight:700}
+  .badge-green{color:#16a34a;background:#dcfce7;padding:2px 7px;border-radius:12px;font-size:.72rem;font-weight:700}
+  .badge-red  {color:#dc2626;background:#fee2e2;padding:2px 7px;border-radius:12px;font-size:.72rem;font-weight:700}
+
+  /* ── AGING ── */
+  .aging-wrap{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px}
+  .aging-card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .aging-card h3{font-size:.85rem;font-weight:700;color:#475569;margin-bottom:14px}
+  .aging-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:.8rem}
+  .aging-label{width:80px;color:#64748b;font-size:.75rem}
+  .aging-bar-bg{flex:1;height:14px;background:#f1f5f9;border-radius:7px;overflow:hidden}
+  .aging-bar{height:100%;border-radius:7px;transition:width .4s}
+  .aging-val{width:80px;text-align:right;font-weight:700;font-size:.8rem}
+
+  /* ── P&L TABLE ── */
+  .pl-card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:28px;overflow:auto}
+  .pl-card h3{font-size:.85rem;font-weight:700;color:#475569;margin-bottom:14px}
+  .pl-card table th,.pl-card table td{font-size:.78rem}
+  .pl-card table th{min-width:90px}
+  .pl-highlight{font-weight:700;background:#f8fafc}
+  .pl-highlight td{border-top:2px solid #e2e8f0}
+
+  /* ── SPINNER ── */
+  .spinner{display:inline-block;width:28px;height:28px;border:3px solid #e2e8f0;border-top-color:#1a1a2e;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-state{text-align:center;padding:40px;color:#94a3b8}
+
+  /* ── RESPONSIVE ── */
+  @media(max-width:900px){
+    .charts-row,.tables-row,.aging-wrap{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand"><span>Tick Tock</span> Inc.</div>
+  <a href="/inventory">Inventory</a>
+  <a href="/sales">Sales / AR</a>
+  <a href="/purchasing">Purchasing / AP</a>
+  <a href="/financials" class="active">Financials</a>
+</nav>
+
+<div class="page-header">
+  <div>
+    <h1>Financial Dashboard</h1>
+    <small id="last-updated">Loading…</small>
+  </div>
+  <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+</div>
+
+<div class="main">
+
+  <!-- KPI CARDS -->
+  <div class="section-title">Key Performance Indicators</div>
+  <div class="kpi-grid" id="kpi-grid">
+    <div class="loading-state"><div class="spinner"></div></div>
+  </div>
+
+  <!-- REVENUE / GROSS PROFIT CHART + DONUT -->
+  <div class="section-title">Revenue &amp; Profitability</div>
+  <div class="charts-row">
+    <div class="chart-card">
+      <h3>Revenue vs Gross Profit — Last 12 Months</h3>
+      <div class="chart-wrap"><canvas id="revChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>YTD Revenue Split</h3>
+      <div class="chart-wrap"><canvas id="splitChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- TOP CUSTOMERS + TOP ITEMS -->
+  <div class="section-title">Top Performers — Year to Date</div>
+  <div class="tables-row">
+    <div class="table-card">
+      <h3>Top 10 Customers by Revenue</h3>
+      <div id="tbl-customers"><div class="loading-state"><div class="spinner"></div></div></div>
+    </div>
+    <div class="table-card">
+      <h3>Top 15 Items by Revenue</h3>
+      <div id="tbl-items"><div class="loading-state"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+
+  <!-- AR / AP AGING -->
+  <div class="section-title">AR / AP Aging</div>
+  <div class="aging-wrap">
+    <div class="aging-card">
+      <h3>Accounts Receivable Aging</h3>
+      <div id="ar-aging"><div class="loading-state"><div class="spinner"></div></div></div>
+    </div>
+    <div class="aging-card">
+      <h3>Accounts Payable Aging</h3>
+      <div id="ap-aging"><div class="loading-state"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+
+  <!-- P&L DETAIL TABLE -->
+  <div class="section-title">Monthly P&amp;L — Last 12 Months</div>
+  <div class="pl-card">
+    <h3>Revenue · Cash Collected · COGS · Gross Profit · Cash Paid · Net Cash</h3>
+    <div id="tbl-pl"><div class="loading-state"><div class="spinner"></div></div></div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+const API = 'http://localhost:3001';
+let revChartInst = null, splitChartInst = null;
+
+function fmt(n){ return '$' + Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtN(n){ return Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+async function loadAll(){
+  document.getElementById('last-updated').textContent = 'Refreshing…';
+  await Promise.all([loadSummary(), loadRevByMonth(), loadTopCustomers(), loadTopItems(), loadCashPosition(), loadPL()]);
+  document.getElementById('last-updated').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+}
+
+/* ── KPI CARDS ── */
+async function loadSummary(){
+  const grid = document.getElementById('kpi-grid');
+  try {
+    const r = await fetch(`${API}/api/financials/summary`).then(x=>x.json());
+    grid.innerHTML = `
+      <div class="kpi-card green">
+        <div class="kpi-label">Revenue MTD</div>
+        <div class="kpi-value">${fmt(r.revenue_mtd)}</div>
+        <div class="kpi-sub">This month</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Revenue YTD</div>
+        <div class="kpi-value">${fmt(r.revenue_ytd)}</div>
+        <div class="kpi-sub">Year to date</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-label">AR Open</div>
+        <div class="kpi-value">${fmt(r.ar_open)}</div>
+        <div class="kpi-sub">Overdue: ${fmt(r.ar_overdue)}</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">AR Overdue</div>
+        <div class="kpi-value">${fmt(r.ar_overdue)}</div>
+        <div class="kpi-sub">Past due date</div>
+      </div>
+      <div class="kpi-card amber">
+        <div class="kpi-label">AP Open</div>
+        <div class="kpi-value">${fmt(r.ap_open)}</div>
+        <div class="kpi-sub">Overdue: ${fmt(r.ap_overdue)}</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">COGS YTD</div>
+        <div class="kpi-value">${fmt(r.cogs_ytd)}</div>
+        <div class="kpi-sub">Cost of goods sold</div>
+      </div>
+      <div class="kpi-card teal">
+        <div class="kpi-label">Inventory Value</div>
+        <div class="kpi-value">${fmt(r.inventory_value)}</div>
+        <div class="kpi-sub">On-hand cost</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-label">Open Sales Orders</div>
+        <div class="kpi-value">${r.open_so_count||0}</div>
+        <div class="kpi-sub">Active SOs</div>
+      </div>
+      <div class="kpi-card amber">
+        <div class="kpi-label">Open POs</div>
+        <div class="kpi-value">${r.open_po_count||0}</div>
+        <div class="kpi-sub">Active purchase orders</div>
+      </div>
+    `;
+  } catch(e){
+    grid.innerHTML = `<div class="loading-state" style="color:#ef4444">Failed to load KPIs: ${e.message}</div>`;
+  }
+}
+
+/* ── REVENUE CHART ── */
+async function loadRevByMonth(){
+  try {
+    const rows = await fetch(`${API}/api/financials/revenue-by-month`).then(x=>x.json());
+    const labels = rows.map(r=>r.label);
+    const rev    = rows.map(r=>+r.revenue);
+    const gp     = rows.map(r=>+r.gross_profit);
+
+    if(revChartInst) revChartInst.destroy();
+    revChartInst = new Chart(document.getElementById('revChart'),{
+      type:'bar',
+      data:{
+        labels,
+        datasets:[
+          {label:'Revenue',data:rev,backgroundColor:'rgba(59,130,246,0.7)',borderColor:'#3b82f6',borderWidth:1,borderRadius:4},
+          {label:'Gross Profit',data:gp,backgroundColor:'rgba(34,197,94,0.7)',borderColor:'#22c55e',borderWidth:1,borderRadius:4,type:'bar'}
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{position:'top',labels:{font:{size:11}}},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}},
+        scales:{y:{ticks:{callback:v=>'$'+v.toLocaleString()},grid:{color:'#f1f5f9'}},x:{grid:{display:false}}}
+      }
+    });
+
+    // Donut for revenue split (COGS vs GP)
+    const totalRev  = rev.reduce((a,b)=>a+b,0);
+    const totalCogs = rows.map(r=>+r.cogs).reduce((a,b)=>a+b,0);
+    const totalGP   = totalRev - totalCogs;
+    if(splitChartInst) splitChartInst.destroy();
+    splitChartInst = new Chart(document.getElementById('splitChart'),{
+      type:'doughnut',
+      data:{
+        labels:['Gross Profit','COGS'],
+        datasets:[{data:[Math.max(0,totalGP),totalCogs],backgroundColor:['#22c55e','#f59e0b'],borderWidth:2,hoverOffset:6}]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,cutout:'62%',
+        plugins:{
+          legend:{position:'bottom',labels:{font:{size:11}}},
+          tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${fmt(ctx.raw)}`}}
+        }
+      }
+    });
+  } catch(e){ console.error('revByMonth',e); }
+}
+
+/* ── TOP CUSTOMERS TABLE ── */
+async function loadTopCustomers(){
+  const el = document.getElementById('tbl-customers');
+  try {
+    const rows = await fetch(`${API}/api/financials/top-customers`).then(x=>x.json());
+    if(!rows.length){ el.innerHTML='<p style="color:#94a3b8;font-size:.82rem;padding:12px">No data yet.</p>'; return; }
+    el.innerHTML = `<table>
+      <thead><tr><th>#</th><th>Customer</th><th>Inv</th><th class="num">Revenue YTD</th><th class="num">Open Balance</th></tr></thead>
+      <tbody>${rows.map((r,i)=>`<tr>
+        <td style="color:#94a3b8">${i+1}</td>
+        <td>${r.customer}</td>
+        <td style="text-align:center">${r.invoice_count}</td>
+        <td class="num">${fmt(r.revenue_ytd)}</td>
+        <td class="num">${+r.open_balance>0?`<span class="badge-red">${fmt(r.open_balance)}</span>`:'<span class="badge-green">$0.00</span>'}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  } catch(e){ el.innerHTML=`<div class="loading-state" style="color:#ef4444">${e.message}</div>`; }
+}
+
+/* ── TOP ITEMS TABLE ── */
+async function loadTopItems(){
+  const el = document.getElementById('tbl-items');
+  try {
+    const rows = await fetch(`${API}/api/financials/top-items`).then(x=>x.json());
+    if(!rows.length){ el.innerHTML='<p style="color:#94a3b8;font-size:.82rem;padding:12px">No data yet.</p>'; return; }
+    el.innerHTML = `<table>
+      <thead><tr><th>#</th><th>Item</th><th class="num">Qty</th><th class="num">Revenue</th><th class="num">COGS</th><th class="pct">Margin</th></tr></thead>
+      <tbody>${rows.map((r,i)=>{
+        const m = +r.margin_pct;
+        const badge = m>=40?'badge-green':'badge-red';
+        return `<tr>
+          <td style="color:#94a3b8">${i+1}</td>
+          <td><strong>${r.code}</strong><br><span style="color:#94a3b8;font-size:.73rem">${r.name}</span></td>
+          <td class="num">${Number(r.qty_sold).toLocaleString()}</td>
+          <td class="num">${fmt(r.revenue)}</td>
+          <td class="num">${fmt(r.cogs)}</td>
+          <td class="pct"><span class="${badge}">${m}%</span></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  } catch(e){ el.innerHTML=`<div class="loading-state" style="color:#ef4444">${e.message}</div>`; }
+}
+
+/* ── AGING BARS ── */
+async function loadCashPosition(){
+  try {
+    const d = await fetch(`${API}/api/financials/cash-position`).then(x=>x.json());
+    renderAging('ar-aging', d.ar, '#3b82f6');
+    renderAging('ap-aging', d.ap, '#f59e0b');
+  } catch(e){
+    document.getElementById('ar-aging').innerHTML=`<div style="color:#ef4444">${e.message}</div>`;
+    document.getElementById('ap-aging').innerHTML=`<div style="color:#ef4444">${e.message}</div>`;
+  }
+}
+
+function renderAging(elId, d, color){
+  const el = document.getElementById(elId);
+  const buckets = [
+    {label:'Current',  val:+d.current_amt,  color:'#22c55e'},
+    {label:'1–30 days',val:+d.overdue_1_30, color:'#f59e0b'},
+    {label:'31–60',    val:+d.overdue_31_60,color:'#f97316'},
+    {label:'61–90',    val:+d.overdue_61_90,color:'#ef4444'},
+    {label:'90+ days', val:+d.overdue_90_plus,color:'#7f1d1d'},
+  ];
+  const total = buckets.reduce((a,b)=>a+b.val,0)||1;
+  const totalFmt = fmt(total===1?0:total);
+  el.innerHTML = `
+    <div style="margin-bottom:12px;font-size:.82rem;color:#64748b">Total: <strong style="color:#1a1a2e">${totalFmt}</strong></div>
+    ${buckets.map(b=>`
+      <div class="aging-bar-row">
+        <div class="aging-label">${b.label}</div>
+        <div class="aging-bar-bg"><div class="aging-bar" style="width:${(b.val/total*100).toFixed(1)}%;background:${b.color}"></div></div>
+        <div class="aging-val">${fmt(b.val)}</div>
+      </div>
+    `).join('')}
+  `;
+}
+
+/* ── P&L TABLE ── */
+async function loadPL(){
+  const el = document.getElementById('tbl-pl');
+  try {
+    const rows = await fetch(`${API}/api/financials/pl-detail`).then(x=>x.json());
+    if(!rows.length){ el.innerHTML='<p style="color:#94a3b8;font-size:.82rem;padding:12px">No data yet.</p>'; return; }
+    el.innerHTML = `<table>
+      <thead><tr>
+        <th>Month</th>
+        <th class="num">Revenue</th>
+        <th class="num">Cash In</th>
+        <th class="num">COGS</th>
+        <th class="num">Gross Profit</th>
+        <th class="num">Cash Out</th>
+        <th class="num">Net Cash</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(r=>{
+          const gp   = +r.gross_profit;
+          const nc   = +r.net_cash;
+          return `<tr>
+            <td><strong>${r.month}</strong></td>
+            <td class="num">${fmt(r.revenue)}</td>
+            <td class="num">${fmt(r.cash_collected)}</td>
+            <td class="num">${fmt(r.cogs)}</td>
+            <td class="num" style="color:${gp>=0?'#16a34a':'#dc2626'};font-weight:700">${fmt(gp)}</td>
+            <td class="num">${fmt(r.cash_paid)}</td>
+            <td class="num" style="color:${nc>=0?'#16a34a':'#dc2626'};font-weight:700">${fmt(nc)}</td>
+          </tr>`;
+        }).join('')}
+        ${(()=>{
+          const tot = rows.reduce((a,r)=>({
+            revenue:a.revenue+(+r.revenue),
+            cash_collected:a.cash_collected+(+r.cash_collected),
+            cogs:a.cogs+(+r.cogs),
+            gross_profit:a.gross_profit+(+r.gross_profit),
+            cash_paid:a.cash_paid+(+r.cash_paid),
+            net_cash:a.net_cash+(+r.net_cash)
+          }),{revenue:0,cash_collected:0,cogs:0,gross_profit:0,cash_paid:0,net_cash:0});
+          return `<tr class="pl-highlight">
+            <td><strong>TOTAL</strong></td>
+            <td class="num">${fmt(tot.revenue)}</td>
+            <td class="num">${fmt(tot.cash_collected)}</td>
+            <td class="num">${fmt(tot.cogs)}</td>
+            <td class="num" style="color:${tot.gross_profit>=0?'#16a34a':'#dc2626'}">${fmt(tot.gross_profit)}</td>
+            <td class="num">${fmt(tot.cash_paid)}</td>
+            <td class="num" style="color:${tot.net_cash>=0?'#16a34a':'#dc2626'}">${fmt(tot.net_cash)}</td>
+          </tr>`;
+        })()}
+      </tbody>
+    </table>`;
+  } catch(e){ el.innerHTML=`<div class="loading-state" style="color:#ef4444">${e.message}</div>`; }
+}
+
+// Boot
+loadAll();
+</script>
+</body>
+</html>
