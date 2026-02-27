@@ -6,6 +6,8 @@ const express = require('express');
 const cors    = require('cors');
 const path    = require('path');
 const { Pool } = require('pg');
+const jwt     = require('jsonwebtoken');
+const bcrypt  = require('bcryptjs');
 
 // ─── DB Pool ─────────────────────────────────────────────────────────────────
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -28,11 +30,72 @@ app.get('/', (_req, res) => res.sendFile(path.join(WEB_DIR, 'inventory.html')));
 app.get('/sales',       (_req, res) => res.sendFile(path.join(WEB_DIR, 'sales.html')));
 app.get('/purchasing',  (_req, res) => res.sendFile(path.join(WEB_DIR, 'purchasing.html')));
 app.get('/financials',  (_req, res) => res.sendFile(path.join(WEB_DIR, 'financials.html')));
+app.get('/login',       (_req, res) => res.sendFile(path.join(WEB_DIR, 'login.html')));
 
 // Simple request logger
 app.use((req, _res, next) => {
     console.log(`${new Date().toISOString()}  ${req.method}  ${req.path}`);
     next();
+});
+
+// ─── Auth Middleware ───────────────────────────────────────────────────────────
+const JWT_SECRET = process.env.JWT_SECRET || 'ticktock-fallback-secret';
+
+function requireAuth(req, res, next) {
+    const header = req.headers['authorization'] || '';
+    const token  = header.startsWith('Bearer ') ? header.slice(7) : null;
+    if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
+    try {
+        req.user = jwt.verify(token, JWT_SECRET);
+        next();
+    } catch {
+        res.status(401).json({ success: false, error: 'Token expired or invalid' });
+    }
+}
+
+// ─── Auth Routes ──────────────────────────────────────────────────────────────
+
+// POST /api/auth/login
+app.post('/api/auth/login', async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({ success: false, error: 'Email and password are required' });
+    }
+    try {
+        const { rows } = await query(
+            `SELECT id, name, email, role, password_hash, is_active FROM users WHERE email = $1`,
+            [email.toLowerCase().trim()]
+        );
+        if (!rows.length) {
+            return res.status(401).json({ success: false, error: 'Invalid email or password' });
+        }
+        const user = rows[0];
+        if (!user.is_active) {
+            return res.status(403).json({ success: false, error: 'Account is disabled' });
+        }
+        const match = await bcrypt.compare(password, user.password_hash || '');
+        if (!match) {
+            return res.status(401).json({ success: false, error: 'Invalid email or password' });
+        }
+        const payload = { userId: user.id, email: user.email, role: user.role, name: user.name };
+        const token   = jwt.sign(payload, JWT_SECRET, {
+            expiresIn: process.env.JWT_EXPIRES_IN || '8h'
+        });
+        res.json({ success: true, data: { token, user: payload } });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// GET /api/auth/me — verify token and return user info
+app.get('/api/auth/me', requireAuth, (req, res) => {
+    res.json({ success: true, data: req.user });
+});
+
+// Apply auth to all /api/* except auth and health
+app.use('/api', (req, res, next) => {
+    if (req.path.startsWith('/auth/') || req.path === '/health') return next();
+    requireAuth(req, res, next);
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -54,13 +117,39 @@ async function nextAdjNumber(client) {
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
-// Health
-app.get('/health', async (_req, res) => {
+const SERVER_START = Date.now();
+
+// Health (public — no auth required)
+app.get('/health',     async (_req, res) => {
     try {
         await query('SELECT 1');
-        res.json({ status: 'ok', db: 'connected', ts: new Date().toISOString() });
+        res.json({
+            status:  'ok',
+            db:      'connected',
+            version: process.env.APP_VERSION || '1.0.0',
+            uptime:  Math.floor((Date.now() - SERVER_START) / 1000),
+            ts:      new Date().toISOString()
+        });
     } catch (err) {
         res.status(503).json({ status: 'error', message: err.message });
+    }
+});
+
+app.get('/api/health', async (_req, res) => {
+    try {
+        await query('SELECT 1');
+        res.json({
+            success: true,
+            data: {
+                status:  'ok',
+                db:      'connected',
+                version: process.env.APP_VERSION || '1.0.0',
+                uptime:  Math.floor((Date.now() - SERVER_START) / 1000),
+                ts:      new Date().toISOString()
+            }
+        });
+    } catch (err) {
+        res.status(503).json({ success: false, error: err.message });
     }
 });
 
@@ -150,6 +239,30 @@ app.patch('/api/items/:id', async (req, res) => {
     }
 });
 
+// DELETE /api/items/:id — soft-delete (set is_active = false)
+app.delete('/api/items/:id', async (req, res) => {
+    try {
+        // Check for stock movements first
+        const { rows: stockRows } = await query(
+            `SELECT COUNT(*) AS cnt FROM stock_ledger WHERE item_id = $1`, [req.params.id]
+        );
+        if (parseInt(stockRows[0].cnt, 10) > 0) {
+            // Soft delete — can't hard delete items with ledger entries
+            const { rows } = await query(
+                `UPDATE items SET is_active = false, updated_at = NOW() WHERE id = $1 RETURNING id, code, name`,
+                [req.params.id]
+            );
+            if (!rows.length) return res.status(404).json({ success: false, error: 'Item not found' });
+            return res.json({ success: true, data: rows[0], message: 'Item deactivated (has stock history)' });
+        }
+        const { rows } = await query(`DELETE FROM items WHERE id = $1 RETURNING id`, [req.params.id]);
+        if (!rows.length) return res.status(404).json({ success: false, error: 'Item not found' });
+        res.json({ success: true, data: { id: req.params.id } });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 // ── Warehouses ─────────────────────────────────────────────────────────────────
 
 app.get('/api/warehouses', async (_req, res) => {
@@ -195,15 +308,35 @@ app.get('/api/stock/dashboard', async (_req, res) => {
     }
 });
 
-// Reorder alerts
+// Reorder alerts — consolidated per item (total stock across all warehouses vs reorder_point)
 app.get('/api/stock/reorder-alerts', async (_req, res) => {
     try {
-        const { rows } = await query(
-            `SELECT * FROM v_reorder_alerts ORDER BY category, item_code`
-        );
-        res.json(rows);
+        const { rows } = await query(`
+            SELECT
+                i.id            AS item_id,
+                i.code          AS item_code,
+                i.name          AS item_name,
+                i.category,
+                i.unit_of_measure,
+                i.reorder_point,
+                i.reorder_qty,
+                COALESCE(SUM(soh.qty_on_hand),  0) AS qty_on_hand,
+                COALESCE(SUM(soh.qty_committed), 0) AS qty_committed,
+                COALESCE(SUM(soh.qty_available), 0) AS qty_available,
+                (i.reorder_point - COALESCE(SUM(soh.qty_available), 0)) AS shortfall,
+                STRING_AGG(DISTINCT w.name, ', ') AS warehouse_names
+            FROM items i
+            LEFT JOIN v_stock_availability soh ON soh.item_id = i.id
+            LEFT JOIN warehouses w ON w.id = soh.warehouse_id
+            WHERE i.is_active = true
+              AND i.reorder_point > 0
+            GROUP BY i.id, i.code, i.name, i.category, i.unit_of_measure, i.reorder_point, i.reorder_qty
+            HAVING COALESCE(SUM(soh.qty_available), 0) < i.reorder_point
+            ORDER BY (i.reorder_point - COALESCE(SUM(soh.qty_available), 0)) DESC, i.code
+        `);
+        res.json({ success: true, data: rows });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ success: false, error: err.message });
     }
 });
 
@@ -242,8 +375,12 @@ app.get('/api/stock/:itemId/history', async (req, res) => {
 
 // ── Adjustments ────────────────────────────────────────────────────────────────
 
-app.get('/api/adjustments', async (_req, res) => {
+app.get('/api/adjustments', async (req, res) => {
     try {
+        const status = req.query.status;
+        const params = [];
+        let where = '';
+        if (status) { params.push(status); where = `WHERE sa.status = $${params.length}`; }
         const { rows } = await query(
             `SELECT sa.*, w.code AS warehouse_code, w.name AS warehouse_name,
                     u.name AS created_by_name,
@@ -251,11 +388,13 @@ app.get('/api/adjustments', async (_req, res) => {
              FROM   stock_adjustments sa
              JOIN   warehouses w ON w.id = sa.warehouse_id
              LEFT JOIN users u ON u.id = sa.created_by
-             ORDER  BY sa.created_at DESC`
+             ${where}
+             ORDER  BY sa.created_at DESC`,
+            params
         );
-        res.json(rows);
+        res.json({ success: true, data: rows });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ success: false, error: err.message });
     }
 });
 
@@ -371,12 +510,34 @@ app.post('/api/adjustments/:id/post', async (req, res) => {
         );
 
         await client.query('COMMIT');
-        res.json(updated);
+
+        // Audit log entry
+        try {
+            await query(`INSERT INTO audit_log (action, table_name, record_id, new_values) VALUES ('post_adjustment','stock_adjustments',$1,$2)`,
+                [adj.id, JSON.stringify({ status: 'posted', posted_at: new Date() })]);
+        } catch {}
+
+        res.json({ success: true, data: updated });
     } catch (err) {
         await client.query('ROLLBACK');
-        res.status(err.status || 500).json({ error: err.message });
+        res.status(err.status || 500).json({ success: false, error: err.message });
     } finally {
         client.release();
+    }
+});
+
+// DELETE /api/adjustments/:id — delete draft adjustment
+app.delete('/api/adjustments/:id', async (req, res) => {
+    try {
+        const { rows: [adj] } = await query(
+            `SELECT status FROM stock_adjustments WHERE id = $1`, [req.params.id]
+        );
+        if (!adj) return res.status(404).json({ success: false, error: 'Adjustment not found' });
+        if (adj.status === 'posted') return res.status(400).json({ success: false, error: 'Cannot delete a posted adjustment' });
+        await query(`DELETE FROM stock_adjustments WHERE id = $1`, [req.params.id]);
+        res.json({ success: true, data: { id: req.params.id } });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
     }
 });
 
@@ -2837,8 +2998,62 @@ app.get('/api/financials/pl-detail', async (_req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ─── Dashboard Stats ───────────────────────────────────────────────────────────
+app.get('/api/dashboard/stats', async (_req, res) => {
+    try {
+        const { rows } = await query(`
+            SELECT
+                (SELECT COUNT(*) FROM items WHERE is_active = true)::int                                                       AS total_items,
+                (SELECT COALESCE(SUM(qty * cost_per_unit),0) FROM stock_ledger WHERE qty > 0)::numeric(14,2)                  AS total_inventory_value,
+                (SELECT COUNT(*) FROM (
+                    SELECT i.id FROM items i
+                    LEFT JOIN v_stock_availability soh ON soh.item_id = i.id
+                    WHERE i.is_active = true AND i.reorder_point > 0
+                    GROUP BY i.id, i.reorder_point
+                    HAVING COALESCE(SUM(soh.qty_available), 0) < i.reorder_point
+                ) sub)::int                                                                                                        AS reorder_alert_count,
+                (SELECT COUNT(*) FROM warehouses WHERE is_active = true)::int                                                  AS warehouse_count,
+                (SELECT COUNT(*) FROM v_stock_availability WHERE qty_available > 0 AND qty_available <= reorder_point)::int    AS low_stock_count,
+                (SELECT COUNT(*) FROM v_stock_availability WHERE qty_available <= 0)::int                                      AS out_of_stock_count
+        `);
+        res.json({ success: true, data: rows[0] });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// ─── Item Search ───────────────────────────────────────────────────────────────
+app.get('/api/items/search', async (req, res) => {
+    const q = (req.query.q || '').trim();
+    if (!q) return res.json({ success: true, data: [] });
+    try {
+        const { rows } = await query(`
+            SELECT id, code, name, category, sale_price, standard_cost, upc_code, unit_of_measure, is_active
+            FROM items
+            WHERE is_active = true
+              AND (
+                  code ILIKE $1 OR
+                  name ILIKE $1 OR
+                  category ILIKE $1 OR
+                  upc_code ILIKE $1
+              )
+            ORDER BY name
+            LIMIT 25
+        `, [`%${q}%`]);
+        res.json({ success: true, data: rows });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// ─── Global Error Handler ──────────────────────────────────────────────────────
+app.use((err, _req, res, _next) => {
+    console.error('Unhandled error:', err);
+    res.status(err.status || 500).json({ success: false, error: err.message || 'Internal server error' });
+});
+
 // ─── 404 fallback ─────────────────────────────────────────────────────────────
-app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
+app.use((_req, res) => res.status(404).json({ success: false, error: 'Not found' }));
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
