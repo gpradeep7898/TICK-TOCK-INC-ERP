@@ -1,292 +1,376 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Tick Tock Inc. — Sales</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TICK TOCK INC. | Sales</title>
 <style>
+/* ── Reset & Root ─────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg0:#0d0f14;--bg1:#131720;--bg2:#1a1f2e;--bg3:#222840;--bg4:#2a3250;
-  --border:#2e3650;--text0:#eef1f8;--text1:#a8b3cc;--text2:#6b7a99;
-  --accent:#4f8ef7;--accent2:#7c5cf5;--green:#22c575;--yellow:#f5c842;
-  --red:#f5524a;--orange:#f58c42;--purple:#9b59f5;--radius:8px;--sidebar:220px;
+  --navy:    #1e2a3a;
+  --navy2:   #243347;
+  --navy3:   #162130;
+  --sidebar-w: 240px;
+  --header-h:  60px;
+  --blue:    #2563eb;
+  --blue-h:  #1d4ed8;
+  --blue-l:  #3b82f6;
+  --green:   #10b981;
+  --yellow:  #f59e0b;
+  --red:     #ef4444;
+  --orange:  #f97316;
+  --bg:      #f0f4f8;
+  --bg2:     #e8eef5;
+  --card:    #ffffff;
+  --border:  #dde5ef;
+  --border2: #c8d5e5;
+  --text0:   #0f1923;
+  --text1:   #374151;
+  --text2:   #64748b;
+  --text3:   #94a3b8;
+  --radius:  10px;
+  --radius-sm: 6px;
+  --shadow:  0 1px 3px rgba(15,25,40,.08),0 4px 16px rgba(15,25,40,.06);
+  --shadow-lg: 0 4px 24px rgba(15,25,40,.12),0 1px 4px rgba(15,25,40,.08);
 }
-html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
-  background:var(--bg0);color:var(--text0);font-size:13px;line-height:1.5}
-button{cursor:pointer;font-family:inherit}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text0);font-size:13px;line-height:1.5}
+button{cursor:pointer;font-family:inherit;font-size:13px}
 input,select,textarea{font-family:inherit;font-size:13px}
+
+/* ── Shell ─────────────────────────────────────────────── */
 #app{display:flex;height:100vh;overflow:hidden}
 
-/* Sidebar */
-#sidebar{width:var(--sidebar);min-width:var(--sidebar);background:var(--bg1);
-  border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-.logo{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
-.logo-mark{display:flex;align-items:center;gap:10px}
-.logo-icon{width:32px;height:32px;border-radius:8px;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.logo-text{font-size:14px;font-weight:700;color:var(--text0);line-height:1.2}
-.logo-sub{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em}
-nav{padding:12px 8px;flex:1;overflow-y:auto}
-.nav-label{font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;
-  letter-spacing:.1em;padding:8px 8px 4px}
-.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;
-  border-radius:var(--radius);color:var(--text1);font-size:13px;font-weight:500;
-  cursor:pointer;transition:all .15s;margin-bottom:2px;border:none;background:none;
-  width:100%;text-align:left}
-.nav-item:hover{background:var(--bg3);color:var(--text0)}
-.nav-item.active{background:var(--bg4);color:var(--accent)}
-.nav-item .icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
-.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;
-  font-weight:700;border-radius:10px;padding:1px 6px;min-width:18px;text-align:center}
-.sidebar-footer{padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--text2)}
-.conn-dot{display:inline-block;width:7px;height:7px;border-radius:50%;
-  background:var(--green);margin-right:5px;vertical-align:middle}
-.conn-dot.offline{background:var(--red)}
+/* ── Sidebar ───────────────────────────────────────────── */
+#sidebar{
+  width:var(--sidebar-w);min-width:var(--sidebar-w);
+  background:var(--navy);display:flex;flex-direction:column;
+  overflow:hidden;z-index:100;
+}
+.sidebar-logo{
+  padding:18px 20px 16px;border-bottom:1px solid rgba(255,255,255,.08);
+  display:flex;align-items:center;gap:12px;flex-shrink:0;
+}
+.sidebar-logo-icon{
+  width:36px;height:36px;border-radius:9px;
+  background:linear-gradient(135deg,var(--blue),var(--blue-l));
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;box-shadow:0 4px 12px rgba(37,99,235,.4);
+}
+.sidebar-logo-text .co{font-size:13px;font-weight:800;color:#fff;letter-spacing:.03em}
+.sidebar-logo-text .sub{font-size:9.5px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em}
 
-/* Main */
-#main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg0)}
-#topbar{padding:0 24px;height:56px;min-height:56px;border-bottom:1px solid var(--border);
-  background:var(--bg1);display:flex;align-items:center;justify-content:space-between}
-.topbar-title{font-size:16px;font-weight:600}
-.topbar-actions{display:flex;gap:8px}
+.sidebar-nav{padding:12px 10px;flex:1;overflow-y:auto}
+.nav-section{margin-bottom:4px}
+.nav-label{
+  font-size:9.5px;font-weight:700;color:rgba(255,255,255,.3);
+  text-transform:uppercase;letter-spacing:.12em;padding:10px 10px 4px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;border-radius:var(--radius-sm);
+  color:rgba(255,255,255,.55);font-size:13px;font-weight:500;
+  cursor:pointer;transition:all .12s;margin-bottom:1px;
+  border:none;background:none;width:100%;text-align:left;text-decoration:none;
+}
+.nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85)}
+.nav-item.active{background:rgba(37,99,235,.25);color:#fff}
+.nav-item .ni{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.nav-badge{
+  margin-left:auto;background:var(--red);color:#fff;
+  font-size:10px;font-weight:700;border-radius:10px;
+  padding:1px 6px;min-width:18px;text-align:center;
+}
+.nav-badge-orange{background:var(--orange)}
 
-/* Stats bar */
-#stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
-  background:var(--border);border-bottom:1px solid var(--border)}
-.stat-card{background:var(--bg1);padding:16px 20px}
-.stat-label{font-size:11px;color:var(--text2);text-transform:uppercase;
-  letter-spacing:.06em;margin-bottom:4px}
-.stat-value{font-size:22px;font-weight:700;color:var(--text0)}
-.stat-sub{font-size:11px;color:var(--text2);margin-top:2px}
+.sidebar-footer{
+  padding:12px 16px;border-top:1px solid rgba(255,255,255,.08);
+  font-size:11px;color:rgba(255,255,255,.3);
+}
 
-/* Content */
-#content{flex:1;overflow-y:auto;padding:20px 24px}
+/* ── Main Area ─────────────────────────────────────────── */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── Header ─────────────────────────────────────────────── */
+#header{
+  height:var(--header-h);min-height:var(--header-h);
+  background:var(--card);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 24px;gap:16px;
+  z-index:50;flex-shrink:0;
+}
+.header-page-title{font-size:16px;font-weight:700;color:var(--text0);flex:1}
+.header-actions{display:flex;align-items:center;gap:10px}
+
+.user-chip{
+  display:flex;align-items:center;gap:9px;padding:5px 12px 5px 5px;
+  background:var(--bg);border:1.5px solid var(--border);border-radius:30px;
+}
+.user-avatar{
+  width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.user-info{line-height:1.3}
+.user-name{font-size:12px;font-weight:600;color:var(--text0)}
+.user-role-line{font-size:10px;color:var(--text2)}
+.role-badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:4px}
+.role-admin    {background:rgba(245,158,11,.12);color:#b45309}
+.role-warehouse{background:rgba(16,185,129,.12);color:#047857}
+.role-sales    {background:rgba(37,99,235,.12);color:#1d4ed8}
+
+.signout-btn{
+  padding:7px 14px;border-radius:var(--radius-sm);background:none;
+  color:var(--text2);font-size:12px;font-weight:500;border:1.5px solid var(--border);transition:all .12s;
+}
+.signout-btn:hover{background:var(--red);color:#fff;border-color:var(--red)}
+
+/* ── Content Area ──────────────────────────────────────── */
+#content{flex:1;overflow-y:auto;padding:24px}
+
+/* ── KPI Grid ──────────────────────────────────────────── */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.kpi-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.kpi-value{font-size:26px;font-weight:800;color:var(--text0);line-height:1}
+.kpi-value.blue{color:var(--blue)} .kpi-value.green{color:var(--green)}
+.kpi-value.yellow{color:var(--yellow)} .kpi-value.red{color:var(--red)}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:4px}
+
+/* ── Section ───────────────────────────────────────────── */
 .section{display:none}.section.active{display:block}
 
-/* Toolbar */
-.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
-.search-box{position:relative;flex:1;min-width:160px;max-width:300px}
-.search-box input{width:100%;padding:7px 10px 7px 32px;background:var(--bg2);
-  border:1px solid var(--border);border-radius:var(--radius);color:var(--text0);
-  outline:none;transition:border-color .15s}
-.search-box input:focus{border-color:var(--accent)}
-.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);
-  color:var(--text2);font-size:13px}
-select.filter{padding:7px 10px;background:var(--bg2);border:1px solid var(--border);
-  border-radius:var(--radius);color:var(--text0);outline:none;cursor:pointer}
-select.filter:focus{border-color:var(--accent)}
+/* ── Toolbar ───────────────────────────────────────────── */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;min-width:180px;max-width:320px}
+.search-wrap input{
+  width:100%;padding:8px 12px 8px 34px;border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);background:var(--card);color:var(--text0);outline:none;
+  transition:border-color .12s,box-shadow .12s;
+}
+.search-wrap input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px;pointer-events:none}
+.filter-select{
+  padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--card);color:var(--text1);outline:none;
+}
+.filter-select:focus{border-color:var(--blue)}
 
-/* Buttons */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:none;
-  border-radius:var(--radius);font-size:12px;font-weight:600;transition:all .15s;cursor:pointer}
-.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#3a7ae0}
-.btn-secondary{background:var(--bg3);color:var(--text0);border:1px solid var(--border)}
-.btn-secondary:hover{background:var(--bg4)}
-.btn-success{background:var(--green);color:#0d0f14}.btn-success:hover{background:#1aad64}
-.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{background:#d94040}
-.btn-warning{background:var(--yellow);color:#0d0f14}.btn-warning:hover{background:#d4ac00}
-.btn-sm{padding:4px 10px;font-size:11px}
-.btn-xs{padding:3px 8px;font-size:10px}
-
-/* Table */
-.table-wrap{background:var(--bg1);border:1px solid var(--border);
-  border-radius:var(--radius);overflow:hidden}
+/* ── Table ──────────────────────────────────────────────── */
+.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);background:var(--card)}
 .data-table{width:100%;border-collapse:collapse}
-.data-table th{background:var(--bg2);padding:10px 14px;font-size:10px;font-weight:600;
-  color:var(--text2);text-transform:uppercase;letter-spacing:.06em;text-align:left;
-  white-space:nowrap;border-bottom:1px solid var(--border)}
-.data-table td{padding:11px 14px;border-bottom:1px solid var(--border);
-  white-space:nowrap;font-size:12px}
+.data-table th{
+  background:var(--bg);padding:10px 14px;text-align:left;
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--text2);border-bottom:1px solid var(--border);white-space:nowrap;
+}
+.data-table td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text1)}
 .data-table tr:last-child td{border-bottom:none}
-.data-table tbody tr{transition:background .1s;cursor:pointer}
-.data-table tbody tr:hover td{background:var(--bg2)}
-.empty-state{text-align:center;padding:48px 20px;color:var(--text2)}
-.empty-icon{font-size:32px;margin-bottom:10px}
+.data-table tbody tr:hover td{background:rgba(37,99,235,.02);cursor:pointer}
+.code-tag{font-family:'Courier New',monospace;font-size:11px;color:var(--text0);background:var(--bg2);padding:2px 6px;border-radius:4px;font-weight:600}
+.empty-state{text-align:center;padding:40px;color:var(--text3);font-size:13px}
 
-/* Badges */
-.status-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;
-  padding:3px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.05em}
-.badge-draft     {background:rgba(107,122,153,.15);color:var(--text1)}
-.badge-confirmed {background:rgba(79,142,247,.15); color:var(--accent)}
-.badge-partial   {background:rgba(245,140,66,.15); color:var(--orange)}
-.badge-shipped   {background:rgba(34,197,117,.15); color:var(--green)}
-.badge-invoiced  {background:rgba(155,89,245,.15); color:var(--purple)}
-.badge-closed    {background:rgba(34,197,117,.15); color:var(--green)}
-.badge-cancelled {background:rgba(245,82,74,.15);  color:var(--red)}
-.badge-sent      {background:rgba(79,142,247,.15); color:var(--accent)}
-.badge-paid      {background:rgba(34,197,117,.15); color:var(--green)}
-.badge-overdue   {background:rgba(245,82,74,.15);  color:var(--red)}
-.badge-partial_paid{background:rgba(245,140,66,.15);color:var(--orange)}
-.code-tag{font-family:'SF Mono','Fira Code',monospace;font-size:11px;color:var(--text1);
-  background:var(--bg3);padding:2px 6px;border-radius:4px}
+/* ── AR Aging Table ─────────────────────────────────────── */
+.aging-table{width:100%;border-collapse:collapse}
+.aging-table th{background:var(--bg);padding:10px 14px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;text-align:right;border-bottom:1px solid var(--border)}
+.aging-table th:first-child{text-align:left}
+.aging-table td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:12px;text-align:right;font-variant-numeric:tabular-nums;color:var(--text1)}
+.aging-table td:first-child{text-align:left;font-weight:500}
+.aging-table tfoot td{background:var(--bg);font-weight:700;border-top:2px solid var(--border);border-bottom:none}
+.aging-table tr:last-child td{border-bottom:none}
+.aging-table tbody tr:hover td{background:rgba(37,99,235,.02);cursor:pointer}
+.overdue-30{color:var(--yellow)!important} .overdue-60{color:var(--orange)!important} .overdue-90{color:var(--red)!important}
 
-/* Modal */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);
-  z-index:1000;align-items:flex-start;justify-content:center;padding-top:40px;overflow-y:auto}
+/* ── Badges ─────────────────────────────────────────────── */
+.status-badge{
+  display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;
+  padding:3px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.05em;
+}
+.badge-draft          {background:rgba(100,116,139,.1);color:#475569}
+.badge-confirmed      {background:rgba(37,99,235,.1);color:#1d4ed8}
+.badge-partial        {background:rgba(249,115,22,.1);color:#c2410c}
+.badge-partially_shipped{background:rgba(249,115,22,.1);color:#c2410c}
+.badge-shipped,
+.badge-fully_shipped  {background:rgba(16,185,129,.1);color:#047857}
+.badge-invoiced       {background:rgba(139,92,246,.1);color:#6d28d9}
+.badge-closed,
+.badge-paid           {background:rgba(16,185,129,.1);color:#047857}
+.badge-cancelled,
+.badge-void           {background:rgba(239,68,68,.08);color:#dc2626}
+.badge-sent           {background:rgba(37,99,235,.1);color:#1d4ed8}
+.badge-partial_paid   {background:rgba(249,115,22,.1);color:#c2410c}
+.badge-overdue        {background:rgba(239,68,68,.1);color:#dc2626}
+.badge-active         {background:rgba(16,185,129,.1);color:#047857}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;transition:all .12s;cursor:pointer}
+.btn-primary{background:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.25)}
+.btn-primary:hover{background:var(--blue-h)}
+.btn-secondary{background:var(--bg);color:var(--text1);border:1.5px solid var(--border)}
+.btn-secondary:hover{background:var(--bg2);color:var(--text0);border-color:var(--border2)}
+.btn-success{background:var(--green);color:#fff}
+.btn-success:hover{background:#059669}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover{background:#dc2626}
+.btn-warning{background:var(--yellow);color:#fff}
+.btn-warning:hover{background:#d97706}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-xs{padding:3px 8px;font-size:11px}
+
+/* ── Modal ───────────────────────────────────────────────── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,25,40,.55);z-index:200;align-items:flex-start;justify-content:center;padding-top:40px;overflow-y:auto;backdrop-filter:blur(2px)}
 .modal-overlay.open{display:flex}
-.modal{background:var(--bg1);border:1px solid var(--border);border-radius:12px;
-  width:90%;max-width:820px;display:flex;flex-direction:column;
-  box-shadow:0 24px 80px rgba(0,0,0,.6);margin:0 auto 40px}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);width:90%;max-width:820px;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);margin:0 auto 40px}
 .modal-sm{max-width:480px}
-.modal-header{display:flex;align-items:center;padding:16px 20px;
-  border-bottom:1px solid var(--border);gap:10px}
-.modal-title{font-size:15px;font-weight:700;flex:1}
-.modal-close{width:28px;height:28px;border:none;background:var(--bg3);border-radius:6px;
-  color:var(--text1);font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer}
-.modal-close:hover{background:var(--bg4);color:var(--text0)}
+.modal-header{display:flex;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);gap:10px}
+.modal-title{font-size:15px;font-weight:700;flex:1;color:var(--text0)}
+.modal-close{width:28px;height:28px;border:1.5px solid var(--border);background:none;border-radius:6px;color:var(--text2);font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s}
+.modal-close:hover{background:var(--red);color:#fff;border-color:var(--red)}
 .modal-body{padding:20px;overflow-y:auto;max-height:70vh}
-.modal-footer{padding:14px 20px;border-top:1px solid var(--border);
-  display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;background:var(--bg)}
 
-/* Forms */
+/* ── Forms ───────────────────────────────────────────────── */
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .form-group{display:flex;flex-direction:column;gap:5px}
 .form-group.full{grid-column:1/-1}
-.form-group.third{grid-column:auto}
-.form-label{font-size:11px;font-weight:600;color:var(--text2);
-  text-transform:uppercase;letter-spacing:.06em}
-.form-input{padding:8px 10px;background:var(--bg2);border:1px solid var(--border);
-  border-radius:var(--radius);color:var(--text0);outline:none;
-  transition:border-color .15s;width:100%}
-.form-input:focus{border-color:var(--accent)}
+.form-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em}
+.form-input{
+  padding:9px 12px;background:var(--card);border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);color:var(--text0);outline:none;
+  transition:border-color .12s,box-shadow .12s;width:100%;
+}
+.form-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
 textarea.form-input{resize:vertical;min-height:60px}
 
-/* SO Lines table in modal */
-.lines-table{width:100%;border-collapse:collapse;margin-top:8px}
-.lines-table th{background:var(--bg3);padding:7px 10px;font-size:10px;font-weight:600;
-  color:var(--text2);text-transform:uppercase;text-align:left}
+/* ── SO Lines table ──────────────────────────────────────── */
+.lines-table{width:100%;border-collapse:collapse}
+.lines-table th{background:var(--bg);padding:8px 10px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;text-align:left;border-bottom:1px solid var(--border)}
 .lines-table td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
 .lines-table tr:last-child td{border-bottom:none}
-.lines-table input,.lines-table select{background:var(--bg2);border:1px solid var(--border);
-  border-radius:5px;color:var(--text0);padding:5px 7px;outline:none;font-size:12px}
-.lines-table input:focus,.lines-table select:focus{border-color:var(--accent)}
+.lines-table input,.lines-table select{
+  background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  color:var(--text0);padding:5px 7px;outline:none;font-size:12px;
+}
+.lines-table input:focus,.lines-table select:focus{border-color:var(--blue)}
 
-/* SO Detail sections */
+/* ── SO Detail sections ──────────────────────────────────── */
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
-.detail-block{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
-.detail-block-title{font-size:10px;font-weight:600;color:var(--text2);
-  text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
-.detail-row{display:flex;justify-content:space-between;padding:3px 0;font-size:12px}
+.detail-block{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.detail-block-title{font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.detail-row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px}
 .detail-label{color:var(--text2)}
-.detail-value{font-weight:500}
-.totals-block{background:var(--bg3);border-radius:var(--radius);padding:14px;
-  margin-top:12px;max-width:300px;margin-left:auto}
-.total-row{display:flex;justify-content:space-between;padding:3px 0;font-size:12px}
-.total-row.grand{font-size:15px;font-weight:700;border-top:1px solid var(--border);
-  margin-top:8px;padding-top:10px}
+.detail-value{font-weight:500;color:var(--text0)}
+.totals-block{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-top:12px;max-width:300px;margin-left:auto}
+.total-row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px}
+.total-row.grand{font-size:15px;font-weight:700;border-top:2px solid var(--border);margin-top:8px;padding-top:10px}
 
-/* AR Aging */
-.aging-table{width:100%;border-collapse:collapse}
-.aging-table th{background:var(--bg2);padding:10px 14px;font-size:10px;font-weight:600;
-  color:var(--text2);text-transform:uppercase;letter-spacing:.06em;text-align:right;border-bottom:1px solid var(--border)}
-.aging-table th:first-child{text-align:left}
-.aging-table td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
-.aging-table td:first-child{text-align:left;font-weight:500}
-.aging-table tfoot td{background:var(--bg3);font-weight:700;border-top:1px solid var(--border)}
-.aging-table tr:last-child td{border-bottom:none}
-.aging-table tbody tr:hover td{background:var(--bg2);cursor:pointer}
-.overdue-30{color:var(--yellow)}.overdue-60{color:var(--orange)}.overdue-90{color:var(--red)}
+/* ── Section title ───────────────────────────────────────── */
+.section-heading{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
 
-/* Spinner / Toast */
-.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);
-  border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+/* ── Spinner ─────────────────────────────────────────────── */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-#toast-container{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:9999}
-.toast{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
-  padding:10px 16px;font-size:12px;color:var(--text0);box-shadow:0 4px 20px rgba(0,0,0,.4);
-  animation:slideIn .2s ease;display:flex;align-items:center;gap:8px}
+
+/* ── Toast ───────────────────────────────────────────────── */
+#toast-container{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:9999;pointer-events:none}
+.toast{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:12px 16px;font-size:13px;max-width:360px;
+  box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:10px;
+  animation:slideIn .2s ease;pointer-events:auto;
+}
 .toast.success{border-left:3px solid var(--green)}
 .toast.error  {border-left:3px solid var(--red)}
-.toast.info   {border-left:3px solid var(--accent)}
-@keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-::-webkit-scrollbar{width:6px;height:6px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+.toast.info   {border-left:3px solid var(--blue)}
+@keyframes slideIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
 </style>
 </head>
 <body>
 <div id="app">
 
-<!-- Sidebar -->
+<!-- ── Sidebar ─────────────────────────────────────────── -->
 <aside id="sidebar">
-  <div class="logo">
-    <div class="logo-mark">
-      <div class="logo-icon">⌚</div>
-      <div>
-        <div class="logo-text">Tick Tock Inc.</div>
-        <div class="logo-sub">ERP · Sales</div>
-      </div>
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">⏱</div>
+    <div class="sidebar-logo-text">
+      <div class="co">TICK TOCK INC.</div>
+      <div class="sub">Sales</div>
     </div>
   </div>
-  <nav>
-    <div class="nav-label">Sales</div>
-    <button class="nav-item active" data-section="orders" onclick="navigate('orders')">
-      <span class="icon">🧾</span> Sales Orders
-      <span class="nav-badge" id="badge-orders">0</span>
-    </button>
-    <button class="nav-item" data-section="shipments" onclick="navigate('shipments')">
-      <span class="icon">🚚</span> Shipments
-    </button>
-    <button class="nav-item" data-section="invoices" onclick="navigate('invoices')">
-      <span class="icon">💰</span> Invoices
-      <span class="nav-badge" id="badge-invoices" style="background:var(--orange)">0</span>
-    </button>
-    <button class="nav-item" data-section="aging" onclick="navigate('aging')">
-      <span class="icon">📅</span> AR Aging
-    </button>
-    <button class="nav-item" data-section="customers" onclick="navigate('customers')">
-      <span class="icon">🏢</span> Customers
-    </button>
-    <div class="nav-label" style="margin-top:12px">Modules</div>
-    <button class="nav-item" onclick="window.location.href='/'">
-      <span class="icon">📦</span> Inventory
-    </button>
-    <button class="nav-item" onclick="window.location.href='/purchasing'">
-      <span class="icon">🛒</span> Purchasing / AP
-    </button>
-    <button class="nav-item" onclick="window.location.href='/financials'">
-      <span class="icon">📈</span> Financials
-    </button>
-  </nav>
-  <div class="sidebar-footer">
-    <span class="conn-dot" id="conn-dot"></span>
-    <span id="conn-status">Connecting…</span>
+
+  <div class="sidebar-nav">
+    <div class="nav-section">
+      <div class="nav-label">Sales</div>
+      <button class="nav-item active" data-section="orders" onclick="navigate('orders')">
+        <span class="ni">🧾</span> Sales Orders
+        <span class="nav-badge" id="badge-orders">0</span>
+      </button>
+      <button class="nav-item" data-section="shipments" onclick="navigate('shipments')">
+        <span class="ni">🚚</span> Shipments
+      </button>
+      <button class="nav-item" data-section="invoices" onclick="navigate('invoices')">
+        <span class="ni">💰</span> Invoices
+        <span class="nav-badge nav-badge-orange" id="badge-invoices">0</span>
+      </button>
+      <button class="nav-item" data-section="aging" onclick="navigate('aging')">
+        <span class="ni">📅</span> AR Aging
+      </button>
+      <button class="nav-item" data-section="customers" onclick="navigate('customers')">
+        <span class="ni">🏢</span> Customers
+      </button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Other Modules</div>
+      <a class="nav-item" href="/"><span class="ni">📦</span> Inventory</a>
+      <a class="nav-item" href="/purchasing"><span class="ni">🛒</span> Purchasing</a>
+      <a class="nav-item" href="/financials"><span class="ni">📈</span> Financials</a>
+    </div>
   </div>
+
+  <div class="sidebar-footer">TICK TOCK INC. ERP &nbsp;·&nbsp; v1.0.0</div>
 </aside>
 
-<!-- Main -->
+<!-- ── Main ───────────────────────────────────────────────── -->
 <div id="main">
-  <div id="topbar">
-    <div class="topbar-title" id="page-title">Sales Orders</div>
-    <div class="topbar-actions">
+  <div id="header">
+    <span class="header-page-title" id="page-title">Sales Orders</span>
+    <div class="header-actions">
       <button class="btn btn-secondary btn-sm" onclick="refreshAll()">↻ Refresh</button>
       <button class="btn btn-primary btn-sm" id="top-action-btn" onclick="openNewSOModal()">+ New Order</button>
+      <div class="user-chip">
+        <div class="user-avatar" id="userAvatar" style="background:var(--blue)">?</div>
+        <div class="user-info">
+          <div class="user-name" id="userName">—</div>
+          <div class="user-role-line" id="userRoleLine">—</div>
+        </div>
+        <span class="role-badge" id="userRoleBadge"></span>
+      </div>
+      <button class="signout-btn" onclick="signOut()">Sign Out</button>
     </div>
   </div>
 
-  <!-- Stats Bar -->
-  <div id="stats-bar">
-    <div class="stat-card">
-      <div class="stat-label">Open Orders</div>
-      <div class="stat-value" id="stat-open">—</div>
-      <div class="stat-sub">confirmed + partial</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Revenue MTD</div>
-      <div class="stat-value" id="stat-mtd">—</div>
-      <div class="stat-sub">this month</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Overdue Invoices</div>
-      <div class="stat-value" id="stat-overdue" style="color:var(--red)">—</div>
-      <div class="stat-sub">past due date</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Total AR</div>
-      <div class="stat-value" id="stat-ar">—</div>
-      <div class="stat-sub">outstanding balance</div>
+  <!-- KPI Stats -->
+  <div style="padding:16px 24px 0;background:var(--card);border-bottom:1px solid var(--border)">
+    <div class="kpi-grid" style="margin-bottom:16px">
+      <div class="kpi-card" style="box-shadow:none;border-radius:var(--radius-sm)">
+        <div class="kpi-label">Open Orders</div>
+        <div class="kpi-value blue" id="stat-open">—</div>
+        <div class="kpi-sub">confirmed + partial</div>
+      </div>
+      <div class="kpi-card" style="box-shadow:none;border-radius:var(--radius-sm)">
+        <div class="kpi-label">Revenue MTD</div>
+        <div class="kpi-value green" id="stat-mtd">—</div>
+        <div class="kpi-sub">this month</div>
+      </div>
+      <div class="kpi-card" style="box-shadow:none;border-radius:var(--radius-sm)">
+        <div class="kpi-label">Overdue Invoices</div>
+        <div class="kpi-value red" id="stat-overdue">—</div>
+        <div class="kpi-sub">past due date</div>
+      </div>
+      <div class="kpi-card" style="box-shadow:none;border-radius:var(--radius-sm)">
+        <div class="kpi-label">Total AR</div>
+        <div class="kpi-value yellow" id="stat-ar">—</div>
+        <div class="kpi-sub">outstanding balance</div>
+      </div>
     </div>
   </div>
 
@@ -295,11 +379,11 @@ textarea.form-input{resize:vertical;min-height:60px}
     <!-- Sales Orders -->
     <div class="section active" id="section-orders">
       <div class="toolbar">
-        <div class="search-box">
+        <div class="search-wrap">
           <span class="search-icon">🔍</span>
           <input type="text" id="so-search" placeholder="Search order # or customer…" oninput="renderOrders()">
         </div>
-        <select class="filter" id="so-status-filter" onchange="renderOrders()">
+        <select class="filter-select" id="so-status-filter" onchange="renderOrders()">
           <option value="">All Statuses</option>
           <option value="draft">Draft</option>
           <option value="confirmed">Confirmed</option>
@@ -311,12 +395,10 @@ textarea.form-input{resize:vertical;min-height:60px}
       </div>
       <div class="table-wrap">
         <table class="data-table">
-          <thead>
-            <tr>
-              <th>Order #</th><th>Customer</th><th>Date</th><th>Ship By</th>
-              <th>Lines</th><th>Total</th><th>Status</th><th>Actions</th>
-            </tr>
-          </thead>
+          <thead><tr>
+            <th>Order #</th><th>Customer</th><th>Date</th><th>Ship By</th>
+            <th>Lines</th><th>Total</th><th>Status</th><th>Actions</th>
+          </tr></thead>
           <tbody id="orders-tbody">
             <tr><td colspan="8" class="empty-state"><div class="spinner"></div></td></tr>
           </tbody>
@@ -328,9 +410,9 @@ textarea.form-input{resize:vertical;min-height:60px}
     <div class="section" id="section-shipments">
       <div class="table-wrap">
         <table class="data-table">
-          <thead>
-            <tr><th>Shipment #</th><th>Order #</th><th>Customer</th><th>Ship Date</th><th>Carrier</th><th>Tracking</th><th>Status</th></tr>
-          </thead>
+          <thead><tr>
+            <th>Shipment #</th><th>Order #</th><th>Customer</th><th>Ship Date</th><th>Carrier</th><th>Tracking</th><th>Status</th>
+          </tr></thead>
           <tbody id="shipments-tbody">
             <tr><td colspan="7" class="empty-state"><div class="spinner"></div></td></tr>
           </tbody>
@@ -341,11 +423,11 @@ textarea.form-input{resize:vertical;min-height:60px}
     <!-- Invoices -->
     <div class="section" id="section-invoices">
       <div class="toolbar">
-        <div class="search-box">
+        <div class="search-wrap">
           <span class="search-icon">🔍</span>
           <input type="text" id="inv-search" placeholder="Search invoice # or customer…" oninput="renderInvoices()">
         </div>
-        <select class="filter" id="inv-status-filter" onchange="renderInvoices()">
+        <select class="filter-select" id="inv-status-filter" onchange="renderInvoices()">
           <option value="">All Statuses</option>
           <option value="draft">Draft</option>
           <option value="sent">Sent</option>
@@ -356,11 +438,11 @@ textarea.form-input{resize:vertical;min-height:60px}
       </div>
       <div class="table-wrap">
         <table class="data-table">
-          <thead>
-            <tr><th>Invoice #</th><th>Customer</th><th>Date</th><th>Due Date</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th><th></th></tr>
-          </thead>
+          <thead><tr>
+            <th>Invoice #</th><th>Customer</th><th>Date</th><th>Due Date</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th><th></th>
+          </tr></thead>
           <tbody id="invoices-tbody">
-            <tr><td colspan="8" class="empty-state"><div class="spinner"></div></td></tr>
+            <tr><td colspan="9" class="empty-state"><div class="spinner"></div></td></tr>
           </tbody>
         </table>
       </div>
@@ -368,18 +450,16 @@ textarea.form-input{resize:vertical;min-height:60px}
 
     <!-- AR Aging -->
     <div class="section" id="section-aging">
-      <div style="margin-bottom:16px;color:var(--text1);font-size:12px">
+      <p style="margin-bottom:16px;color:var(--text2);font-size:12px">
         Outstanding balances by customer, bucketed by days past due.
-      </div>
+      </p>
       <div class="table-wrap">
         <table class="aging-table">
-          <thead>
-            <tr>
-              <th style="text-align:left">Customer</th>
-              <th>Current</th><th>1–30 Days</th><th>31–60 Days</th>
-              <th>61–90 Days</th><th>90+ Days</th><th>Total Due</th>
-            </tr>
-          </thead>
+          <thead><tr>
+            <th style="text-align:left">Customer</th>
+            <th>Current</th><th>1–30 Days</th><th>31–60 Days</th>
+            <th>61–90 Days</th><th>90+ Days</th><th>Total Due</th>
+          </tr></thead>
           <tbody id="aging-tbody">
             <tr><td colspan="7" class="empty-state"><div class="spinner"></div></td></tr>
           </tbody>
@@ -398,7 +478,7 @@ textarea.form-input{resize:vertical;min-height:60px}
     <!-- Customers -->
     <div class="section" id="section-customers">
       <div class="toolbar">
-        <div class="search-box">
+        <div class="search-wrap">
           <span class="search-icon">🔍</span>
           <input type="text" id="cust-search" placeholder="Search customer…" oninput="renderCustomers()">
         </div>
@@ -406,9 +486,9 @@ textarea.form-input{resize:vertical;min-height:60px}
       </div>
       <div class="table-wrap">
         <table class="data-table">
-          <thead>
-            <tr><th>Code</th><th>Name</th><th>Email</th><th>Phone</th><th>Terms</th><th>Credit Limit</th><th>AR Balance</th><th>Status</th></tr>
-          </thead>
+          <thead><tr>
+            <th>Code</th><th>Name</th><th>Email</th><th>Phone</th><th>Terms</th><th>Credit Limit</th><th>AR Balance</th><th>Status</th>
+          </tr></thead>
           <tbody id="customers-tbody">
             <tr><td colspan="8" class="empty-state"><div class="spinner"></div></td></tr>
           </tbody>
@@ -459,17 +539,15 @@ textarea.form-input{resize:vertical;min-height:60px}
         </div>
       </div>
 
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="font-size:12px;font-weight:600;color:var(--text1);text-transform:uppercase;letter-spacing:.07em">Order Lines</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="section-heading" style="margin-bottom:0">Order Lines</div>
         <button class="btn btn-secondary btn-sm" onclick="addSOLine()">+ Add Line</button>
       </div>
       <div class="table-wrap">
         <table class="lines-table">
-          <thead>
-            <tr><th style="min-width:220px">Item</th><th>Available</th><th>Qty</th><th>Unit Price</th><th>Disc %</th><th>Line Total</th><th></th></tr>
-          </thead>
+          <thead><tr><th style="min-width:220px">Item</th><th>Available</th><th>Qty</th><th>Unit Price</th><th>Disc %</th><th>Line Total</th><th></th></tr></thead>
           <tbody id="so-lines-body">
-            <tr id="so-lines-empty"><td colspan="7" style="padding:16px;text-align:center;color:var(--text2)">Click "+ Add Line" to add items</td></tr>
+            <tr id="so-lines-empty"><td colspan="7" style="padding:16px;text-align:center;color:var(--text3)">Click "+ Add Line" to add items</td></tr>
           </tbody>
         </table>
       </div>
@@ -529,7 +607,7 @@ textarea.form-input{resize:vertical;min-height:60px}
           <input class="form-input" id="ship-notes" placeholder="Optional">
         </div>
       </div>
-      <div style="font-size:12px;font-weight:600;color:var(--text1);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Lines to Ship</div>
+      <div class="section-heading">Lines to Ship</div>
       <div class="table-wrap">
         <table class="lines-table">
           <thead><tr><th>Item</th><th>Ordered</th><th>Shipped</th><th>Remaining</th><th>Ship Qty</th></tr></thead>
@@ -553,38 +631,14 @@ textarea.form-input{resize:vertical;min-height:60px}
     </div>
     <div class="modal-body">
       <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">Code *</label>
-          <input class="form-input" id="nc-code" placeholder="CUST-006">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Name *</label>
-          <input class="form-input" id="nc-name" placeholder="Company Name">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Email</label>
-          <input class="form-input" id="nc-email" type="email" placeholder="orders@company.com">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Phone</label>
-          <input class="form-input" id="nc-phone" placeholder="212-555-0100">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Payment Terms (days)</label>
-          <input class="form-input" id="nc-terms" type="number" value="30" min="0">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Credit Limit ($)</label>
-          <input class="form-input" id="nc-credit" type="number" value="10000" min="0">
-        </div>
-        <div class="form-group full">
-          <label class="form-label">Billing Address</label>
-          <input class="form-input" id="nc-addr" placeholder="Street address">
-        </div>
-        <div class="form-group">
-          <label class="form-label">City</label>
-          <input class="form-input" id="nc-city" placeholder="New York">
-        </div>
+        <div class="form-group"><label class="form-label">Code *</label><input class="form-input" id="nc-code" placeholder="CUST-006"></div>
+        <div class="form-group"><label class="form-label">Name *</label><input class="form-input" id="nc-name" placeholder="Company Name"></div>
+        <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="nc-email" type="email" placeholder="orders@company.com"></div>
+        <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="nc-phone" placeholder="212-555-0100"></div>
+        <div class="form-group"><label class="form-label">Payment Terms (days)</label><input class="form-input" id="nc-terms" type="number" value="30" min="0"></div>
+        <div class="form-group"><label class="form-label">Credit Limit ($)</label><input class="form-input" id="nc-credit" type="number" value="10000" min="0"></div>
+        <div class="form-group full"><label class="form-label">Billing Address</label><input class="form-input" id="nc-addr" placeholder="Street address"></div>
+        <div class="form-group"><label class="form-label">City</label><input class="form-input" id="nc-city" placeholder="New York"></div>
         <div class="form-group">
           <label class="form-label">State / Zip</label>
           <div style="display:flex;gap:8px">
@@ -612,14 +666,8 @@ textarea.form-input{resize:vertical;min-height:60px}
       <input type="hidden" id="pay-invoice-id">
       <input type="hidden" id="pay-customer-id">
       <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">Payment Date</label>
-          <input class="form-input" type="date" id="pay-date">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Amount ($)</label>
-          <input class="form-input" type="number" id="pay-amount" step="0.01" min="0">
-        </div>
+        <div class="form-group"><label class="form-label">Payment Date</label><input class="form-input" type="date" id="pay-date"></div>
+        <div class="form-group"><label class="form-label">Amount ($)</label><input class="form-input" type="number" id="pay-amount" step="0.01" min="0"></div>
         <div class="form-group">
           <label class="form-label">Method</label>
           <select class="form-input" id="pay-method">
@@ -630,16 +678,13 @@ textarea.form-input{resize:vertical;min-height:60px}
             <option value="cash">Cash</option>
           </select>
         </div>
-        <div class="form-group">
-          <label class="form-label">Reference #</label>
-          <input class="form-input" id="pay-ref" placeholder="Check or wire ref">
-        </div>
+        <div class="form-group"><label class="form-label">Reference #</label><input class="form-input" id="pay-ref" placeholder="Check or wire ref"></div>
       </div>
-      <div style="margin-top:10px;font-size:11px;color:var(--text2)" id="pay-invoice-info"></div>
+      <div style="margin-top:10px;font-size:12px;color:var(--text2)" id="pay-invoice-info"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('payment-modal')">Cancel</button>
-      <button class="btn btn-secondary" id="pay-print-btn" onclick="printCurrentInvoice()" title="Print Invoice">🖨️ Print Invoice</button>
+      <button class="btn btn-secondary" onclick="printCurrentInvoice()" title="Print Invoice">🖨️ Print</button>
       <button class="btn btn-success" onclick="submitPayment()">Record Payment</button>
     </div>
   </div>
@@ -648,20 +693,52 @@ textarea.form-input{resize:vertical;min-height:60px}
 <div id="toast-container"></div>
 
 <script>
-// ═══════════════════════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════════════════════
-const API = 'http://localhost:3001';
-let apiOnline = false;
+const API = '';
 let allOrders = [], allShipments = [], allInvoices = [], allCustomers = [], allItems = [], allWarehouses = [];
 
-// ═══════════════════════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════════════════════
+// ── Auth Guard ─────────────────────────────────────────────────────────────────
+(function authGuard() {
+  const token = localStorage.getItem('tt_token');
+  if (!token) { window.location.href = '/login.html'; return; }
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (payload.exp * 1000 < Date.now()) {
+      localStorage.removeItem('tt_token');
+      localStorage.removeItem('tt_user');
+      window.location.href = '/login.html';
+      return;
+    }
+    const name    = payload.name || payload.email;
+    const role    = payload.role || 'user';
+    const initials = name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+    const colors  = { admin:'#b45309', warehouse:'#047857', sales:'#1d4ed8' };
+    document.getElementById('userAvatar').textContent      = initials;
+    document.getElementById('userAvatar').style.background = colors[role] || '#2563eb';
+    document.getElementById('userName').textContent        = name;
+    document.getElementById('userRoleLine').textContent    = role.charAt(0).toUpperCase()+role.slice(1);
+    const badge = document.getElementById('userRoleBadge');
+    badge.textContent = role;
+    badge.className   = `role-badge role-${role}`;
+  } catch { window.location.href = '/login.html'; }
+})();
+
+function signOut() {
+  localStorage.removeItem('tt_token');
+  localStorage.removeItem('tt_user');
+  window.location.href = '/login.html';
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 async function apiFetch(path, opts = {}) {
-  const res = await fetch(`${API}${path}`, {
-    ...opts, headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) }
-  });
+  const token = localStorage.getItem('tt_token');
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${API}${path}`, { ...opts, headers });
+  if (res.status === 401) {
+    localStorage.removeItem('tt_token');
+    window.location.href = '/login.html';
+    throw new Error('Unauthorized');
+  }
   if (!res.ok) { const b = await res.json().catch(() => ({})); throw new Error(b.error || `HTTP ${res.status}`); }
   return res.json();
 }
@@ -674,7 +751,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 function statusBadge(s) {
   const map = {
     draft:'badge-draft', confirmed:'badge-confirmed',
-    partially_shipped:'badge-partial', fully_shipped:'badge-shipped',
+    partially_shipped:'badge-partially_shipped', fully_shipped:'badge-shipped',
     invoiced:'badge-invoiced', closed:'badge-closed', cancelled:'badge-cancelled',
     sent:'badge-sent', paid:'badge-paid', partial_paid:'badge-partial_paid', void:'badge-cancelled',
     shipped:'badge-shipped', delivered:'badge-shipped'
@@ -689,39 +766,21 @@ function invoiceStatusBadge(inv) {
 }
 
 function toast(msg, type = 'info') {
-  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  const icons = { success:'✓', error:'✕', info:'ℹ' };
   const el = document.createElement('div');
   el.className = `toast ${type}`;
-  el.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+  el.innerHTML = `<span style="font-size:15px">${icons[type]||'•'}</span><span>${msg}</span>`;
   $('toast-container').appendChild(el);
-  setTimeout(() => el.remove(), 3500);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),320); }, 3500);
 }
 
 function openModal(id) { $(id).classList.add('open'); }
 function closeModal(id) { $(id).classList.remove('open'); }
-document.querySelectorAll('.modal-overlay').forEach(o => {
-  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
-});
+document.querySelectorAll('.modal-overlay').forEach(o =>
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); })
+);
 
-// ═══════════════════════════════════════════════════════════
-// CONNECTION
-// ═══════════════════════════════════════════════════════════
-async function checkConnection() {
-  try {
-    await apiFetch('/health');
-    apiOnline = true;
-    $('conn-dot').classList.remove('offline');
-    $('conn-status').textContent = 'API Connected';
-  } catch {
-    apiOnline = false;
-    $('conn-dot').classList.add('offline');
-    $('conn-status').textContent = 'API Offline';
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// DATA LOADING
-// ═══════════════════════════════════════════════════════════
+// ── Data Loading ──────────────────────────────────────────────────────────────
 async function loadDashboard() {
   try {
     const [dash, aging, invoices] = await Promise.all([
@@ -732,9 +791,9 @@ async function loadDashboard() {
     $('stat-open').textContent   = dash.open_orders;
     $('stat-mtd').textContent    = '$' + fmt(dash.revenue_mtd);
     const overdue = invoices.filter(i => i.status !== 'paid' && i.status !== 'void' && new Date(i.due_date) < new Date()).length;
-    $('stat-overdue').textContent = overdue;
-    $('stat-ar').textContent     = '$' + fmt(aging.totals?.total_due || 0);
-    $('badge-invoices').textContent = overdue;
+    $('stat-overdue').textContent    = overdue;
+    $('stat-ar').textContent         = '$' + fmt(aging.totals?.total_due || 0);
+    $('badge-invoices').textContent  = overdue;
   } catch (e) { console.error('Dashboard error:', e.message); }
 }
 
@@ -757,15 +816,13 @@ async function loadInvoices() {
   try {
     allInvoices = await apiFetch('/api/invoices');
     renderInvoices();
-  } catch (e) { $('invoices-tbody').innerHTML = `<tr><td colspan="8" class="empty-state">Failed to load invoices</td></tr>`; }
+  } catch (e) { $('invoices-tbody').innerHTML = `<tr><td colspan="9" class="empty-state">Failed to load invoices</td></tr>`; }
 }
 
 async function loadCustomers() {
   try {
     allCustomers = await apiFetch('/api/customers');
-    // Populate selectors
     const sel = $('so-customer');
-    const existing = sel.innerHTML.split('\n')[0];
     sel.innerHTML = '<option value="">Select customer…</option>';
     allCustomers.forEach(c => {
       const o = document.createElement('option');
@@ -790,9 +847,8 @@ async function loadWarehouses() {
 }
 
 async function loadItems() {
-  try {
-    allItems = await apiFetch('/api/items');
-  } catch (e) { console.error('Items error:', e.message); }
+  try { allItems = await apiFetch('/api/items'); }
+  catch (e) { console.error('Items error:', e.message); }
 }
 
 async function loadAging() {
@@ -800,11 +856,11 @@ async function loadAging() {
     const { customers, totals } = await apiFetch('/api/ar-aging');
     const tbody = $('aging-tbody');
     if (!customers.length) {
-      tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><div class="empty-icon">✅</div>No outstanding AR balances</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="empty-state">✅ No outstanding AR balances</td></tr>`;
     } else {
       tbody.innerHTML = customers.map(c => `
-        <tr onclick="navigate('customers')">
-          <td><div style="font-weight:600">${c.customer_name}</div><div style="font-size:10px;color:var(--text2)">${c.customer_code}</div></td>
+        <tr>
+          <td><div style="font-weight:600;color:var(--text0)">${c.customer_name}</div><div style="font-size:10px;color:var(--text2)">${c.customer_code}</div></td>
           <td>${c.current_due > 0 ? '$'+fmt(c.current_due) : '—'}</td>
           <td class="${c.days_1_30 > 0 ? 'overdue-30' : ''}">${c.days_1_30 > 0 ? '$'+fmt(c.days_1_30) : '—'}</td>
           <td class="${c.days_31_60 > 0 ? 'overdue-60' : ''}">${c.days_31_60 > 0 ? '$'+fmt(c.days_31_60) : '—'}</td>
@@ -825,23 +881,21 @@ async function loadAging() {
   } catch (e) { $('aging-tbody').innerHTML = `<tr><td colspan="7" class="empty-state">Failed to load AR aging</td></tr>`; }
 }
 
-// ═══════════════════════════════════════════════════════════
-// RENDERING
-// ═══════════════════════════════════════════════════════════
+// ── Rendering ─────────────────────────────────────────────────────────────────
 function renderOrders() {
-  const q   = ($('so-search').value || '').toLowerCase();
-  const st  = $('so-status-filter').value;
+  const q  = ($('so-search').value || '').toLowerCase();
+  const st = $('so-status-filter').value;
   const rows = allOrders.filter(o => {
     if (st && o.status !== st) return false;
     if (q && !o.number.toLowerCase().includes(q) && !(o.customer_name||'').toLowerCase().includes(q)) return false;
     return true;
   });
   const tbody = $('orders-tbody');
-  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🧾</div>No orders found</div></td></tr>`; return; }
+  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="8" class="empty-state">No orders found</td></tr>`; return; }
   tbody.innerHTML = rows.map(o => `
     <tr onclick="openSODetail('${o.id}')">
       <td><span class="code-tag">${o.number}</span></td>
-      <td><div style="font-weight:500">${o.customer_name}</div><div style="font-size:10px;color:var(--text2)">${o.customer_code}</div></td>
+      <td><div style="font-weight:500;color:var(--text0)">${o.customer_name}</div><div style="font-size:10px;color:var(--text2)">${o.customer_code}</div></td>
       <td>${fmtDate(o.order_date)}</td>
       <td style="color:${o.requested_ship_date && new Date(o.requested_ship_date)<new Date()?'var(--red)':'var(--text1)'}">
         ${fmtDate(o.requested_ship_date)}</td>
@@ -859,7 +913,7 @@ function renderOrders() {
 
 function renderShipments() {
   const tbody = $('shipments-tbody');
-  if (!allShipments.length) { tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🚚</div>No shipments yet</div></td></tr>`; return; }
+  if (!allShipments.length) { tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No shipments yet</td></tr>`; return; }
   tbody.innerHTML = allShipments.map(s => `
     <tr>
       <td><span class="code-tag">${s.number}</span></td>
@@ -882,20 +936,20 @@ function renderInvoices() {
     return true;
   });
   const tbody = $('invoices-tbody');
-  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">💰</div>No invoices found</div></td></tr>`; return; }
+  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="9" class="empty-state">No invoices found</td></tr>`; return; }
   tbody.innerHTML = rows.map(i => {
     const overdue = i.status !== 'paid' && i.status !== 'void' && new Date(i.due_date) < new Date();
     return `
     <tr onclick="openPaymentModal('${i.id}','${i.customer_id}','${i.number}',${i.balance_due})" style="cursor:pointer">
       <td><span class="code-tag">${i.number}</span></td>
-      <td>${i.customer_name}</td>
+      <td style="font-weight:500">${i.customer_name}</td>
       <td>${fmtDate(i.invoice_date)}</td>
       <td style="color:${overdue?'var(--red)':'var(--text1)'}">${fmtDate(i.due_date)}</td>
       <td style="font-weight:600">$${fmt(i.total)}</td>
       <td style="color:var(--green)">$${fmt(i.amount_paid)}</td>
       <td style="font-weight:700;color:${parseFloat(i.balance_due)>0?(overdue?'var(--red)':'var(--orange)'):'var(--green)'}">$${fmt(i.balance_due)}</td>
       <td>${invoiceStatusBadge(i)}</td>
-      <td onclick="event.stopPropagation()"><button class="btn btn-secondary btn-xs" onclick="window.open('/print/invoice.html?invoiceId=${i.id}','_blank')" title="Print Invoice">🖨️ Print</button></td>
+      <td onclick="event.stopPropagation()"><button class="btn btn-secondary btn-xs" onclick="window.open('/print/invoice.html?invoiceId=${i.id}','_blank')">🖨️</button></td>
     </tr>`;
   }).join('');
 }
@@ -906,31 +960,28 @@ function renderCustomers() {
     !q || c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q)
   );
   const tbody = $('customers-tbody');
-  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🏢</div>No customers found</div></td></tr>`; return; }
+  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="8" class="empty-state">No customers found</td></tr>`; return; }
   tbody.innerHTML = rows.map(c => `
     <tr>
       <td><span class="code-tag">${c.code}</span></td>
-      <td style="font-weight:500">${c.name}</td>
+      <td style="font-weight:600;color:var(--text0)">${c.name}</td>
       <td style="color:var(--text2)">${c.email||'—'}</td>
       <td style="color:var(--text2)">${c.phone||'—'}</td>
       <td>NET${c.payment_terms_days}</td>
       <td>$${fmt(c.credit_limit)}</td>
-      <td style="font-weight:600;color:${parseFloat(c.ar_balance||0)>0?'var(--orange)':'var(--text0)'}">
-        $${fmt(c.ar_balance||0)}</td>
-      <td>${c.is_active ? '<span class="status-badge badge-shipped">Active</span>' : '<span class="status-badge badge-cancelled">Inactive</span>'}</td>
+      <td style="font-weight:600;color:${parseFloat(c.ar_balance||0)>0?'var(--orange)':'var(--text0)'}">$${fmt(c.ar_balance||0)}</td>
+      <td>${c.is_active ? '<span class="status-badge badge-active">Active</span>' : '<span class="status-badge badge-cancelled">Inactive</span>'}</td>
     </tr>
   `).join('');
 }
 
-// ═══════════════════════════════════════════════════════════
-// NAVIGATION
-// ═══════════════════════════════════════════════════════════
-const pageTitles = { orders:'Sales Orders', shipments:'Shipments', invoices:'Invoices', aging:'AR Aging', customers:'Customers' };
+// ── Navigation ─────────────────────────────────────────────────────────────────
+const pageTitles  = { orders:'Sales Orders', shipments:'Shipments', invoices:'Invoices', aging:'AR Aging', customers:'Customers' };
 const pageActions = {
   orders:    { label:'+ New Order',    fn: 'openNewSOModal' },
-  shipments: { label:'',               fn: '' },
-  invoices:  { label:'',               fn: '' },
-  aging:     { label:'',               fn: '' },
+  shipments: null,
+  invoices:  null,
+  aging:     null,
   customers: { label:'+ New Customer', fn: 'openNewCustomerModal' },
 };
 
@@ -942,19 +993,20 @@ function navigate(section) {
   $('page-title').textContent = pageTitles[section] || section;
   const act = pageActions[section];
   const btn = $('top-action-btn');
-  btn.textContent = act?.label || '';
-  btn.style.display = act?.label ? '' : 'none';
-  if (act?.fn) btn.onclick = () => window[act.fn]();
-
+  if (act) {
+    btn.textContent  = act.label;
+    btn.style.display = '';
+    btn.onclick = () => window[act.fn]();
+  } else {
+    btn.style.display = 'none';
+  }
   if (section === 'shipments') loadShipments();
   if (section === 'invoices')  loadInvoices();
   if (section === 'aging')     loadAging();
-  if (section === 'customers') { loadCustomers(); }
+  if (section === 'customers') loadCustomers();
 }
 
-// ═══════════════════════════════════════════════════════════
-// SO DETAIL
-// ═══════════════════════════════════════════════════════════
+// ── SO Detail ──────────────────────────────────────────────────────────────────
 async function openSODetail(orderId) {
   openModal('so-detail-modal');
   $('so-detail-title').textContent = 'Loading…';
@@ -962,8 +1014,6 @@ async function openSODetail(orderId) {
   try {
     const o = await apiFetch(`/api/sales-orders/${orderId}`);
     $('so-detail-title').textContent = `${o.number} — ${o.customer_name}`;
-
-    const addr = o.billing_address ? (typeof o.billing_address === 'string' ? JSON.parse(o.billing_address) : o.billing_address) : null;
 
     const canConfirm = o.status === 'draft';
     const canShip    = ['confirmed','partially_shipped'].includes(o.status);
@@ -984,12 +1034,11 @@ async function openSODetail(orderId) {
           <div class="detail-row"><span class="detail-label">Code</span><span class="detail-value">${o.customer_code}</span></div>
           <div class="detail-row"><span class="detail-label">Name</span><span class="detail-value">${o.customer_name}</span></div>
           <div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">${o.customer_email||'—'}</span></div>
-          <div class="detail-row"><span class="detail-label">Phone</span><span class="detail-value">${o.customer_phone||'—'}</span></div>
           <div class="detail-row"><span class="detail-label">Terms</span><span class="detail-value">NET${o.payment_terms_days||30}</span></div>
         </div>
       </div>
 
-      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Order Lines</div>
+      <div class="section-heading">Order Lines</div>
       <div class="table-wrap" style="margin-bottom:16px">
         <table class="data-table">
           <thead><tr><th>SKU</th><th>Item</th><th>Ordered</th><th>Shipped</th><th>Backorder</th><th>Unit Price</th><th>Disc</th><th>Line Total</th><th>Status</th></tr></thead>
@@ -1020,7 +1069,7 @@ async function openSODetail(orderId) {
       </div>
 
       ${(o.shipments||[]).length ? `
-      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Shipments</div>
+      <div class="section-heading">Shipments</div>
       <div class="table-wrap" style="margin-bottom:16px">
         <table class="data-table">
           <thead><tr><th>Shipment #</th><th>Ship Date</th><th>Carrier</th><th>Tracking</th><th>Status</th><th></th></tr></thead>
@@ -1030,27 +1079,26 @@ async function openSODetail(orderId) {
               <td>${fmtDate(s.ship_date)}</td><td>${s.carrier||'—'}</td>
               <td style="font-size:11px;color:var(--text2)">${s.tracking_number||'—'}</td>
               <td>${statusBadge(s.status)}</td>
-              <td><button class="btn btn-secondary btn-xs" onclick="window.open('/print/picklist.html?shipmentId=${s.id}','_blank')" title="Print Pick List">🖨️ Pick List</button></td>
+              <td><button class="btn btn-secondary btn-xs" onclick="window.open('/print/picklist.html?shipmentId=${s.id}','_blank')">🖨️ Pick List</button></td>
             </tr>`).join('')}
           </tbody>
         </table>
       </div>` : ''}
 
       ${(o.invoices||[]).length ? `
-      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Invoices</div>
+      <div class="section-heading">Invoices</div>
       <div class="table-wrap" style="margin-bottom:16px">
         <table class="data-table">
-          <thead><tr><th>Invoice #</th><th>Date</th><th>Due</th><th>Total</th><th>Tax</th><th>Paid</th><th>Balance</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Invoice #</th><th>Date</th><th>Due</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th><th></th></tr></thead>
           <tbody>
             ${o.invoices.map(i=>`<tr onclick="openPaymentModal('${i.id}','${o.customer_id}','${i.number}',${i.balance_due})" style="cursor:pointer">
               <td><span class="code-tag">${i.number}</span></td>
               <td>${fmtDate(i.invoice_date)}</td><td>${fmtDate(i.due_date)}</td>
               <td>$${fmt(i.total)}</td>
-              <td style="font-size:11px;color:var(--text2)">${i.tax_exempt ? '<span title="Tax Exempt">✓ Exempt</span>' : (i.tax_amount > 0 ? `$${fmt(i.tax_amount)}<br><span style="color:var(--text2)">${i.state_code||''} ${i.tax_rate ? (parseFloat(i.tax_rate)*100).toFixed(2)+'%':''}</span>` : '—')}</td>
               <td style="color:var(--green)">$${fmt(i.amount_paid)}</td>
               <td style="font-weight:700">$${fmt(i.balance_due)}</td>
               <td>${invoiceStatusBadge(i)}</td>
-              <td onclick="event.stopPropagation()"><button class="btn btn-secondary btn-xs" onclick="window.open('/print/invoice.html?invoiceId=${i.id}','_blank')" title="Print Invoice">🖨️</button></td>
+              <td onclick="event.stopPropagation()"><button class="btn btn-secondary btn-xs" onclick="window.open('/print/invoice.html?invoiceId=${i.id}','_blank')">🖨️</button></td>
             </tr>`).join('')}
           </tbody>
         </table>
@@ -1064,13 +1112,11 @@ async function openSODetail(orderId) {
       </div>
     `;
   } catch (e) {
-    $('so-detail-body').innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div>${e.message}</div>`;
+    $('so-detail-body').innerHTML = `<div class="empty-state">⚠️ ${e.message}</div>`;
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// ORDER ACTIONS
-// ═══════════════════════════════════════════════════════════
+// ── Order Actions ──────────────────────────────────────────────────────────────
 async function confirmOrder(orderId, fromDetail = false) {
   if (!confirm('Confirm this order? Stock will be reserved.')) return;
   try {
@@ -1091,15 +1137,13 @@ async function cancelOrder(orderId, fromDetail = false) {
   } catch (e) { toast(e.message, 'error'); }
 }
 
-// ═══════════════════════════════════════════════════════════
-// NEW SALES ORDER
-// ═══════════════════════════════════════════════════════════
+// ── New Sales Order ────────────────────────────────────────────────────────────
 function openNewSOModal() {
   $('so-order-date').value = today();
   $('so-ship-date').value  = '';
-  $('so-notes').value = '';
-  $('so-tax-rate').value = '8';
-  $('so-lines-body').innerHTML = `<tr id="so-lines-empty"><td colspan="7" style="padding:16px;text-align:center;color:var(--text2)">Click "+ Add Line" to add items</td></tr>`;
+  $('so-notes').value      = '';
+  $('so-tax-rate').value   = '8';
+  $('so-lines-body').innerHTML = `<tr id="so-lines-empty"><td colspan="7" style="padding:16px;text-align:center;color:var(--text3)">Click "+ Add Line" to add items</td></tr>`;
   updateSOTotals();
   openModal('new-so-modal');
 }
@@ -1116,7 +1160,7 @@ function addSOLine() {
     <td><input class="sol-qty" type="number" value="1" min="1" step="1" style="width:60px" oninput="updateSOTotals()"></td>
     <td style="white-space:nowrap">
       <input class="sol-price" type="number" step="0.01" min="0" style="width:80px" placeholder="0.00" oninput="updateSOTotals()">
-      <span class="sol-price-src" title="" style="font-size:13px;cursor:default;margin-left:2px"></span>
+      <span class="sol-price-src" style="font-size:13px;cursor:default;margin-left:2px"></span>
     </td>
     <td><input class="sol-disc" type="number" step="0.01" min="0" max="100" value="0" style="width:55px" oninput="updateSOTotals()"></td>
     <td class="sol-total" style="font-weight:600;text-align:right">$0.00</td>
@@ -1133,7 +1177,6 @@ async function onSOLineItemChange(sel) {
   const customerId = $('so-customer').value;
   if (!itemId) return;
 
-  // Get price via pricing engine (with lock support)
   try {
     const qty    = tr.querySelector('.sol-qty').value || 1;
     const params = new URLSearchParams({ itemId, qty });
@@ -1143,22 +1186,16 @@ async function onSOLineItemChange(sel) {
     const srcSpan = tr.querySelector('.sol-price-src');
     if (srcSpan) {
       if (priceData.source === 'locked') {
-        srcSpan.textContent = '🔒';
-        srcSpan.title = `VIP Locked Price${priceData.lock_reason ? ': '+priceData.lock_reason : ''}`;
+        srcSpan.textContent = '🔒'; srcSpan.title = `VIP Locked Price${priceData.lock_reason?': '+priceData.lock_reason:''}`;
       } else if (priceData.source === 'price_list') {
-        srcSpan.textContent = '📋';
-        srcSpan.title = 'From customer price list';
-      } else {
-        srcSpan.textContent = '';
-        srcSpan.title = '';
-      }
+        srcSpan.textContent = '📋'; srcSpan.title = 'From customer price list';
+      } else { srcSpan.textContent = ''; }
     }
   } catch {
     const opt = sel.options[sel.selectedIndex];
     if (opt?.dataset?.price) priceInput.value = parseFloat(opt.dataset.price).toFixed(2);
   }
 
-  // Get available stock
   try {
     const whId = $('so-warehouse').value;
     if (whId) {
@@ -1173,7 +1210,6 @@ async function onSOLineItemChange(sel) {
 }
 
 function onSOCustomerChange() {
-  // Re-resolve prices for existing lines
   document.querySelectorAll('#so-lines-body .sol-item').forEach(sel => {
     if (sel.value) onSOLineItemChange(sel);
   });
@@ -1234,9 +1270,7 @@ async function submitNewSO() {
   } catch (e) { toast(e.message, 'error'); }
 }
 
-// ═══════════════════════════════════════════════════════════
-// SHIP MODAL
-// ═══════════════════════════════════════════════════════════
+// ── Ship Modal ─────────────────────────────────────────────────────────────────
 async function openShipModal(orderId) {
   $('ship-order-id').value = orderId;
   $('ship-date').value     = today();
@@ -1257,8 +1291,7 @@ async function openShipModal(orderId) {
         <td style="color:var(--orange)">${l.qty_backordered}</td>
         <td><input type="number" data-line-id="${l.id}" class="ship-qty-input"
               value="${l.qty_backordered}" min="0.01" max="${l.qty_backordered}" step="0.01"
-              style="width:70px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;
-                     color:var(--text0);padding:5px 7px;font-size:12px"></td>
+              style="width:70px"></td>
       </tr>
     `).join('');
   } catch (e) { $('ship-lines-body').innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--red)">${e.message}</td></tr>`; }
@@ -1268,28 +1301,22 @@ async function submitShipment() {
   const orderId  = $('ship-order-id').value;
   const shipDate = $('ship-date').value;
   const lines    = [];
-
   document.querySelectorAll('.ship-qty-input').forEach(inp => {
     const qty = parseFloat(inp.value);
     if (qty > 0) lines.push({ order_line_id: inp.dataset.lineId, qty_shipped: qty });
   });
-
   if (!lines.length) { toast('No lines to ship', 'error'); return; }
 
   try {
-    // 1. Create shipment (draft)
     const shp = await apiFetch('/api/shipments', {
       method: 'POST',
       body: JSON.stringify({
-        sales_order_id: orderId,
-        ship_date: shipDate,
+        sales_order_id: orderId, ship_date: shipDate,
         carrier: $('ship-carrier').value || null,
         tracking_number: $('ship-tracking').value || null,
-        notes: $('ship-notes').value || null,
-        lines
+        notes: $('ship-notes').value || null, lines
       })
     });
-    // 2. Post shipment (deducts stock, creates invoice)
     const result = await apiFetch(`/api/shipments/${shp.id}/post`, { method: 'POST', body: '{}' });
     toast(`${shp.number} shipped! Invoice ${result.invoice.number} created.`, 'success');
     closeModal('ship-modal');
@@ -1297,9 +1324,7 @@ async function submitShipment() {
   } catch (e) { toast(e.message, 'error'); }
 }
 
-// ═══════════════════════════════════════════════════════════
-// NEW CUSTOMER
-// ═══════════════════════════════════════════════════════════
+// ── New Customer ───────────────────────────────────────────────────────────────
 function openNewCustomerModal() { openModal('new-customer-modal'); }
 
 async function submitNewCustomer() {
@@ -1307,10 +1332,8 @@ async function submitNewCustomer() {
   const name = $('nc-name').value.trim();
   if (!code || !name) { toast('Code and Name are required', 'error'); return; }
 
-  const city  = $('nc-city').value.trim();
-  const state = $('nc-state').value.trim();
-  const zip   = $('nc-zip').value.trim();
-  const addr  = $('nc-addr').value.trim();
+  const city = $('nc-city').value.trim(), state = $('nc-state').value.trim();
+  const zip  = $('nc-zip').value.trim(),  addr  = $('nc-addr').value.trim();
 
   try {
     const cust = await apiFetch('/api/customers', {
@@ -1330,15 +1353,13 @@ async function submitNewCustomer() {
   } catch (e) { toast(e.message, 'error'); }
 }
 
-// ═══════════════════════════════════════════════════════════
-// PAYMENT MODAL
-// ═══════════════════════════════════════════════════════════
+// ── Payment ────────────────────────────────────────────────────────────────────
 function openPaymentModal(invoiceId, customerId, invoiceNumber, balanceDue) {
-  $('pay-invoice-id').value   = invoiceId;
-  $('pay-customer-id').value  = customerId;
-  $('pay-date').value         = today();
-  $('pay-amount').value       = parseFloat(balanceDue).toFixed(2);
-  $('pay-ref').value          = '';
+  $('pay-invoice-id').value  = invoiceId;
+  $('pay-customer-id').value = customerId;
+  $('pay-date').value        = today();
+  $('pay-amount').value      = parseFloat(balanceDue).toFixed(2);
+  $('pay-ref').value         = '';
   $('pay-invoice-info').textContent = `Invoice ${invoiceNumber} — Balance Due: $${fmt(balanceDue)}`;
   openModal('payment-modal');
 }
@@ -1372,20 +1393,14 @@ async function submitPayment() {
   } catch (e) { toast(e.message, 'error'); }
 }
 
-// ═══════════════════════════════════════════════════════════
-// REFRESH
-// ═══════════════════════════════════════════════════════════
+// ── Refresh ────────────────────────────────────────────────────────────────────
 async function refreshAll() {
-  await checkConnection();
   await Promise.all([loadDashboard(), loadOrders(), loadCustomers()]);
   toast('Refreshed', 'info');
 }
 
-// ═══════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════
+// ── Init ──────────────────────────────────────────────────────────────────────
 (async function init() {
-  await checkConnection();
   await Promise.all([loadWarehouses(), loadItems(), loadCustomers()]);
   await Promise.all([loadDashboard(), loadOrders()]);
 })();

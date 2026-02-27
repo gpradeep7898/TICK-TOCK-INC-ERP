@@ -1,256 +1,452 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tick Tock Inc. — Purchasing</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TICK TOCK INC. | Purchasing</title>
 <style>
-:root {
-  --bg:       #0f1117;
-  --surface:  #1a1d27;
-  --border:   #2a2d3e;
-  --accent:   #6c63ff;
-  --accent2:  #00d4aa;
-  --warn:     #f5a623;
-  --danger:   #e74c3c;
-  --success:  #27ae60;
-  --text:     #e8eaf0;
-  --muted:    #8a8ea8;
-  --sidebar:  180px;
+/* ── Reset & Root ─────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:    #1e2a3a;
+  --navy2:   #243347;
+  --navy3:   #162130;
+  --sidebar-w: 240px;
+  --header-h:  60px;
+  --blue:    #2563eb;
+  --blue-h:  #1d4ed8;
+  --blue-l:  #3b82f6;
+  --blue-bg: rgba(37,99,235,.08);
+  --green:   #10b981;
+  --yellow:  #f59e0b;
+  --red:     #ef4444;
+  --orange:  #f97316;
+  --bg:      #f0f4f8;
+  --bg2:     #e8eef5;
+  --card:    #ffffff;
+  --border:  #dde5ef;
+  --border2: #c8d5e5;
+  --text0:   #0f1923;
+  --text1:   #374151;
+  --text2:   #64748b;
+  --text3:   #94a3b8;
+  --radius:  10px;
+  --radius-sm: 6px;
+  --shadow:  0 1px 3px rgba(15,25,40,.08),0 4px 16px rgba(15,25,40,.06);
+  --shadow-lg: 0 4px 24px rgba(15,25,40,.12),0 1px 4px rgba(15,25,40,.08);
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif;
-       display: flex; height: 100vh; overflow: hidden; font-size: 14px; }
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text0);font-size:13px;line-height:1.5}
+button{cursor:pointer;font-family:inherit;font-size:13px}
+input,select,textarea{font-family:inherit;font-size:13px}
 
-/* ── Sidebar ─────────────────────────────────────── */
-nav { width: var(--sidebar); background: var(--surface); border-right: 1px solid var(--border);
-      display: flex; flex-direction: column; flex-shrink: 0; }
-.brand { padding: 18px 16px 14px; border-bottom: 1px solid var(--border); }
-.brand h1 { font-size: 15px; font-weight: 700; color: var(--accent2); }
-.brand p  { font-size: 11px; color: var(--muted); margin-top: 2px; }
-nav a { display: flex; align-items: center; gap: 8px; padding: 10px 16px;
-        color: var(--muted); text-decoration: none; font-size: 13px; transition: all .15s; }
-nav a:hover, nav a.active { color: var(--text); background: rgba(108,99,255,.12); }
-nav a.active { border-left: 3px solid var(--accent); }
-nav a span.ico { font-size: 15px; }
-.nav-module { padding: 10px 16px 6px; font-size: 10px; text-transform: uppercase;
-              letter-spacing: .08em; color: var(--muted); border-top: 1px solid var(--border); margin-top: auto; }
-nav .module-links a { font-size: 12px; padding: 7px 16px; }
+/* ── Shell ─────────────────────────────────────────────── */
+#app{display:flex;height:100vh;overflow:hidden}
 
-/* ── Main ────────────────────────────────────────── */
-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-.topbar { display: flex; align-items: center; padding: 0 24px; height: 56px;
-          border-bottom: 1px solid var(--border); background: var(--surface); gap: 16px; }
-.topbar h2 { font-size: 16px; font-weight: 600; flex: 1; }
-.btn { padding: 7px 16px; border-radius: 6px; border: none; cursor: pointer;
-       font-size: 13px; font-weight: 500; transition: all .15s; }
-.btn-primary { background: var(--accent); color: #fff; }
-.btn-primary:hover { background: #7a72ff; }
-.btn-success { background: var(--success); color: #fff; }
-.btn-success:hover { background: #2ecc71; }
-.btn-warn   { background: var(--warn); color: #fff; }
-.btn-danger { background: var(--danger); color: #fff; }
-.btn-ghost  { background: transparent; color: var(--muted); border: 1px solid var(--border); }
-.btn-ghost:hover { color: var(--text); border-color: var(--accent); }
-.btn-sm { padding: 4px 10px; font-size: 12px; }
+/* ── Sidebar ───────────────────────────────────────────── */
+#sidebar{
+  width:var(--sidebar-w);min-width:var(--sidebar-w);
+  background:var(--navy);display:flex;flex-direction:column;
+  overflow:hidden;z-index:100;
+}
+.sidebar-logo{
+  padding:18px 20px 16px;border-bottom:1px solid rgba(255,255,255,.08);
+  display:flex;align-items:center;gap:12px;flex-shrink:0;
+}
+.sidebar-logo-icon{
+  width:36px;height:36px;border-radius:9px;
+  background:linear-gradient(135deg,var(--blue),var(--blue-l));
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;box-shadow:0 4px 12px rgba(37,99,235,.4);
+}
+.sidebar-logo-text .co{font-size:13px;font-weight:800;color:#fff;letter-spacing:.03em}
+.sidebar-logo-text .sub{font-size:9.5px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em}
 
-/* ── Stats bar ─────────────────────────────────── */
-.stats-bar { display: flex; gap: 1px; background: var(--border); border-bottom: 1px solid var(--border); }
-.stat { flex: 1; background: var(--surface); padding: 14px 20px; }
-.stat label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-.stat .val   { font-size: 22px; font-weight: 700; margin-top: 2px; color: var(--accent2); }
-.stat .val.warn { color: var(--warn); }
-.stat .val.danger { color: var(--danger); }
+.sidebar-nav{padding:12px 10px;flex:1;overflow-y:auto}
+.nav-section{margin-bottom:4px}
+.nav-label{
+  font-size:9.5px;font-weight:700;color:rgba(255,255,255,.3);
+  text-transform:uppercase;letter-spacing:.12em;
+  padding:10px 10px 4px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;border-radius:var(--radius-sm);
+  color:rgba(255,255,255,.55);font-size:13px;font-weight:500;
+  cursor:pointer;transition:all .12s;margin-bottom:1px;
+  border:none;background:none;width:100%;text-align:left;
+  text-decoration:none;
+}
+.nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85)}
+.nav-item.active{background:rgba(37,99,235,.25);color:#fff}
+.nav-item .ni{font-size:15px;width:18px;text-align:center;flex-shrink:0}
 
-/* ── Content ─────────────────────────────────────── */
-.content { flex: 1; overflow-y: auto; padding: 24px; }
-.view { display: none; }
-.view.active { display: block; }
+.sidebar-footer{
+  padding:12px 16px;border-top:1px solid rgba(255,255,255,.08);
+  font-size:11px;color:rgba(255,255,255,.3);
+}
 
-/* ── Table ─────────────────────────────────────── */
-.table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
-table { width: 100%; border-collapse: collapse; }
-th { background: #1e2130; padding: 10px 14px; text-align: left;
-     font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-td { padding: 10px 14px; border-top: 1px solid var(--border); vertical-align: middle; }
-tr:hover td { background: rgba(255,255,255,.02); }
-.mono { font-family: 'Courier New', monospace; font-size: 12px; }
+/* ── Main Area ─────────────────────────────────────────── */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 
-/* ── Badge ─────────────────────────────────────── */
-.badge { display: inline-block; padding: 2px 8px; border-radius: 4px;
-         font-size: 11px; font-weight: 600; }
-.badge-draft     { background: rgba(138,142,168,.15); color: var(--muted); }
-.badge-sent      { background: rgba(245,166,35,.12); color: var(--warn); }
-.badge-partial   { background: rgba(108,99,255,.15); color: var(--accent); }
-.badge-received  { background: rgba(0,212,170,.12); color: var(--accent2); }
-.badge-posted    { background: rgba(0,212,170,.12); color: var(--accent2); }
-.badge-approved  { background: rgba(39,174,96,.15); color: var(--success); }
-.badge-disputed  { background: rgba(231,76,60,.15); color: var(--danger); }
-.badge-paid      { background: rgba(39,174,96,.15); color: var(--success); }
-.badge-pending   { background: rgba(245,166,35,.12); color: var(--warn); }
-.badge-cancelled { background: rgba(231,76,60,.1); color: var(--danger); }
-.badge-matched   { background: rgba(0,212,170,.12); color: var(--accent2); }
+/* ── Header ─────────────────────────────────────────────── */
+#header{
+  height:var(--header-h);min-height:var(--header-h);
+  background:var(--card);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 24px;gap:16px;
+  z-index:50;flex-shrink:0;
+}
+.header-page-title{font-size:16px;font-weight:700;color:var(--text0);flex:1}
+.header-actions{display:flex;align-items:center;gap:10px}
 
-/* ── Card grid ─────────────────────────────────── */
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-bottom: 24px; }
-.card  { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
-.card h3 { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
-.card .big { font-size: 28px; font-weight: 700; color: var(--accent2); }
+.user-chip{
+  display:flex;align-items:center;gap:9px;padding:5px 12px 5px 5px;
+  background:var(--bg);border:1.5px solid var(--border);border-radius:30px;
+  cursor:default;
+}
+.user-avatar{
+  width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.user-info{line-height:1.3}
+.user-name{font-size:12px;font-weight:600;color:var(--text0)}
+.user-role{font-size:10px;color:var(--text2)}
+.role-badge{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  padding:2px 7px;border-radius:4px;
+}
+.role-admin    {background:rgba(245,158,11,.12);color:#b45309}
+.role-warehouse{background:rgba(16,185,129,.12);color:#047857}
+.role-sales    {background:rgba(37,99,235,.12);color:#1d4ed8}
 
-/* ── Modal ─────────────────────────────────────── */
-.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6);
-           z-index: 100; align-items: center; justify-content: center; }
-.overlay.open { display: flex; }
-.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-         width: 720px; max-width: 95vw; max-height: 90vh; display: flex; flex-direction: column; }
-.modal-lg { width: 900px; }
-.modal-hd { padding: 18px 20px; border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; gap: 12px; }
-.modal-hd h3 { flex: 1; font-size: 16px; }
-.modal-body { padding: 20px; overflow-y: auto; flex: 1; }
-.modal-ft  { padding: 14px 20px; border-top: 1px solid var(--border);
-             display: flex; gap: 8px; justify-content: flex-end; }
+.signout-btn{
+  padding:7px 14px;border-radius:var(--radius-sm);
+  background:none;color:var(--text2);font-size:12px;font-weight:500;
+  border:1.5px solid var(--border);transition:all .12s;
+}
+.signout-btn:hover{background:var(--red);color:#fff;border-color:var(--red)}
 
-/* ── Form ───────────────────────────────────────── */
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.form-full { grid-column: 1 / -1; }
-.field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-.field input, .field select, .field textarea {
-  width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
-  color: var(--text); padding: 8px 10px; font-size: 13px; outline: none; }
-.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
-.field textarea { resize: vertical; min-height: 60px; }
+/* ── Content Area ──────────────────────────────────────── */
+#content{flex:1;overflow-y:auto;padding:24px}
 
-/* ── Lines editor ─────────────────────────────── */
-.lines-tbl { width: 100%; border-collapse: collapse; margin-top: 12px; }
-.lines-tbl th { background: #1e2130; padding: 8px 10px; font-size: 11px;
-                text-transform: uppercase; color: var(--muted); text-align: left; }
-.lines-tbl td { padding: 6px 6px; border-top: 1px solid var(--border); }
-.lines-tbl input, .lines-tbl select {
-  background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
-  color: var(--text); padding: 6px 8px; font-size: 12px; width: 100%; }
+/* ── Page ──────────────────────────────────────────────── */
+.page{display:none}
+.page.active{display:block}
 
-/* ── Detail panel ─────────────────────────────── */
-.detail-row { display: flex; gap: 8px; margin-bottom: 6px; font-size: 13px; }
-.detail-row .lbl { color: var(--muted); min-width: 120px; }
-.section-title { font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
-                 color: var(--muted); border-bottom: 1px solid var(--border);
-                 padding-bottom: 6px; margin: 16px 0 10px; }
+/* ── KPI Row ───────────────────────────────────────────── */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kpi-card{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;box-shadow:var(--shadow);
+}
+.kpi-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.kpi-value{font-size:26px;font-weight:800;color:var(--text0);line-height:1}
+.kpi-value.blue{color:var(--blue)}
+.kpi-value.green{color:var(--green)}
+.kpi-value.yellow{color:var(--yellow)}
+.kpi-value.red{color:var(--red)}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:4px}
 
-/* ── AP Aging buckets ─────────────────────────── */
-.aging-buckets { display: grid; grid-template-columns: repeat(5,1fr); gap: 1px;
-                 background: var(--border); border-radius: 8px; overflow: hidden;
-                 margin-bottom: 20px; }
-.ab { background: var(--surface); padding: 14px; text-align: center; }
-.ab label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 4px; }
-.ab .val { font-size: 20px; font-weight: 700; }
-.ab.current .val { color: var(--accent2); }
-.ab.d30 .val { color: var(--warn); }
-.ab.d60 .val { color: #e67e22; }
-.ab.d90 .val { color: var(--danger); }
-.ab.d90p .val { color: #c0392b; }
+/* ── Card ────────────────────────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px}
+.card-header{padding:16px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)}
+.card-title{font-size:14px;font-weight:700;color:var(--text0);flex:1}
 
-/* ── Reorder ─────────────────────────────────── */
-.reorder-banner { background: rgba(231,76,60,.08); border: 1px solid rgba(231,76,60,.3);
-                  border-radius: 8px; padding: 14px 18px; margin-bottom: 20px;
-                  display: flex; align-items: center; gap: 12px; }
-.reorder-banner p { flex: 1; font-size: 13px; }
+/* ── Toolbar ─────────────────────────────────────────────── */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.filter-select{
+  padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--card);color:var(--text1);outline:none;
+}
+.filter-select:focus{border-color:var(--blue)}
 
-/* ── Loading / empty ────────────────────────── */
-.loading, .empty { text-align: center; padding: 40px; color: var(--muted); font-size: 13px; }
-.empty { font-style: italic; }
+/* ── Table ──────────────────────────────────────────────── */
+.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);background:var(--card)}
+table{width:100%;border-collapse:collapse}
+th{
+  background:var(--bg);padding:10px 14px;text-align:left;
+  font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);
+  font-weight:700;border-bottom:1px solid var(--border);white-space:nowrap;
+}
+td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text1);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(37,99,235,.02)}
+.mono{font-family:'Courier New',monospace;font-size:12px;color:var(--text0)}
 
-/* ── Toast ──────────────────────────────────── */
-#toast { position: fixed; bottom: 24px; right: 24px; z-index: 999;
-         background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
-         padding: 12px 18px; font-size: 13px; max-width: 340px;
-         transition: opacity .3s; opacity: 0; pointer-events: none; }
-#toast.show { opacity: 1; }
-#toast.ok   { border-color: var(--success); color: var(--success); }
-#toast.err  { border-color: var(--danger);  color: var(--danger); }
+/* ── Badge ───────────────────────────────────────────────── */
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;letter-spacing:.02em}
+.badge-draft     {background:rgba(100,116,139,.12);color:#475569}
+.badge-sent      {background:rgba(245,158,11,.12);color:#b45309}
+.badge-partial,
+.badge-partially_received{background:rgba(37,99,235,.1);color:#1d4ed8}
+.badge-received,
+.badge-fully_received,
+.badge-posted    {background:rgba(16,185,129,.1);color:#047857}
+.badge-approved  {background:rgba(16,185,129,.1);color:#047857}
+.badge-disputed  {background:rgba(239,68,68,.1);color:#dc2626}
+.badge-paid      {background:rgba(16,185,129,.1);color:#047857}
+.badge-pending   {background:rgba(245,158,11,.12);color:#b45309}
+.badge-cancelled {background:rgba(239,68,68,.08);color:#dc2626}
+.badge-matched   {background:rgba(16,185,129,.1);color:#047857}
+.badge-open      {background:rgba(37,99,235,.1);color:#1d4ed8}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn{padding:8px 16px;border-radius:var(--radius-sm);border:none;font-weight:600;font-size:13px;transition:all .12s;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.25)}
+.btn-primary:hover{background:var(--blue-h)}
+.btn-success{background:var(--green);color:#fff}
+.btn-success:hover{background:#059669}
+.btn-warn{background:var(--yellow);color:#fff}
+.btn-warn:hover{background:#d97706}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover{background:#dc2626}
+.btn-ghost{background:none;color:var(--text2);border:1.5px solid var(--border)}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text0);background:var(--bg)}
+.btn-sm{padding:4px 10px;font-size:12px}
+
+/* ── Modal ───────────────────────────────────────────────── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(15,25,40,.55);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.overlay.open{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);width:720px;max-width:96vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:var(--shadow-lg)}
+.modal-lg{width:900px}
+.modal-hd{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.modal-hd h3{flex:1;font-size:15px;font-weight:700;color:var(--text0)}
+.modal-body{padding:20px;overflow-y:auto;flex:1}
+.modal-ft{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;background:var(--bg)}
+
+/* ── Form ────────────────────────────────────────────────── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-full{grid-column:1 / -1}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em}
+.field input,.field select,.field textarea{
+  padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--card);color:var(--text0);outline:none;transition:border-color .12s,box-shadow .12s;
+}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.field textarea{resize:vertical;min-height:60px}
+
+/* ── Section Title ─────────────────────────────────────── */
+.section-title{
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--text2);border-bottom:1px solid var(--border);padding-bottom:8px;margin:16px 0 12px;
+}
+
+/* ── Lines Editor ───────────────────────────────────────── */
+.lines-tbl{width:100%;border-collapse:collapse}
+.lines-tbl th{background:var(--bg);padding:8px 10px;font-size:11px;text-transform:uppercase;color:var(--text2);text-align:left;border-bottom:1px solid var(--border)}
+.lines-tbl td{padding:6px 6px;border-bottom:1px solid var(--border)}
+.lines-tbl tr:last-child td{border-bottom:none}
+.lines-tbl input,.lines-tbl select{
+  background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  color:var(--text0);padding:6px 8px;font-size:12px;width:100%;outline:none;
+}
+.lines-tbl input:focus,.lines-tbl select:focus{border-color:var(--blue)}
+
+/* ── Detail panel ────────────────────────────────────────── */
+.detail-row{display:flex;gap:8px;margin-bottom:6px;font-size:13px}
+.detail-row .lbl{color:var(--text2);min-width:120px;font-weight:500}
+
+/* ── AP Aging Buckets ────────────────────────────────────── */
+.aging-buckets{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}
+.ab{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;box-shadow:var(--shadow)}
+.ab label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;display:block;margin-bottom:6px}
+.ab .val{font-size:20px;font-weight:800}
+.ab.current .val{color:var(--green)}
+.ab.d30 .val{color:var(--yellow)}
+.ab.d60 .val{color:var(--orange)}
+.ab.d90 .val{color:var(--red)}
+.ab.d90p .val{color:#b91c1c}
+
+/* ── Alert Banner ────────────────────────────────────────── */
+.alert-banner{
+  background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.2);
+  border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;
+  display:flex;align-items:center;gap:12px;
+}
+.alert-banner p{flex:1;font-size:13px;color:var(--text1)}
+
+/* ── Loading / empty ─────────────────────────────────────── */
+.loading{text-align:center;padding:32px;color:var(--text3);font-size:13px}
+.empty{text-align:center;padding:32px;color:var(--text3);font-size:13px;font-style:italic}
+
+/* ── Stock hint chip ─────────────────────────────────────── */
+.stock-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;
+}
+.stock-ok  {background:rgba(16,185,129,.1);color:#047857}
+.stock-low {background:rgba(245,158,11,.12);color:#b45309}
+.stock-zero{background:rgba(239,68,68,.1);color:#dc2626}
+
+/* ── Toast ───────────────────────────────────────────────── */
+#toastContainer{
+  position:fixed;bottom:24px;right:24px;z-index:9999;
+  display:flex;flex-direction:column;gap:8px;pointer-events:none;
+}
+.toast-item{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:12px 16px;font-size:13px;max-width:360px;
+  box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:10px;
+  animation:slideIn .2s ease;pointer-events:auto;
+}
+@keyframes slideIn{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
+.toast-item.success{border-left:3px solid var(--green)}
+.toast-item.error  {border-left:3px solid var(--red)}
+.toast-item.warning{border-left:3px solid var(--yellow)}
+.toast-item.info   {border-left:3px solid var(--blue)}
+.toast-icon{font-size:15px;flex-shrink:0}
+
+/* ── Dashboard mini cards ────────────────────────────────── */
+.mini-list{padding:4px 0}
+.mini-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px}
+.mini-row:last-child{border-bottom:none}
+.mini-row .primary{font-weight:600;color:var(--text0)}
+.mini-row .secondary{font-size:11px;color:var(--text2);margin-top:2px}
+.mini-big{font-size:28px;font-weight:800;margin-bottom:4px}
+
+/* ── Price change preview table ──────────────────────────── */
+.pc-preview-tbl td{padding:7px 10px;border-bottom:1px solid var(--border);font-size:13px}
+.pc-preview-tbl td:first-child{color:var(--text2);width:200px;font-weight:500}
+.pc-preview-tbl td:last-child{font-weight:700}
+
+/* ── Import result box ───────────────────────────────────── */
+.import-result{padding:14px 16px;border-radius:var(--radius-sm);border:1px solid var(--border)}
 </style>
 </head>
 <body>
 
-<!-- ── Sidebar ─── -->
-<nav>
-  <div class="brand">
-    <h1>Tick Tock Inc.</h1>
-    <p>Purchasing</p>
+<div id="app">
+
+<!-- ── Sidebar ────────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">⏱</div>
+    <div class="sidebar-logo-text">
+      <div class="co">TICK TOCK INC.</div>
+      <div class="sub">Purchasing</div>
+    </div>
   </div>
-  <a href="#" class="active" data-view="dashboard"  onclick="show('dashboard',this)">
-    <span class="ico">📦</span> Dashboard
-  </a>
-  <a href="#" data-view="pos"       onclick="show('pos',this)">
-    <span class="ico">📋</span> Purchase Orders
-  </a>
-  <a href="#" data-view="receiving" onclick="show('receiving',this)">
-    <span class="ico">🚚</span> Receiving
-  </a>
-  <a href="#" data-view="vinvoices" onclick="show('vinvoices',this)">
-    <span class="ico">📄</span> Vendor Invoices
-  </a>
-  <a href="#" data-view="apaging"   onclick="show('apaging',this)">
-    <span class="ico">⏱</span> AP Aging
-  </a>
-  <a href="#" data-view="vendors"   onclick="show('vendors',this)">
-    <span class="ico">🏭</span> Vendors
-  </a>
-  <a href="#" data-view="reorder"   onclick="show('reorder',this)">
-    <span class="ico">🔔</span> Reorder
-  </a>
-  <a href="#" data-view="price-change" onclick="show('price-change',this)">
-    <span class="ico">💲</span> Price Change
-  </a>
-  <a href="#" data-view="import-tool" onclick="show('import-tool',this)">
-    <span class="ico">📂</span> Import Tool
-  </a>
-  <div class="nav-module">Other Modules</div>
-  <div class="module-links">
-    <a href="/"><span class="ico">📦</span> Inventory</a>
-    <a href="/sales"><span class="ico">💰</span> Sales</a>
-    <a href="/financials"><span class="ico">📈</span> Financials</a>
+
+  <div class="sidebar-nav">
+    <div class="nav-section">
+      <div class="nav-label">Purchasing</div>
+      <button class="nav-item active" data-view="dashboard" onclick="show('dashboard',this)">
+        <span class="ni">📊</span> Dashboard
+      </button>
+      <button class="nav-item" data-view="pos" onclick="show('pos',this)">
+        <span class="ni">📋</span> Purchase Orders
+      </button>
+      <button class="nav-item" data-view="receiving" onclick="show('receiving',this)">
+        <span class="ni">🚚</span> Receiving
+      </button>
+      <button class="nav-item" data-view="vinvoices" onclick="show('vinvoices',this)">
+        <span class="ni">📄</span> Vendor Invoices
+      </button>
+      <button class="nav-item" data-view="apaging" onclick="show('apaging',this)">
+        <span class="ni">⏳</span> AP Aging
+      </button>
+      <button class="nav-item" data-view="vendors" onclick="show('vendors',this)">
+        <span class="ni">🏭</span> Vendors
+      </button>
+      <button class="nav-item" data-view="reorder" onclick="show('reorder',this)">
+        <span class="ni">🔔</span> Reorder
+      </button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Tools</div>
+      <button class="nav-item" data-view="price-change" onclick="show('price-change',this)">
+        <span class="ni">💲</span> Price Change
+      </button>
+      <button class="nav-item" data-view="import-tool" onclick="show('import-tool',this)">
+        <span class="ni">📂</span> Import Tool
+      </button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Other Modules</div>
+      <a class="nav-item" href="/">
+        <span class="ni">📦</span> Inventory
+      </a>
+      <a class="nav-item" href="/sales">
+        <span class="ni">💰</span> Sales
+      </a>
+      <a class="nav-item" href="/financials">
+        <span class="ni">📈</span> Financials
+      </a>
+    </div>
   </div>
+
+  <div class="sidebar-footer">TICK TOCK INC. ERP &nbsp;·&nbsp; v1.0.0</div>
 </nav>
 
-<!-- ── Main ─── -->
-<main>
-  <div class="topbar">
-    <h2 id="pageTitle">Purchasing Dashboard</h2>
-    <button class="btn btn-primary" id="topActionBtn" onclick="topAction()">+ New PO</button>
+<!-- ── Main ───────────────────────────────────────────────── -->
+<main id="main">
+
+  <!-- Header -->
+  <div id="header">
+    <span class="header-page-title" id="pageTitle">Purchasing Dashboard</span>
+    <div class="header-actions">
+      <button class="btn btn-primary" id="topActionBtn" onclick="topAction()">+ New PO</button>
+      <div class="user-chip">
+        <div class="user-avatar" id="userAvatar" style="background:var(--blue)">?</div>
+        <div class="user-info">
+          <div class="user-name" id="userName">—</div>
+          <div class="user-role" id="userRoleLine">—</div>
+        </div>
+        <span class="role-badge" id="userRoleBadge"></span>
+      </div>
+      <button class="signout-btn" onclick="signOut()">Sign Out</button>
+    </div>
   </div>
 
-  <div class="stats-bar">
-    <div class="stat"><label>Open POs</label><div class="val" id="statOpenPOs">—</div></div>
-    <div class="stat"><label>Received POs</label><div class="val" id="statRecPOs">—</div></div>
-    <div class="stat"><label>AP Balance</label><div class="val warn" id="statAP">—</div></div>
-    <div class="stat"><label>Pending Invoices</label><div class="val warn" id="statPendInv">—</div></div>
-  </div>
-
-  <div class="content">
+  <!-- Content -->
+  <div id="content">
 
     <!-- ── Dashboard ── -->
-    <div class="view active" id="view-dashboard">
-      <div class="cards">
+    <div class="page active" id="page-dashboard">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Open POs</div>
+          <div class="kpi-value blue" id="statOpenPOs">—</div>
+          <div class="kpi-sub">Sent / awaiting delivery</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Received This Month</div>
+          <div class="kpi-value green" id="statRecPOs">—</div>
+          <div class="kpi-sub">Fully received POs</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">AP Balance</div>
+          <div class="kpi-value yellow" id="statAP">—</div>
+          <div class="kpi-sub">Total outstanding payable</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Pending Invoices</div>
+          <div class="kpi-value red" id="statPendInv">—</div>
+          <div class="kpi-sub">Awaiting approval</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
         <div class="card">
-          <h3>Recent Purchase Orders</h3>
-          <div id="dashRecentPOs"><div class="loading">Loading…</div></div>
+          <div class="card-header"><span class="card-title">Recent Purchase Orders</span></div>
+          <div style="padding:0 20px" id="dashRecentPOs"><div class="loading">Loading…</div></div>
         </div>
         <div class="card">
-          <h3>AP Summary</h3>
-          <div id="dashAPSummary"><div class="loading">Loading…</div></div>
+          <div class="card-header"><span class="card-title">AP Summary</span></div>
+          <div style="padding:16px 20px" id="dashAPSummary"><div class="loading">Loading…</div></div>
         </div>
         <div class="card">
-          <h3>Reorder Alerts</h3>
-          <div id="dashReorder"><div class="loading">Loading…</div></div>
+          <div class="card-header"><span class="card-title">Reorder Alerts</span></div>
+          <div style="padding:16px 20px" id="dashReorder"><div class="loading">Loading…</div></div>
         </div>
       </div>
     </div>
 
     <!-- ── Purchase Orders ── -->
-    <div class="view" id="view-pos">
-      <div style="margin-bottom:14px;display:flex;gap:8px;align-items:center;">
-        <select id="poFilterStatus" onchange="loadPOs()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:13px;">
+    <div class="page" id="page-pos">
+      <div class="toolbar">
+        <select class="filter-select" id="poFilterStatus" onchange="loadPOs()">
           <option value="">All Statuses</option>
           <option value="draft">Draft</option>
           <option value="sent">Sent</option>
@@ -272,7 +468,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
     </div>
 
     <!-- ── Receiving ── -->
-    <div class="view" id="view-receiving">
+    <div class="page" id="page-receiving">
       <div class="table-wrap">
         <table>
           <thead><tr>
@@ -285,9 +481,9 @@ tr:hover td { background: rgba(255,255,255,.02); }
     </div>
 
     <!-- ── Vendor Invoices ── -->
-    <div class="view" id="view-vinvoices">
-      <div style="margin-bottom:14px;display:flex;gap:8px;align-items:center;">
-        <select id="viFilterStatus" onchange="loadVendorInvoices()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:13px;">
+    <div class="page" id="page-vinvoices">
+      <div class="toolbar">
+        <select class="filter-select" id="viFilterStatus" onchange="loadVendorInvoices()">
           <option value="">All Statuses</option>
           <option value="pending">Pending</option>
           <option value="approved">Approved</option>
@@ -307,7 +503,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
     </div>
 
     <!-- ── AP Aging ── -->
-    <div class="view" id="view-apaging">
+    <div class="page" id="page-apaging">
       <div class="aging-buckets">
         <div class="ab current"><label>Current</label><div class="val" id="apCur">—</div></div>
         <div class="ab d30">   <label>1–30 Days</label><div class="val" id="ap30">—</div></div>
@@ -326,7 +522,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
     </div>
 
     <!-- ── Vendors ── -->
-    <div class="view" id="view-vendors">
+    <div class="page" id="page-vendors">
       <div class="table-wrap">
         <table>
           <thead><tr>
@@ -338,9 +534,9 @@ tr:hover td { background: rgba(255,255,255,.02); }
       </div>
     </div>
 
-    <!-- ── Reorder Suggestions ── -->
-    <div class="view" id="view-reorder">
-      <div class="reorder-banner" id="reorderBanner" style="display:none;">
+    <!-- ── Reorder ── -->
+    <div class="page" id="page-reorder">
+      <div class="alert-banner" id="reorderBanner" style="display:none">
         <p id="reorderMsg"></p>
         <button class="btn btn-danger btn-sm" onclick="generatePOs()">Auto-Generate POs</button>
       </div>
@@ -355,113 +551,114 @@ tr:hover td { background: rgba(255,255,255,.02); }
       </div>
     </div>
 
-    <!-- ── Price Change Tool ── -->
-    <div class="view" id="view-price-change">
-      <div class="cards">
-        <div class="card" style="max-width:560px">
-          <h3>Cost Update Tool</h3>
-          <p style="font-size:12px;color:var(--muted);margin-bottom:14px">
-            Update an item's cost when a vendor charges a new price. The system maintains margin % and updates all customer price lists (VIP locked prices are protected).
-          </p>
-          <div class="form-grid">
-            <div class="field form-full">
-              <label>Item *</label>
-              <select id="pcItemSel" onchange="pcClearPreview()">
-                <option value="">Select item…</option>
-              </select>
+    <!-- ── Price Change ── -->
+    <div class="page" id="page-price-change">
+      <div style="max-width:600px">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Cost Update Tool</span></div>
+          <div style="padding:20px">
+            <p style="font-size:12px;color:var(--text2);margin-bottom:16px">
+              Update an item's cost when a vendor charges a new price. The system maintains margin % and updates all customer price lists (VIP locked prices are protected).
+            </p>
+            <div class="form-grid">
+              <div class="field form-full">
+                <label>Item *</label>
+                <select id="pcItemSel" onchange="pcClearPreview()">
+                  <option value="">Select item…</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>New Cost ($) *</label>
+                <input type="number" id="pcNewCost" step="0.01" min="0" placeholder="0.00" oninput="pcClearPreview()">
+              </div>
+              <div class="field">
+                <label>Notes</label>
+                <input type="text" id="pcNotes" placeholder="Reason for cost change">
+              </div>
             </div>
-            <div class="field">
-              <label>New Cost ($) *</label>
-              <input type="number" id="pcNewCost" step="0.01" min="0" placeholder="0.00" oninput="pcClearPreview()">
+            <div style="margin-top:12px">
+              <button class="btn btn-warn" onclick="pcPreview()">Preview Change</button>
             </div>
-            <div class="field">
-              <label>Notes</label>
-              <input type="text" id="pcNotes" placeholder="Reason for cost change">
-            </div>
-          </div>
-          <div style="margin-top:10px">
-            <button class="btn btn-warn" onclick="pcPreview()">Preview Change</button>
-          </div>
 
-          <div id="pcPreviewBox" style="display:none;margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px">
-            <div style="font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Preview</div>
-            <table style="width:100%;font-size:13px;border-collapse:collapse" id="pcPreviewTable"></table>
-            <div style="margin-top:14px;display:flex;gap:8px">
-              <button class="btn btn-success" onclick="pcConfirm()">✓ Apply Change</button>
-              <button class="btn btn-ghost" onclick="pcClearPreview()">Cancel</button>
+            <div id="pcPreviewBox" style="display:none;margin-top:16px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+              <div style="padding:10px 14px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text2)">Preview</div>
+              <table class="pc-preview-tbl" style="width:100%;border-collapse:collapse" id="pcPreviewTable"></table>
+              <div style="padding:12px 14px;display:flex;gap:8px;background:var(--bg);border-top:1px solid var(--border)">
+                <button class="btn btn-success" onclick="pcConfirm()">✓ Apply Change</button>
+                <button class="btn btn-ghost" onclick="pcClearPreview()">Cancel</button>
+              </div>
             </div>
           </div>
+        </div>
 
-          <div id="pcHistoryBox" style="margin-top:20px">
-            <div style="font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">
-              Recent Changes <button class="btn btn-ghost btn-sm" onclick="pcLoadHistory()" style="margin-left:8px">Refresh</button>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>Item</th><th>Old Cost</th><th>New Cost</th><th>Old Price</th><th>New Price</th><th>Updated</th><th>Locked</th><th>Date</th></tr></thead>
-                <tbody id="pcHistoryBody"><tr><td colspan="8" class="loading">Click Refresh to load</td></tr></tbody>
-              </table>
-            </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Recent Changes</span>
+            <button class="btn btn-ghost btn-sm" onclick="pcLoadHistory()">Refresh</button>
+          </div>
+          <div class="table-wrap" style="border:none;border-radius:0">
+            <table>
+              <thead><tr><th>Item</th><th>Old Cost</th><th>New Cost</th><th>Old Price</th><th>New Price</th><th>Updated</th><th>Locked</th><th>Date</th></tr></thead>
+              <tbody id="pcHistoryBody"><tr><td colspan="8" class="loading">Click Refresh to load</td></tr></tbody>
+            </table>
           </div>
         </div>
       </div>
     </div>
 
     <!-- ── Import Tool ── -->
-    <div class="view" id="view-import-tool">
-      <div class="cards">
-        <div class="card" style="max-width:760px">
-          <h3>CSV / Excel Import</h3>
-          <p style="font-size:12px;color:var(--muted);margin-bottom:14px">
-            Import items, customers, or vendors from a CSV or Excel file. Existing records are updated by code; new records are inserted.
-          </p>
-
-          <div class="form-grid">
-            <div class="field">
-              <label>Import Type</label>
-              <select id="importTable">
-                <option value="items">Items (inventory)</option>
-                <option value="customers">Customers</option>
-                <option value="vendors">Vendors</option>
-              </select>
+    <div class="page" id="page-import-tool">
+      <div style="max-width:760px">
+        <div class="card">
+          <div class="card-header"><span class="card-title">CSV / Excel Import</span></div>
+          <div style="padding:20px">
+            <p style="font-size:12px;color:var(--text2);margin-bottom:16px">
+              Import items, customers, or vendors from a CSV or Excel file. Existing records are updated by code; new records are inserted.
+            </p>
+            <div class="form-grid">
+              <div class="field">
+                <label>Import Type</label>
+                <select id="importTable">
+                  <option value="items">Items (inventory)</option>
+                  <option value="customers">Customers</option>
+                  <option value="vendors">Vendors</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>File (.csv, .xls, .xlsx)</label>
+                <input type="file" id="importFile" accept=".csv,.xls,.xlsx" onchange="importFileSelected()">
+              </div>
             </div>
-            <div class="field">
-              <label>File (.csv, .xls, .xlsx)</label>
-              <input type="file" id="importFile" accept=".csv,.xls,.xlsx" onchange="importFileSelected()">
+            <div style="margin-top:12px;display:flex;gap:8px">
+              <button class="btn btn-warn" onclick="importPreview()">Preview</button>
+              <button class="btn btn-success" onclick="importConfirm()" id="importConfirmBtn" disabled>Import</button>
             </div>
-          </div>
 
-          <div style="margin-top:10px;display:flex;gap:8px">
-            <button class="btn btn-warn" onclick="importPreview()">Preview</button>
-            <button class="btn btn-success" onclick="importConfirm()" id="importConfirmBtn" disabled>Import</button>
-          </div>
-
-          <!-- Migration Status -->
-          <div style="margin-top:16px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;display:flex;gap:24px;font-size:13px" id="importStatusBar">
-            <span>Items: <strong id="isItems">—</strong></span>
-            <span>Customers: <strong id="isCustomers">—</strong></span>
-            <span>Vendors: <strong id="isVendors">—</strong></span>
-            <button class="btn btn-ghost btn-sm" onclick="loadImportStatus()">Refresh Counts</button>
-          </div>
-
-          <!-- Preview box -->
-          <div id="importPreviewBox" style="display:none;margin-top:14px">
-            <div style="font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Preview</div>
-            <div id="importPreviewStats" style="font-size:13px;margin-bottom:8px"></div>
-            <div class="table-wrap" style="max-height:260px;overflow-y:auto">
-              <table><thead id="importPreviewHead"></thead><tbody id="importPreviewBody"></tbody></table>
+            <div style="margin-top:14px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);display:flex;gap:24px;font-size:13px" id="importStatusBar">
+              <span>Items: <strong id="isItems">—</strong></span>
+              <span>Customers: <strong id="isCustomers">—</strong></span>
+              <span>Vendors: <strong id="isVendors">—</strong></span>
+              <button class="btn btn-ghost btn-sm" onclick="loadImportStatus()">Refresh Counts</button>
             </div>
-            <div id="importPreviewErrors" style="margin-top:8px;font-size:12px;color:var(--danger)"></div>
-          </div>
 
-          <!-- Result box -->
-          <div id="importResultBox" style="display:none;margin-top:14px;padding:12px 16px;border-radius:6px"></div>
+            <div id="importPreviewBox" style="display:none;margin-top:14px">
+              <div style="font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text2);margin-bottom:8px">Preview</div>
+              <div id="importPreviewStats" style="font-size:13px;margin-bottom:8px"></div>
+              <div class="table-wrap" style="max-height:260px;overflow-y:auto">
+                <table><thead id="importPreviewHead"></thead><tbody id="importPreviewBody"></tbody></table>
+              </div>
+              <div id="importPreviewErrors" style="margin-top:8px;font-size:12px;color:var(--red)"></div>
+            </div>
+
+            <div id="importResultBox" style="display:none;margin-top:14px" class="import-result"></div>
+          </div>
         </div>
       </div>
     </div>
 
   </div><!-- /content -->
 </main>
+</div><!-- /app -->
 
 <!-- ── New PO Modal ── -->
 <div class="overlay" id="newPOModal">
@@ -504,8 +701,8 @@ tr:hover td { background: rgba(255,255,255,.02); }
         <tbody id="poLinesBody"></tbody>
       </table>
       <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="addPOLine()">+ Add Line</button>
-      <div style="margin-top:12px;text-align:right;">
-        <strong>PO Total: <span id="poTotal">$0.00</span></strong>
+      <div style="margin-top:12px;text-align:right">
+        <strong style="color:var(--text0)">PO Total: <span id="poTotal" style="color:var(--blue)">$0.00</span></strong>
       </div>
     </div>
     <div class="modal-ft">
@@ -628,7 +825,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
       <div class="form-grid">
         <div class="field">
           <label>Vendor</label>
-          <input type="text" id="pmtVendorName" readonly style="color:var(--muted)">
+          <input type="text" id="pmtVendorName" readonly style="color:var(--text2)">
           <input type="hidden" id="pmtVendorId">
         </div>
         <div class="field">
@@ -668,25 +865,75 @@ tr:hover td { background: rgba(255,255,255,.02); }
   </div>
 </div>
 
-<div id="toast"></div>
+<div id="toastContainer"></div>
 
 <script>
 const API = '';
 let vendors = [], warehouses = [], items = [], openPOs = [];
 let currentView = 'dashboard';
+let pcPreviewData = null;
+let importPreviewResult = null;
+
+// ── Auth Guard ─────────────────────────────────────────────────────────────────
+(function authGuard() {
+  const token = localStorage.getItem('tt_token');
+  if (!token) { window.location.href = '/login.html'; return; }
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (payload.exp * 1000 < Date.now()) {
+      localStorage.removeItem('tt_token');
+      localStorage.removeItem('tt_user');
+      window.location.href = '/login.html';
+      return;
+    }
+    // Render user chip
+    const name   = payload.name || payload.email;
+    const role   = payload.role || 'user';
+    const initials = name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+    const colors = { admin:'#b45309', warehouse:'#047857', sales:'#1d4ed8' };
+    document.getElementById('userAvatar').textContent      = initials;
+    document.getElementById('userAvatar').style.background = colors[role] || '#2563eb';
+    document.getElementById('userName').textContent        = name;
+    document.getElementById('userRoleLine').textContent    = role.charAt(0).toUpperCase()+role.slice(1);
+    const badge = document.getElementById('userRoleBadge');
+    badge.textContent = role;
+    badge.className   = `role-badge role-${role}`;
+  } catch {
+    window.location.href = '/login.html';
+  }
+})();
+
+function signOut() {
+  localStorage.removeItem('tt_token');
+  localStorage.removeItem('tt_user');
+  window.location.href = '/login.html';
+}
+
+// ── apiFetch ───────────────────────────────────────────────────────────────────
+async function apiFetch(url, opts = {}) {
+  const token = localStorage.getItem('tt_token');
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(url, { ...opts, headers });
+  if (res.status === 401) {
+    localStorage.removeItem('tt_token');
+    window.location.href = '/login.html';
+    return res;
+  }
+  return res;
+}
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
   const [v, w, i] = await Promise.all([
-    fetch(`${API}/api/vendors`).then(r=>r.json()).catch(()=>[]),
-    fetch(`${API}/api/warehouses`).then(r=>r.json()).catch(()=>[]),
-    fetch(`${API}/api/items`).then(r=>r.json()).catch(()=>[])
+    apiFetch(`${API}/api/vendors`).then(r=>r.json()).catch(()=>[]),
+    apiFetch(`${API}/api/warehouses`).then(r=>r.json()).catch(()=>[]),
+    apiFetch(`${API}/api/items`).then(r=>r.json()).catch(()=>[])
   ]);
-  vendors    = Array.isArray(v) ? v : [];
-  warehouses = Array.isArray(w) ? w : [];
-  items      = Array.isArray(i) ? i : [];
+  vendors    = Array.isArray(v) ? v : (v?.data || []);
+  warehouses = Array.isArray(w) ? w : (w?.data || []);
+  items      = Array.isArray(i) ? i : (i?.data || []);
 
-  // Populate selects
   ['poVendor','viVendor'].forEach(id => {
     const s = document.getElementById(id);
     if (!s) return;
@@ -698,31 +945,32 @@ async function init() {
     `<option value="${w.id}">${w.code} — ${w.name}</option>`));
 
   const today = new Date().toISOString().slice(0,10);
-  document.getElementById('poOrderDate').value   = today;
-  document.getElementById('rcvDate').value        = today;
-  document.getElementById('viInvDate').value      = today;
-  document.getElementById('pmtDate').value        = today;
+  document.getElementById('poOrderDate').value = today;
+  document.getElementById('rcvDate').value     = today;
+  document.getElementById('viInvDate').value   = today;
+  document.getElementById('pmtDate').value     = today;
 
   loadDashboard();
   loadStats();
 }
 
-// ── Stats bar ─────────────────────────────────────────────────────────────────
+// ── Stats ──────────────────────────────────────────────────────────────────────
 async function loadStats() {
   try {
-    const [posR, apR, viR] = await Promise.all([
-      fetch(`${API}/api/purchase-orders?status=sent`).then(r=>r.json()),
-      fetch(`${API}/api/ap-aging`).then(r=>r.json()),
-      fetch(`${API}/api/vendor-invoices?status=pending`).then(r=>r.json())
+    const [posR, apR, viR, recR] = await Promise.all([
+      apiFetch(`${API}/api/purchase-orders?status=sent`).then(r=>r.json()),
+      apiFetch(`${API}/api/ap-aging`).then(r=>r.json()),
+      apiFetch(`${API}/api/vendor-invoices?status=pending`).then(r=>r.json()),
+      apiFetch(`${API}/api/purchase-orders?status=fully_received`).then(r=>r.json())
     ]);
-    const pos = Array.isArray(posR) ? posR : [];
+    const pos = Array.isArray(posR) ? posR : (posR?.data || []);
     document.getElementById('statOpenPOs').textContent = pos.length;
-    const received = await fetch(`${API}/api/purchase-orders?status=fully_received`).then(r=>r.json()).catch(()=>[]);
-    document.getElementById('statRecPOs').textContent = Array.isArray(received) ? received.length : 0;
+    const rec = Array.isArray(recR) ? recR : (recR?.data || []);
+    document.getElementById('statRecPOs').textContent = rec.length;
     if (apR && apR.totals) {
       document.getElementById('statAP').textContent = '$'+fmt(apR.totals.total_due);
     }
-    const vi = Array.isArray(viR) ? viR : [];
+    const vi = Array.isArray(viR) ? viR : (viR?.data || []);
     document.getElementById('statPendInv').textContent = vi.length;
   } catch(e){}
 }
@@ -731,75 +979,61 @@ async function loadStats() {
 async function loadDashboard() {
   try {
     const [posR, apR, reorderR] = await Promise.all([
-      fetch(`${API}/api/purchase-orders`).then(r=>r.json()),
-      fetch(`${API}/api/ap-aging`).then(r=>r.json()),
-      fetch(`${API}/api/reorder-suggestions`).then(r=>r.json())
+      apiFetch(`${API}/api/purchase-orders`).then(r=>r.json()),
+      apiFetch(`${API}/api/ap-aging`).then(r=>r.json()),
+      apiFetch(`${API}/api/reorder-suggestions`).then(r=>r.json())
     ]);
 
-    // Recent POs
-    const pos = Array.isArray(posR) ? posR.slice(0,5) : [];
+    const pos = (Array.isArray(posR) ? posR : (posR?.data || [])).slice(0,5);
     document.getElementById('dashRecentPOs').innerHTML = pos.length === 0
       ? '<div class="empty">No purchase orders yet</div>'
-      : pos.map(po=>`
-        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+      : '<div class="mini-list">'+pos.map(po=>`
+        <div class="mini-row">
           <div>
-            <span class="mono">${po.number}</span>
-            <div style="font-size:11px;color:var(--muted)">${po.vendor_name}</div>
+            <div class="primary mono">${po.number}</div>
+            <div class="secondary">${po.vendor_name}</div>
           </div>
           <div style="text-align:right">
-            <span class="badge badge-${po.status}">${po.status}</span>
-            <div style="font-size:11px;color:var(--muted)">$${fmt(po.po_total)}</div>
+            <span class="badge badge-${po.status}">${po.status.replace(/_/g,' ')}</span>
+            <div class="secondary" style="margin-top:3px">$${fmt(po.po_total)}</div>
           </div>
-        </div>`).join('');
+        </div>`).join('')+'</div>';
 
-    // AP Summary
     if (apR && apR.totals) {
       const t = apR.totals;
       document.getElementById('dashAPSummary').innerHTML = `
-        <div class="big">$${fmt(t.total_due)}</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:6px">Total AP Outstanding</div>
-        <div style="margin-top:12px;font-size:12px;">
-          <div style="display:flex;justify-content:space-between;margin:4px 0;">
-            <span style="color:var(--muted)">Current</span><span>$${fmt(t.current_due)}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin:4px 0;">
-            <span style="color:var(--warn)">1–30 days</span><span>$${fmt(t.days_1_30)}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin:4px 0;">
-            <span style="color:#e67e22">31–60 days</span><span>$${fmt(t.days_31_60)}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin:4px 0;">
-            <span style="color:var(--danger)">61–90 days</span><span>$${fmt(t.days_61_90)}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin:4px 0;">
-            <span style="color:#c0392b">90+ days</span><span>$${fmt(t.days_90plus)}</span>
-          </div>
+        <div class="mini-big" style="color:var(--yellow)">$${fmt(t.total_due)}</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Total AP Outstanding</div>
+        <div style="font-size:13px">
+          ${[['Current',t.current_due,'var(--green)'],['1–30 days',t.days_1_30,'var(--yellow)'],
+             ['31–60 days',t.days_31_60,'var(--orange)'],['61–90 days',t.days_61_90,'var(--red)'],
+             ['90+ days',t.days_90plus,'#b91c1c)']].map(([lbl,val,col])=>`
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)">
+            <span style="color:${col}">${lbl}</span><span>$${fmt(val)}</span>
+          </div>`).join('')}
         </div>`;
     }
 
-    // Reorder
-    const reorder = Array.isArray(reorderR) ? reorderR : [];
+    const reorder = Array.isArray(reorderR) ? reorderR : (reorderR?.data || []);
     document.getElementById('dashReorder').innerHTML = reorder.length === 0
-      ? '<div class="empty" style="padding:16px;">All items sufficiently stocked</div>'
-      : `<div class="big" style="color:var(--danger)">${reorder.length}</div>
-         <div style="font-size:12px;color:var(--muted);margin-top:6px">Items below reorder point</div>
-         <div style="margin-top:12px">` +
+      ? '<div style="text-align:center;padding:16px;color:var(--text3)">All items sufficiently stocked ✓</div>'
+      : `<div class="mini-big" style="color:var(--red)">${reorder.length}</div>
+         <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Items below reorder point</div>
+         <div class="mini-list">`+
          reorder.slice(0,4).map(r=>`
-           <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;">
+           <div class="mini-row">
              <span class="mono">${r.item_code}</span>
-             <span style="color:var(--danger)">On hand: ${r.qty_on_hand}</span>
-           </div>`).join('') + `</div>`;
-  } catch(e) {
-    console.error(e);
-  }
+             <span style="color:var(--red);font-weight:600">On hand: ${r.qty_on_hand ?? r.qty_available ?? 0}</span>
+           </div>`).join('')+`</div>`;
+  } catch(e){ console.error(e); }
 }
 
 // ── Purchase Orders ───────────────────────────────────────────────────────────
 async function loadPOs() {
   const status = document.getElementById('poFilterStatus').value;
   const url    = status ? `${API}/api/purchase-orders?status=${status}` : `${API}/api/purchase-orders`;
-  const rows   = await fetch(url).then(r=>r.json()).catch(()=>[]);
-  const pos    = Array.isArray(rows) ? rows : [];
+  const rows   = await apiFetch(url).then(r=>r.json()).catch(()=>[]);
+  const pos    = Array.isArray(rows) ? rows : (rows?.data || []);
   openPOs      = pos.filter(p=>['sent','partially_received'].includes(p.status));
 
   document.getElementById('poBody').innerHTML = pos.length === 0
@@ -812,7 +1046,7 @@ async function loadPOs() {
         <td>${po.order_date}</td>
         <td>${po.expected_date||'—'}</td>
         <td>${po.line_count}</td>
-        <td>$${fmt(po.po_total)}</td>
+        <td style="font-weight:600">$${fmt(po.po_total)}</td>
         <td>
           <button class="btn btn-ghost btn-sm" onclick="viewPO('${po.id}')">View</button>
           ${po.status==='draft'?`<button class="btn btn-warn btn-sm" onclick="sendPO('${po.id}')">Send</button>`:''}
@@ -826,7 +1060,7 @@ async function viewPO(id) {
   document.getElementById('poDetailFt').innerHTML   = '<button class="btn btn-ghost" onclick="closeModal(\'poDetailModal\')">Close</button>';
   openModal('poDetailModal');
 
-  const po = await fetch(`${API}/api/purchase-orders/${id}`).then(r=>r.json());
+  const po = await apiFetch(`${API}/api/purchase-orders/${id}`).then(r=>r.json());
   document.getElementById('poDetailTitle').textContent = `PO: ${po.number}`;
 
   const lines = (po.lines||[]).map(l=>`
@@ -838,7 +1072,7 @@ async function viewPO(id) {
       <td>${l.qty_received}</td>
       <td>${l.qty_remaining}</td>
       <td>$${fmt(l.unit_cost)}</td>
-      <td>$${fmt(l.line_total)}</td>
+      <td style="font-weight:600">$${fmt(l.line_total)}</td>
       <td><span class="badge badge-${l.status}">${l.status}</span></td>
     </tr>`).join('');
 
@@ -848,17 +1082,21 @@ async function viewPO(id) {
       <td>${r.receipt_date}</td>
       <td><span class="badge badge-${r.status}">${r.status}</span></td>
       <td>${r.vendor_ref||'—'}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="postReceipt('${r.id}')">Post</button></td>
+      <td>${r.status==='draft'?`<button class="btn btn-success btn-sm" onclick="postReceipt('${r.id}')">Post</button>`:'—'}</td>
     </tr>`).join('');
 
   document.getElementById('poDetailBody').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
-      <div><div class="detail-row"><span class="lbl">Vendor</span>${po.vendor_name} (${po.vendor_code})</div>
-           <div class="detail-row"><span class="lbl">Warehouse</span>${po.warehouse_code}</div>
-           <div class="detail-row"><span class="lbl">Order Date</span>${po.order_date}</div></div>
-      <div><div class="detail-row"><span class="lbl">Expected</span>${po.expected_date||'—'}</div>
-           <div class="detail-row"><span class="lbl">Status</span><span class="badge badge-${po.status}">${po.status}</span></div>
-           <div class="detail-row"><span class="lbl">PO Total</span>$${fmt(po.po_total)}</div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      <div>
+        <div class="detail-row"><span class="lbl">Vendor</span>${po.vendor_name} (${po.vendor_code})</div>
+        <div class="detail-row"><span class="lbl">Warehouse</span>${po.warehouse_code}</div>
+        <div class="detail-row"><span class="lbl">Order Date</span>${po.order_date}</div>
+      </div>
+      <div>
+        <div class="detail-row"><span class="lbl">Expected</span>${po.expected_date||'—'}</div>
+        <div class="detail-row"><span class="lbl">Status</span><span class="badge badge-${po.status}">${po.status}</span></div>
+        <div class="detail-row"><span class="lbl">PO Total</span><strong>$${fmt(po.po_total)}</strong></div>
+      </div>
     </div>
 
     <div class="section-title">Order Lines</div>
@@ -875,11 +1113,11 @@ async function viewPO(id) {
       <tbody>${receipts}</tbody></table>
     </div>`:''}
 
-    ${po.notes?`<div class="section-title">Notes</div><p style="font-size:13px;color:var(--muted)">${po.notes}</p>`:''}
+    ${po.notes?`<div class="section-title">Notes</div><p style="font-size:13px;color:var(--text2)">${po.notes}</p>`:''}
   `;
 
   const ftBtns = [`<button class="btn btn-ghost" onclick="closeModal('poDetailModal')">Close</button>`];
-  ftBtns.push(`<button class="btn btn-ghost" onclick="window.open('/print/purchase-order.html?poId=${po.id}','_blank')" title="Print Purchase Order">🖨️ Print PO</button>`);
+  ftBtns.push(`<button class="btn btn-ghost" onclick="window.open('/print/purchase-order.html?poId=${po.id}','_blank')">🖨️ Print PO</button>`);
   if (po.status==='draft') ftBtns.push(`<button class="btn btn-warn" onclick="sendPO('${po.id}');closeModal('poDetailModal')">Send to Vendor</button>`);
   if (['sent','partially_received'].includes(po.status)) ftBtns.push(`<button class="btn btn-success" onclick="openReceiveModal('${po.id}');closeModal('poDetailModal')">Receive</button>`);
   if (!['fully_received','closed','cancelled'].includes(po.status)) ftBtns.push(`<button class="btn btn-danger" onclick="cancelPO('${po.id}')">Cancel</button>`);
@@ -888,26 +1126,25 @@ async function viewPO(id) {
 
 async function sendPO(id) {
   if (!confirm('Send this PO to the vendor?')) return;
-  const r = await fetch(`${API}/api/purchase-orders/${id}/send`, { method:'POST' });
+  const r = await apiFetch(`${API}/api/purchase-orders/${id}/send`, { method:'POST' });
   const d = await r.json();
-  if (!r.ok) return toast(d.error, 'err');
-  toast(`${d.number} sent to vendor`);
+  if (!r.ok) return toast('error','Error',d.error);
+  toast('success','Sent',`${d.number} sent to vendor`);
   loadPOs();
 }
 
 async function cancelPO(id) {
   if (!confirm('Cancel this PO?')) return;
-  const r = await fetch(`${API}/api/purchase-orders/${id}/cancel`, { method:'POST' });
+  const r = await apiFetch(`${API}/api/purchase-orders/${id}/cancel`, { method:'POST' });
   const d = await r.json();
-  if (!r.ok) return toast(d.error, 'err');
-  toast('PO cancelled');
+  if (!r.ok) return toast('error','Error',d.error);
+  toast('warning','Cancelled','PO cancelled');
   closeModal('poDetailModal');
   loadPOs();
 }
 
 function addPOLine() {
   const tbody = document.getElementById('poLinesBody');
-  const idx   = tbody.rows.length;
   const opts  = items.map(i=>`<option value="${i.id}" data-cost="${i.standard_cost}">${i.code} — ${i.name}</option>`).join('');
   tbody.insertAdjacentHTML('beforeend',`
     <tr>
@@ -941,7 +1178,7 @@ function recalcPOTotal() {
 async function createPO() {
   const vendor_id    = document.getElementById('poVendor').value;
   const warehouse_id = document.getElementById('poWarehouse').value;
-  if (!vendor_id || !warehouse_id) return toast('Vendor and warehouse required','err');
+  if (!vendor_id || !warehouse_id) return toast('error','Required','Vendor and warehouse required');
 
   const lines = [];
   let valid = true;
@@ -952,11 +1189,10 @@ async function createPO() {
     if (!item_id || !qty) { valid=false; return; }
     lines.push({ item_id, qty_ordered: qty, unit_cost: cost });
   });
-  if (!valid || !lines.length) return toast('Add at least one valid line','err');
+  if (!valid || !lines.length) return toast('error','Required','Add at least one valid line');
 
-  const r = await fetch(`${API}/api/purchase-orders`, {
+  const r = await apiFetch(`${API}/api/purchase-orders`, {
     method:'POST',
-    headers:{'Content-Type':'application/json'},
     body: JSON.stringify({
       vendor_id, warehouse_id,
       order_date:    document.getElementById('poOrderDate').value,
@@ -966,8 +1202,8 @@ async function createPO() {
     })
   });
   const d = await r.json();
-  if (!r.ok) return toast(d.error,'err');
-  toast(`${d.number} created`);
+  if (!r.ok) return toast('error','Error',d.error);
+  toast('success','Created',`${d.number} created`);
   closeModal('newPOModal');
   show('pos', document.querySelector('[data-view="pos"]'));
   loadPOs();
@@ -975,8 +1211,8 @@ async function createPO() {
 
 // ── Receiving ─────────────────────────────────────────────────────────────────
 async function loadReceipts() {
-  const rows = await fetch(`${API}/api/receipts`).then(r=>r.json()).catch(()=>[]);
-  const rcvs = Array.isArray(rows) ? rows : [];
+  const rows = await apiFetch(`${API}/api/receipts`).then(r=>r.json()).catch(()=>[]);
+  const rcvs = Array.isArray(rows) ? rows : (rows?.data || []);
   document.getElementById('rcvBody').innerHTML = rcvs.length===0
     ? `<tr><td colspan="7" class="empty">No receipts yet</td></tr>`
     : rcvs.map(r=>`
@@ -987,59 +1223,77 @@ async function loadReceipts() {
         <td>${r.receipt_date}</td>
         <td><span class="badge badge-${r.status}">${r.status}</span></td>
         <td>${r.vendor_ref||'—'}</td>
-        <td>
-          ${r.status==='draft'?`<button class="btn btn-success btn-sm" onclick="postReceipt('${r.id}')">Post</button>`:''}
-        </td>
+        <td>${r.status==='draft'?`<button class="btn btn-success btn-sm" onclick="postReceipt('${r.id}')">Post</button>`:'—'}</td>
       </tr>`).join('');
 }
 
 function openReceiveModal(poId) {
-  // Reset
   document.getElementById('rcvPO').innerHTML = '<option value="">Select PO…</option>';
-  const sentPOs = openPOs.length ? openPOs : [];
-
-  sentPOs.forEach(po=>{
+  openPOs.forEach(po=>{
     document.getElementById('rcvPO').insertAdjacentHTML('beforeend',
       `<option value="${po.id}">${po.number} — ${po.vendor_name}</option>`);
   });
-
   if (poId) {
     document.getElementById('rcvPO').value = poId;
     loadPOForReceiving();
   }
-
   openModal('newRcvModal');
 }
 
 async function loadPOForReceiving() {
   const poId = document.getElementById('rcvPO').value;
-  if (!poId) { document.getElementById('rcvLinesArea').innerHTML='<div class="empty">Select a PO to load open lines</div>'; return; }
-
-  const po = await fetch(`${API}/api/purchase-orders/${poId}`).then(r=>r.json());
-  const openLines = (po.lines||[]).filter(l=>['open','partial'].includes(l.status));
-
-  if (!openLines.length) {
-    document.getElementById('rcvLinesArea').innerHTML='<div class="empty">No open lines on this PO</div>';
+  if (!poId) {
+    document.getElementById('rcvLinesArea').innerHTML = '<div class="empty">Select a PO to load open lines</div>';
     return;
   }
+
+  document.getElementById('rcvLinesArea').innerHTML = '<div class="loading">Loading lines…</div>';
+
+  const [po, stockAll] = await Promise.all([
+    apiFetch(`${API}/api/purchase-orders/${poId}`).then(r=>r.json()),
+    apiFetch(`${API}/api/stock`).then(r=>r.json()).catch(()=>[])
+  ]);
+
+  const openLines = (po.lines||[]).filter(l=>['open','partial'].includes(l.status));
+  if (!openLines.length) {
+    document.getElementById('rcvLinesArea').innerHTML = '<div class="empty">No open lines on this PO</div>';
+    return;
+  }
+
+  // Build stock map for the PO's warehouse
+  const stockArr = Array.isArray(stockAll) ? stockAll : [];
+  const stockMap = {};
+  stockArr.forEach(s => {
+    if (s.warehouse_id === po.warehouse_id) {
+      stockMap[s.item_id] = s.qty_available || 0;
+    }
+  });
 
   document.getElementById('rcvLinesArea').innerHTML = `
     <table class="lines-tbl">
       <thead><tr>
-        <th>Item</th><th>Ordered</th><th>Remaining</th>
+        <th>Item</th><th>Ordered</th><th>Remaining</th><th>In Stock</th>
         <th style="width:120px">Qty to Receive</th><th style="width:110px">Actual Cost</th>
-        <th><input type="checkbox" title="Include" checked onchange="toggleAllRcvLines(this)"></th>
+        <th><input type="checkbox" title="Include all" checked onchange="toggleAllRcvLines(this)"></th>
       </tr></thead>
       <tbody>
-        ${openLines.map(l=>`
-          <tr>
+        ${openLines.map(l=>{
+          const stock = stockMap[l.item_id] ?? null;
+          let stockHtml = '<span style="color:var(--text3)">—</span>';
+          if (stock !== null) {
+            const cls = stock <= 0 ? 'stock-zero' : stock < 10 ? 'stock-low' : 'stock-ok';
+            stockHtml = `<span class="stock-chip ${cls}">${stock}</span>`;
+          }
+          return `<tr>
             <td class="mono" data-pol-id="${l.id}" data-item-id="${l.item_id}">${l.item_code} — ${l.item_name}</td>
             <td>${l.qty_ordered}</td>
             <td>${l.qty_remaining}</td>
+            <td>${stockHtml}</td>
             <td><input type="number" class="rcv-qty" step="0.01" min="0" max="${l.qty_remaining}" value="${l.qty_remaining}"></td>
             <td><input type="number" class="rcv-cost" step="0.01" min="0" value="${parseFloat(l.unit_cost).toFixed(2)}"></td>
             <td><input type="checkbox" class="rcv-include" checked></td>
-          </tr>`).join('')}
+          </tr>`;
+        }).join('')}
       </tbody>
     </table>`;
 }
@@ -1050,24 +1304,22 @@ function toggleAllRcvLines(cb) {
 
 async function createReceipt() {
   const purchase_order_id = document.getElementById('rcvPO').value;
-  if (!purchase_order_id) return toast('Select a PO','err');
+  if (!purchase_order_id) return toast('error','Required','Select a PO');
 
   const lines = [];
   document.querySelectorAll('#rcvLinesArea tbody tr').forEach(tr=>{
     if (!tr.querySelector('.rcv-include')?.checked) return;
-    const polId   = tr.querySelector('td[data-pol-id]').dataset.polId;
-    const itemId  = tr.querySelector('td[data-pol-id]').dataset.itemId;
-    const qty     = parseFloat(tr.querySelector('.rcv-qty').value);
-    const cost    = parseFloat(tr.querySelector('.rcv-cost').value);
+    const polId  = tr.querySelector('td[data-pol-id]').dataset.polId;
+    const itemId = tr.querySelector('td[data-pol-id]').dataset.itemId;
+    const qty    = parseFloat(tr.querySelector('.rcv-qty').value);
+    const cost   = parseFloat(tr.querySelector('.rcv-cost').value);
     if (qty > 0) lines.push({ purchase_order_line_id: polId, item_id: itemId,
                               qty_received: qty, actual_cost: cost });
   });
-  if (!lines.length) return toast('No lines selected','err');
+  if (!lines.length) return toast('error','Error','No lines selected');
 
-  // Create receipt (draft)
-  const r1 = await fetch(`${API}/api/receipts`, {
+  const r1 = await apiFetch(`${API}/api/receipts`, {
     method:'POST',
-    headers:{'Content-Type':'application/json'},
     body: JSON.stringify({
       purchase_order_id,
       receipt_date: document.getElementById('rcvDate').value,
@@ -1077,14 +1329,13 @@ async function createReceipt() {
     })
   });
   const d1 = await r1.json();
-  if (!r1.ok) return toast(d1.error,'err');
+  if (!r1.ok) return toast('error','Error',d1.error);
 
-  // Auto-post
-  const r2 = await fetch(`${API}/api/receipts/${d1.id}/post`, { method:'POST' });
+  const r2 = await apiFetch(`${API}/api/receipts/${d1.id}/post`, { method:'POST' });
   const d2 = await r2.json();
-  if (!r2.ok) return toast(d2.error,'err');
+  if (!r2.ok) return toast('error','Error',d2.error);
 
-  toast(`${d1.number} posted — PO updated to ${d2.po_status.replace(/_/g,' ')}`);
+  toast('success','Posted',`${d1.number} posted — PO updated to ${d2.po_status?.replace(/_/g,' ')}`);
   closeModal('newRcvModal');
   loadReceipts();
   loadPOs();
@@ -1093,10 +1344,10 @@ async function createReceipt() {
 
 async function postReceipt(id) {
   if (!confirm('Post this receipt? This will update stock and PO.')) return;
-  const r = await fetch(`${API}/api/receipts/${id}/post`, { method:'POST' });
+  const r = await apiFetch(`${API}/api/receipts/${id}/post`, { method:'POST' });
   const d = await r.json();
-  if (!r.ok) return toast(d.error,'err');
-  toast('Receipt posted');
+  if (!r.ok) return toast('error','Error',d.error);
+  toast('success','Posted','Receipt posted — inventory updated');
   loadReceipts();
   loadPOs();
 }
@@ -1105,8 +1356,8 @@ async function postReceipt(id) {
 async function loadVendorInvoices() {
   const status = document.getElementById('viFilterStatus').value;
   const url    = status ? `${API}/api/vendor-invoices?status=${status}` : `${API}/api/vendor-invoices`;
-  const rows   = await fetch(url).then(r=>r.json()).catch(()=>[]);
-  const vis    = Array.isArray(rows) ? rows : [];
+  const rows   = await apiFetch(url).then(r=>r.json()).catch(()=>[]);
+  const vis    = Array.isArray(rows) ? rows : (rows?.data || []);
 
   document.getElementById('viBody').innerHTML = vis.length===0
     ? `<tr><td colspan="10" class="empty">No vendor invoices found</td></tr>`
@@ -1118,7 +1369,7 @@ async function loadVendorInvoices() {
         <td>${vi.invoice_date}</td>
         <td>${vi.due_date}</td>
         <td>$${fmt(vi.total)}</td>
-        <td>$${fmt(vi.balance_due)}</td>
+        <td style="font-weight:600">$${fmt(vi.balance_due)}</td>
         <td><span class="badge badge-${vi.status}">${vi.status}</span></td>
         <td><span class="badge badge-${vi.match_status}">${vi.match_status}</span></td>
         <td>
@@ -1130,18 +1381,18 @@ async function loadVendorInvoices() {
 }
 
 async function matchInvoice(id) {
-  const r = await fetch(`${API}/api/vendor-invoices/${id}/match`, { method:'POST' });
+  const r = await apiFetch(`${API}/api/vendor-invoices/${id}/match`, { method:'POST' });
   const d = await r.json();
-  if (!r.ok) return toast(d.error,'err');
-  toast(`Match result: ${d.match_status} — ${d.three_way_match_notes||''}`);
+  if (!r.ok) return toast('error','Error',d.error);
+  toast('info','Match Result',`${d.match_status} — ${d.three_way_match_notes||''}`);
   loadVendorInvoices();
 }
 
 async function approveInvoice(id) {
-  const r = await fetch(`${API}/api/vendor-invoices/${id}/approve`, { method:'POST' });
+  const r = await apiFetch(`${API}/api/vendor-invoices/${id}/approve`, { method:'POST' });
   const d = await r.json();
-  if (!r.ok) return toast(d.error,'err');
-  toast(`${d.number} approved`);
+  if (!r.ok) return toast('error','Error',d.error);
+  toast('success','Approved',`${d.number} approved`);
   loadVendorInvoices();
 }
 
@@ -1159,26 +1410,24 @@ function payInvoice(invId, vendorId, vendorName, balance) {
 }
 
 async function createVendorInvoice() {
-  const vendor_id  = document.getElementById('viVendor').value;
-  const subtotal   = document.getElementById('viSubtotal').value;
-  if (!vendor_id || !subtotal) return toast('Vendor and subtotal required','err');
+  const vendor_id = document.getElementById('viVendor').value;
+  const subtotal  = document.getElementById('viSubtotal').value;
+  if (!vendor_id || !subtotal) return toast('error','Required','Vendor and subtotal required');
 
   const body = {
     vendor_id,
-    purchase_order_id: document.getElementById('viPO').value||undefined,
-    receipt_id:        document.getElementById('viReceipt').value||undefined,
-    invoice_date:      document.getElementById('viInvDate').value,
-    subtotal:          parseFloat(subtotal),
-    tax_amount:        parseFloat(document.getElementById('viTax').value)||0,
+    purchase_order_id:     document.getElementById('viPO').value||undefined,
+    receipt_id:            document.getElementById('viReceipt').value||undefined,
+    invoice_date:          document.getElementById('viInvDate').value,
+    subtotal:              parseFloat(subtotal),
+    tax_amount:            parseFloat(document.getElementById('viTax').value)||0,
     vendor_invoice_number: document.getElementById('viVendorNum').value||undefined,
-    notes:             document.getElementById('viNotes').value||undefined
+    notes:                 document.getElementById('viNotes').value||undefined
   };
-  const r = await fetch(`${API}/api/vendor-invoices`, {
-    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
-  });
+  const r = await apiFetch(`${API}/api/vendor-invoices`, { method:'POST', body: JSON.stringify(body) });
   const d = await r.json();
-  if (!r.ok) return toast(d.error,'err');
-  toast(`${d.number} created`);
+  if (!r.ok) return toast('error','Error',d.error);
+  toast('success','Created',`${d.number} created`);
   closeModal('newVIModal');
   loadVendorInvoices();
   loadStats();
@@ -1186,7 +1435,7 @@ async function createVendorInvoice() {
 
 // ── AP Aging ──────────────────────────────────────────────────────────────────
 async function loadAPAging() {
-  const d = await fetch(`${API}/api/ap-aging`).then(r=>r.json()).catch(()=>({vendors:[],totals:{}}));
+  const d = await apiFetch(`${API}/api/ap-aging`).then(r=>r.json()).catch(()=>({vendors:[],totals:{}}));
   const t = d.totals || {};
   document.getElementById('apCur').textContent  = '$'+fmt(t.current_due);
   document.getElementById('ap30').textContent   = '$'+fmt(t.days_1_30);
@@ -1199,43 +1448,42 @@ async function loadAPAging() {
     ? `<tr><td colspan="7" class="empty">No outstanding AP</td></tr>`
     : rows.map(v=>`
       <tr>
-        <td><strong>${v.vendor_code}</strong><br><span style="font-size:11px;color:var(--muted)">${v.vendor_name}</span></td>
-        <td style="color:var(--accent2)">$${fmt(v.current_due)}</td>
-        <td style="color:var(--warn)">$${fmt(v.days_1_30)}</td>
-        <td style="color:#e67e22">$${fmt(v.days_31_60)}</td>
-        <td style="color:var(--danger)">$${fmt(v.days_61_90)}</td>
-        <td style="color:#c0392b">$${fmt(v.days_90plus)}</td>
+        <td><strong>${v.vendor_code}</strong><br><span style="font-size:11px;color:var(--text2)">${v.vendor_name}</span></td>
+        <td style="color:var(--green)">$${fmt(v.current_due)}</td>
+        <td style="color:var(--yellow)">$${fmt(v.days_1_30)}</td>
+        <td style="color:var(--orange)">$${fmt(v.days_31_60)}</td>
+        <td style="color:var(--red)">$${fmt(v.days_61_90)}</td>
+        <td style="color:#b91c1c">$${fmt(v.days_90plus)}</td>
         <td><strong>$${fmt(v.total_due)}</strong></td>
       </tr>`).join('');
 }
 
 // ── Vendors ───────────────────────────────────────────────────────────────────
 async function loadVendors() {
-  const rows = await fetch(`${API}/api/vendors`).then(r=>r.json()).catch(()=>[]);
-  const vs   = Array.isArray(rows) ? rows : [];
+  const rows = await apiFetch(`${API}/api/vendors`).then(r=>r.json()).catch(()=>[]);
+  const vs   = Array.isArray(rows) ? rows : (rows?.data || []);
   document.getElementById('vendorBody').innerHTML = vs.length===0
     ? `<tr><td colspan="6" class="empty">No vendors found</td></tr>`
     : vs.map(v=>`
       <tr>
         <td class="mono">${v.code}</td>
-        <td>${v.name}</td>
+        <td><strong>${v.name}</strong></td>
         <td>${v.email||'—'}</td>
         <td>${v.phone||'—'}</td>
         <td>${v.payment_terms_days} days</td>
-        <td>$${fmt(v.ap_balance)}</td>
+        <td style="font-weight:600;color:var(--yellow)">$${fmt(v.ap_balance)}</td>
       </tr>`).join('');
 }
 
 // ── Reorder ───────────────────────────────────────────────────────────────────
 async function loadReorderSuggestions() {
-  const rows = await fetch(`${API}/api/reorder-suggestions`).then(r=>r.json()).catch(()=>[]);
-  const rs   = Array.isArray(rows) ? rows : [];
+  const rows = await apiFetch(`${API}/api/reorder-suggestions`).then(r=>r.json()).catch(()=>[]);
+  const rs   = Array.isArray(rows) ? rows : (rows?.data || []);
 
   const banner = document.getElementById('reorderBanner');
-  const msg    = document.getElementById('reorderMsg');
   if (rs.length > 0) {
     banner.style.display = 'flex';
-    msg.textContent = `${rs.length} item(s) below reorder point. Auto-generate POs to restock.`;
+    document.getElementById('reorderMsg').textContent = `${rs.length} item(s) below reorder point. Auto-generate POs to restock.`;
   } else {
     banner.style.display = 'none';
   }
@@ -1246,56 +1494,53 @@ async function loadReorderSuggestions() {
       <tr>
         <td class="mono">${r.item_code}</td>
         <td>${r.item_name}</td>
-        <td style="color:${parseFloat(r.qty_on_hand)<=0?'var(--danger)':'var(--warn)'}">
-          ${r.qty_on_hand}
+        <td style="color:${parseFloat(r.qty_on_hand)<=0?'var(--red)':'var(--yellow)'}">
+          <strong>${r.qty_on_hand}</strong>
         </td>
-        <td style="color:var(--accent2)">${r.qty_on_order}</td>
+        <td style="color:var(--blue)">${r.qty_on_order}</td>
         <td>${r.effective_qty}</td>
         <td>${r.reorder_point}</td>
-        <td><strong style="color:var(--accent)">${r.suggested_order_qty}</strong></td>
-        <td>${r.preferred_vendor_name||'<span style="color:var(--muted)">Not set</span>'}</td>
+        <td><strong style="color:var(--blue)">${r.suggested_order_qty}</strong></td>
+        <td>${r.preferred_vendor_name||'<span style="color:var(--text3)">Not set</span>'}</td>
       </tr>`).join('');
 }
 
 async function generatePOs() {
-  if (!warehouses.length) return toast('No warehouses found','err');
+  if (!warehouses.length) return toast('error','Error','No warehouses found');
   if (!confirm(`Auto-generate POs for all items below reorder point?`)) return;
-  const r = await fetch(`${API}/api/reorder-suggestions/generate-pos`, {
+  const r = await apiFetch(`${API}/api/reorder-suggestions/generate-pos`, {
     method:'POST',
-    headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ warehouse_id: warehouses[0].id })
   });
   const d = await r.json();
-  if (!r.ok) return toast(d.error,'err');
-  if (d.pos_created===0) return toast(d.message);
-  toast(`${d.pos_created} PO(s) created: ${d.purchase_orders.map(p=>p.po_number).join(', ')}`);
+  if (!r.ok) return toast('error','Error',d.error);
+  if (d.pos_created===0) return toast('info','Info',d.message);
+  toast('success','Generated',`${d.pos_created} PO(s) created: ${d.purchase_orders.map(p=>p.po_number).join(', ')}`);
   loadReorderSuggestions();
   loadPOs();
 }
 
 // ── Payments ──────────────────────────────────────────────────────────────────
 async function submitPayment() {
-  const vendor_id  = document.getElementById('pmtVendorId').value;
-  const amount     = parseFloat(document.getElementById('pmtAmount').value);
-  const invoiceId  = document.getElementById('pmtInvoiceId').value;
-  if (!vendor_id || !amount) return toast('Vendor and amount required','err');
+  const vendor_id = document.getElementById('pmtVendorId').value;
+  const amount    = parseFloat(document.getElementById('pmtAmount').value);
+  const invoiceId = document.getElementById('pmtInvoiceId').value;
+  if (!vendor_id || !amount) return toast('error','Required','Vendor and amount required');
 
   const body = {
     vendor_id,
-    payment_date:    document.getElementById('pmtDate').value,
+    payment_date:     document.getElementById('pmtDate').value,
     amount,
-    method:          document.getElementById('pmtMethod').value,
-    reference_number:document.getElementById('pmtRef').value||undefined,
-    notes:           document.getElementById('pmtNotes').value||undefined,
+    method:           document.getElementById('pmtMethod').value,
+    reference_number: document.getElementById('pmtRef').value||undefined,
+    notes:            document.getElementById('pmtNotes').value||undefined,
     applications: invoiceId ? [{ vendor_invoice_id: invoiceId, amount_applied: amount }] : []
   };
 
-  const r = await fetch(`${API}/api/vendor-payments`, {
-    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
-  });
+  const r = await apiFetch(`${API}/api/vendor-payments`, { method:'POST', body: JSON.stringify(body) });
   const d = await r.json();
-  if (!r.ok) return toast(d.error,'err');
-  toast('Payment recorded');
+  if (!r.ok) return toast('error','Error',d.error);
+  toast('success','Recorded','Payment recorded');
   closeModal('paymentModal');
   loadVendorInvoices();
   loadAPAging();
@@ -1304,81 +1549,88 @@ async function submitPayment() {
 
 // ── Navigation ────────────────────────────────────────────────────────────────
 const viewLoaders = {
-  dashboard:    loadDashboard,
-  pos:          loadPOs,
-  receiving:    loadReceipts,
-  vinvoices:    loadVendorInvoices,
-  apaging:      loadAPAging,
-  vendors:      loadVendors,
-  reorder:      loadReorderSuggestions,
-  'price-change': () => { pcPopulateItems(); pcLoadHistory(); loadImportStatus(); },
+  dashboard:      loadDashboard,
+  pos:            loadPOs,
+  receiving:      loadReceipts,
+  vinvoices:      loadVendorInvoices,
+  apaging:        loadAPAging,
+  vendors:        loadVendors,
+  reorder:        loadReorderSuggestions,
+  'price-change': () => { pcPopulateItems(); pcLoadHistory(); },
   'import-tool':  () => loadImportStatus()
 };
 const viewTitles = {
-  dashboard:    'Purchasing Dashboard',
-  pos:          'Purchase Orders',
-  receiving:    'Receiving',
-  vinvoices:    'Vendor Invoices',
-  apaging:      'AP Aging',
-  vendors:      'Vendors',
-  reorder:      'Reorder Suggestions',
+  dashboard:      'Purchasing Dashboard',
+  pos:            'Purchase Orders',
+  receiving:      'Receiving',
+  vinvoices:      'Vendor Invoices',
+  apaging:        'AP Aging',
+  vendors:        'Vendors',
+  reorder:        'Reorder Suggestions',
   'price-change': 'Price Change Tool',
   'import-tool':  'Import Tool'
 };
 const viewActions = {
-  dashboard:    { label:'+ New PO',          action:()=>openPOModal() },
-  pos:          { label:'+ New PO',          action:()=>openPOModal() },
-  receiving:    { label:'+ Receive',         action:()=>openReceiveModal(null) },
-  vinvoices:    { label:'+ Vendor Invoice',  action:()=>openVIModal() },
-  apaging:      { label:'AP Aging',          action:null },
-  vendors:      { label:'+ New Vendor',      action:null },
-  reorder:      { label:'Auto-Generate POs', action:()=>generatePOs() },
-  'price-change': { label:'Price Change',    action:null },
-  'import-tool':  { label:'Import',          action:null }
+  dashboard:      { label:'+ New PO',         action:()=>openPOModal() },
+  pos:            { label:'+ New PO',         action:()=>openPOModal() },
+  receiving:      { label:'+ Receive',        action:()=>openReceiveModal(null) },
+  vinvoices:      { label:'+ Vendor Invoice', action:()=>openVIModal() },
+  apaging:        null,
+  vendors:        null,
+  reorder:        { label:'Auto-Generate POs',action:()=>generatePOs() },
+  'price-change': null,
+  'import-tool':  null
 };
 
 function show(view, el) {
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.querySelectorAll('nav a').forEach(a=>a.classList.remove('active'));
-  document.getElementById('view-'+view).classList.add('active');
+  document.querySelectorAll('.page').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(a=>a.classList.remove('active'));
+  document.getElementById('page-'+view).classList.add('active');
   if (el) el.classList.add('active');
   currentView = view;
   document.getElementById('pageTitle').textContent = viewTitles[view]||view;
   const act = viewActions[view];
   const btn = document.getElementById('topActionBtn');
-  btn.textContent = act?.label || '';
-  btn.style.display = act?.action ? '' : 'none';
+  if (act && act.action) {
+    btn.textContent  = act.label;
+    btn.style.display = '';
+  } else {
+    btn.style.display = 'none';
+  }
   viewLoaders[view]?.();
 }
 
 function topAction() { viewActions[currentView]?.action?.(); }
 
 function openPOModal() {
-  document.getElementById('poLinesBody').innerHTML='';
-  document.getElementById('poNotes').value='';
-  document.getElementById('poExpectedDate').value='';
+  document.getElementById('poLinesBody').innerHTML = '';
+  document.getElementById('poNotes').value        = '';
+  document.getElementById('poExpectedDate').value = '';
   recalcPOTotal();
   openModal('newPOModal');
 }
 
 function openVIModal() {
-  // Populate PO and receipt dropdowns
   const viPO = document.getElementById('viPO');
   viPO.innerHTML = '<option value="">No PO</option>';
   openPOs.forEach(po=>viPO.insertAdjacentHTML('beforeend',
     `<option value="${po.id}">${po.number} — ${po.vendor_name}</option>`));
 
-  fetch(`${API}/api/receipts`).then(r=>r.json()).then(rcvs=>{
+  apiFetch(`${API}/api/receipts`).then(r=>r.json()).then(rcvs=>{
     const viR = document.getElementById('viReceipt');
-    viR.innerHTML='<option value="">No Receipt</option>';
+    viR.innerHTML = '<option value="">No Receipt</option>';
     (Array.isArray(rcvs)?rcvs:[]).filter(r=>r.status==='posted').forEach(r=>
       viR.insertAdjacentHTML('beforeend',`<option value="${r.id}">${r.number}</option>`));
   });
   openModal('newVIModal');
 }
 
-function openModal(id) { document.getElementById(id).classList.add('open'); }
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// Close overlays on backdrop click
+document.querySelectorAll('.overlay').forEach(el=>
+  el.addEventListener('click', e=>{ if(e.target===el) el.classList.remove('open'); }));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const fmt = n => {
@@ -1386,27 +1638,23 @@ const fmt = n => {
   return num.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
 };
 
-function toast(msg, type='ok') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className   = `show ${type}`;
-  clearTimeout(t._t);
-  t._t = setTimeout(()=>t.className='', 3500);
+function toast(type, title, message) {
+  const icons = { success:'✓', error:'✕', warning:'⚠', info:'ℹ' };
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = `toast-item ${type}`;
+  el.innerHTML = `<span class="toast-icon">${icons[type]||'•'}</span>
+    <div><div style="font-weight:700;font-size:12px">${title}</div>
+    ${message?`<div style="color:var(--text2);font-size:12px;margin-top:2px">${message}</div>`:''}</div>`;
+  container.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),320); }, 3500);
 }
 
-// Close overlays on backdrop click
-document.querySelectorAll('.overlay').forEach(el=>
-  el.addEventListener('click', e=>{ if(e.target===el) el.classList.remove('open'); }));
-
-// ══════════════════════════════════════════════════════════════════════════════
-// PRICE CHANGE TOOL
-// ══════════════════════════════════════════════════════════════════════════════
-let pcPreviewData = null;
-
+// ── Price Change Tool ─────────────────────────────────────────────────────────
 function pcPopulateItems() {
   const sel = document.getElementById('pcItemSel');
-  if (sel.options.length > 1) return; // already populated
-  (allItems || []).forEach(i => {
+  if (sel.options.length > 1) return;
+  items.forEach(i => {
     const opt = document.createElement('option');
     opt.value = i.id;
     opt.textContent = `${i.code} — ${i.name} (cost: $${fmt(i.standard_cost)})`;
@@ -1423,15 +1671,14 @@ function pcClearPreview() {
 async function pcPreview() {
   const itemId  = document.getElementById('pcItemSel').value;
   const newCost = document.getElementById('pcNewCost').value;
-  if (!itemId || !newCost) { toast('Select an item and enter new cost', 'err'); return; }
+  if (!itemId || !newCost) { toast('error','Required','Select an item and enter new cost'); return; }
   try {
-    const r = await fetch(`${API}/api/pricing/update-cost`, {
+    const r = await apiFetch(`${API}/api/pricing/update-cost`, {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ itemId, newCost: parseFloat(newCost), notes: document.getElementById('pcNotes').value })
     });
     const d = await r.json();
-    if (d.error) { toast(d.error, 'err'); return; }
+    if (d.error) { toast('error','Error',d.error); return; }
     pcPreviewData = d;
 
     const rows = [
@@ -1441,25 +1688,24 @@ async function pcPreview() {
       ['Old Sale Price', `$${fmt(d.old_sale_price)}`],
       ['Suggested Sale Price', `$${fmt(d.suggested_sale_price)}`],
       ['Margin Maintained', `${d.old_margin_pct || '—'}%`],
-      ['Customers to Update', `${d.customers_affected} (price lists will update)`],
-      ['VIP Locked (Protected)', `${d.customers_locked} (will NOT change)`],
+      ['Customers to Update', `${d.customers_affected}`],
+      ['VIP Locked (Protected)', `${d.customers_locked}`],
     ];
 
     document.getElementById('pcPreviewTable').innerHTML = rows.map(([k,v])=>
-      `<tr><td style="padding:5px 8px;color:var(--muted);width:200px">${k}</td>
-           <td style="padding:5px 8px;font-weight:600">${v}</td></tr>`
+      `<tr><td style="padding:7px 14px;color:var(--text2);width:200px">${k}</td>
+           <td style="padding:7px 14px;font-weight:600">${v}</td></tr>`
     ).join('');
     document.getElementById('pcPreviewBox').style.display = 'block';
-  } catch (e) { toast(e.message, 'err'); }
+  } catch (e) { toast('error','Error',e.message); }
 }
 
 async function pcConfirm() {
   if (!pcPreviewData) return;
   if (!confirm(`Apply cost change for ${pcPreviewData.item_code}? This will update ${pcPreviewData.customers_affected} customer price lists.`)) return;
   try {
-    const r = await fetch(`${API}/api/pricing/update-cost/${pcPreviewData.item_id}/confirm`, {
+    const r = await apiFetch(`${API}/api/pricing/update-cost/${pcPreviewData.item_id}/confirm`, {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
         newCost: pcPreviewData.new_cost,
         newSalePrice: pcPreviewData.suggested_sale_price,
@@ -1467,25 +1713,25 @@ async function pcConfirm() {
       })
     });
     const d = await r.json();
-    if (d.error) { toast(d.error, 'err'); return; }
-    toast(`Cost updated! ${d.customers_updated} prices updated, ${d.customers_locked} VIP locks protected.`, 'ok');
+    if (d.error) { toast('error','Error',d.error); return; }
+    toast('success','Updated',`Cost updated! ${d.customers_updated} prices updated, ${d.customers_locked} VIP locks protected.`);
     pcClearPreview();
     document.getElementById('pcItemSel').value = '';
     document.getElementById('pcNewCost').value = '';
-    document.getElementById('pcNotes').value = '';
-    // refresh items cache
-    fetch(`${API}/api/items`).then(r=>r.json()).then(d=>{ allItems=d; pcPopulateItems(); });
+    document.getElementById('pcNotes').value   = '';
+    apiFetch(`${API}/api/items`).then(r=>r.json()).then(d=>{ items = Array.isArray(d)?d:(d?.data||[]); });
     pcLoadHistory();
-  } catch (e) { toast(e.message, 'err'); }
+  } catch (e) { toast('error','Error',e.message); }
 }
 
 async function pcLoadHistory() {
   const tbody = document.getElementById('pcHistoryBody');
   tbody.innerHTML = '<tr><td colspan="8" class="loading">Loading…</td></tr>';
   try {
-    const rows = await fetch(`${API}/api/pricing/change-log`).then(r=>r.json());
-    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No changes yet</td></tr>'; return; }
-    tbody.innerHTML = rows.map(r=>`
+    const rows = await apiFetch(`${API}/api/pricing/change-log`).then(r=>r.json());
+    const data = Array.isArray(rows) ? rows : (rows?.data || []);
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">No changes yet</td></tr>'; return; }
+    tbody.innerHTML = data.map(r=>`
       <tr>
         <td class="mono">${r.item_code}</td>
         <td>$${fmt(r.old_cost)}</td>
@@ -1494,19 +1740,15 @@ async function pcLoadHistory() {
         <td>$${fmt(r.new_sale_price)}</td>
         <td>${r.customers_updated}</td>
         <td>${r.customers_locked}</td>
-        <td style="font-size:11px;color:var(--muted)">${r.changed_at ? new Date(r.changed_at).toLocaleDateString() : '—'}</td>
+        <td style="font-size:11px;color:var(--text2)">${r.changed_at ? new Date(r.changed_at).toLocaleDateString() : '—'}</td>
       </tr>`).join('');
   } catch { tbody.innerHTML = '<tr><td colspan="8" class="empty">Error loading history</td></tr>'; }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// IMPORT TOOL
-// ══════════════════════════════════════════════════════════════════════════════
-let importPreviewResult = null;
-
+// ── Import Tool ───────────────────────────────────────────────────────────────
 async function loadImportStatus() {
   try {
-    const d = await fetch(`${API}/api/migration/status`).then(r=>r.json());
+    const d = await apiFetch(`${API}/api/migration/status`).then(r=>r.json());
     document.getElementById('isItems').textContent     = d.items?.toLocaleString() || '—';
     document.getElementById('isCustomers').textContent = d.customers?.toLocaleString() || '—';
     document.getElementById('isVendors').textContent   = d.vendors?.toLocaleString() || '—';
@@ -1516,7 +1758,7 @@ async function loadImportStatus() {
 function importFileSelected() {
   importPreviewResult = null;
   document.getElementById('importPreviewBox').style.display = 'none';
-  document.getElementById('importResultBox').style.display = 'none';
+  document.getElementById('importResultBox').style.display  = 'none';
   document.getElementById('importConfirmBtn').disabled = true;
 }
 
@@ -1532,25 +1774,23 @@ async function readFileAsBase64(file) {
 async function importPreview() {
   const fileInput = document.getElementById('importFile');
   const table     = document.getElementById('importTable').value;
-  if (!fileInput.files.length) { toast('Select a file first', 'err'); return; }
+  if (!fileInput.files.length) { toast('error','Required','Select a file first'); return; }
   const file = fileInput.files[0];
   try {
     const fileContent = await readFileAsBase64(file);
-    const r = await fetch(`${API}/api/migration/preview-csv`, {
+    const r = await apiFetch(`${API}/api/migration/preview-csv`, {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ table, fileContent, fileName: file.name })
     });
     const d = await r.json();
-    if (d.error) { toast(d.error, 'err'); return; }
+    if (d.error) { toast('error','Error',d.error); return; }
     importPreviewResult = { table, fileContent, fileName: file.name };
 
     document.getElementById('importPreviewStats').innerHTML =
       `Found <strong>${d.rows_found}</strong> rows &nbsp;·&nbsp; ` +
-      `<span style="color:var(--success)"><strong>${d.rows_valid}</strong> valid</span> &nbsp;·&nbsp; ` +
-      `<span style="color:var(--danger)"><strong>${d.rows_with_errors}</strong> with errors</span>`;
+      `<span style="color:var(--green)"><strong>${d.rows_valid}</strong> valid</span> &nbsp;·&nbsp; ` +
+      `<span style="color:var(--red)"><strong>${d.rows_with_errors}</strong> with errors</span>`;
 
-    // Build preview table from sample_data
     const samples = d.sample_data || [];
     if (samples.length) {
       const cols = Object.keys(samples[0]);
@@ -1562,12 +1802,12 @@ async function importPreview() {
     }
 
     const errHtml = d.errors && d.errors.length
-      ? `<strong>Errors:</strong><br>` + d.errors.map(e=>`Row ${e.row}: ${e.error || 'Missing: '+e.missing?.join(', ')}`).join('<br>')
+      ? `<strong>Errors:</strong><br>`+d.errors.map(e=>`Row ${e.row}: ${e.error||'Missing: '+e.missing?.join(', ')}`).join('<br>')
       : '';
     document.getElementById('importPreviewErrors').innerHTML = errHtml;
     document.getElementById('importPreviewBox').style.display = 'block';
     document.getElementById('importConfirmBtn').disabled = d.rows_valid === 0;
-  } catch (e) { toast(e.message, 'err'); }
+  } catch (e) { toast('error','Error',e.message); }
 }
 
 async function importConfirm() {
@@ -1576,18 +1816,16 @@ async function importConfirm() {
   if (!confirm(`Import ${table} from ${fileName}? Existing records will be updated.`)) return;
   document.getElementById('importConfirmBtn').disabled = true;
   try {
-    const r = await fetch(`${API}/api/migration/import-csv`, {
+    const r = await apiFetch(`${API}/api/migration/import-csv`, {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ table, fileContent, fileName, skipErrors: true })
     });
     const d = await r.json();
-    if (d.error) { toast(d.error, 'err'); return; }
+    if (d.error) { toast('error','Error',d.error); return; }
 
     const box = document.getElementById('importResultBox');
     box.style.display = 'block';
-    box.style.background = d.skipped > 0 ? 'var(--surface)' : '#dcfce7';
-    box.style.borderLeft = `4px solid ${d.skipped > 0 ? 'orange' : '#16a34a'}`;
+    box.style.borderLeftColor = d.skipped > 0 ? 'var(--yellow)' : 'var(--green)';
     box.innerHTML = `
       <strong>Import Complete</strong><br>
       ✅ Imported: ${d.imported} &nbsp; ⚠️ Skipped: ${d.skipped}
@@ -1595,12 +1833,11 @@ async function importConfirm() {
         <div style="font-size:11px;margin-top:6px">${d.errors.map(e=>`Row ${e.row}: ${e.error}`).join('<br>')}</div>
       </details>` : ''}
     `;
-    toast(`Imported ${d.imported} records.`, 'ok');
+    toast('success','Done',`Imported ${d.imported} records`);
     loadImportStatus();
-    // refresh caches
-    if (table === 'items') fetch(`${API}/api/items`).then(r=>r.json()).then(d=>{ allItems=d; });
+    if (table==='items') apiFetch(`${API}/api/items`).then(r=>r.json()).then(d=>{ items=Array.isArray(d)?d:(d?.data||[]); });
   } catch (e) {
-    toast(e.message, 'err');
+    toast('error','Error',e.message);
     document.getElementById('importConfirmBtn').disabled = false;
   }
 }

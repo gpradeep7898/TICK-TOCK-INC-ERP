@@ -401,6 +401,25 @@ td .cell-sub{font-size:11px;color:var(--text2);margin-top:1px}
 .history-qty.pos{color:var(--green)}
 .history-qty.neg{color:var(--red)}
 
+/* ── Barcode Scanner Page ────────────────────────────────── */
+.scan-empty{text-align:center;padding:60px 20px}
+.scan-empty-icon{font-size:48px;margin-bottom:12px}
+.scan-empty-title{font-size:16px;font-weight:600;color:var(--text1);margin-bottom:6px}
+.scan-empty-sub{font-size:13px;color:var(--text3)}
+.item-result-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;margin-bottom:16px;box-shadow:var(--shadow)}
+.item-result-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.item-result-icon{width:48px;height:48px;border-radius:var(--radius);background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.item-result-meta{flex:1;min-width:0}
+.item-result-name{font-size:17px;font-weight:700;color:var(--text0)}
+.item-result-sku{font-size:12px;color:var(--text2);margin-top:3px}
+.item-result-actions{display:flex;gap:8px;flex-shrink:0}
+.scan-history-row{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.scan-history-row:hover{background:var(--bg)}
+.scan-history-row:last-child{border-bottom:none}
+.scan-input-wrap{display:flex;align-items:center;gap:12px;flex:1}
+.scan-big-input{flex:1;max-width:480px;height:42px;border:2px solid var(--border);border-radius:var(--radius-sm);padding:0 14px;font-size:15px;font-weight:600;transition:border-color .15s;outline:none}
+.scan-big-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+
 /* ── Print button ────────────────────────────────────────── */
 @media print{
   #sidebar,#header,#toast-container,.toolbar,.tab-bar,.btn,.no-print{display:none!important}
@@ -449,6 +468,9 @@ td .cell-sub{font-size:11px;color:var(--text2);margin-top:1px}
       </button>
       <button class="nav-item" onclick="showPage('adjustments')">
         <span class="ni">📝</span> Adjustments
+      </button>
+      <button class="nav-item" onclick="showPage('barcode')">
+        <span class="ni">📷</span> Barcode Lookup
       </button>
     </div>
     <div class="nav-section">
@@ -682,6 +704,35 @@ td .cell-sub{font-size:11px;color:var(--text2);margin-top:1px}
             </table>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: Barcode Lookup ══════════════════════════════ -->
+    <div id="page-barcode" class="page">
+      <div class="toolbar">
+        <div class="scan-input-wrap">
+          <input type="text" class="scan-big-input" id="barcodeInput"
+            placeholder="🔍  Scan or type UPC / SKU and press Enter…"
+            onkeydown="onBarcodeKey(event)" autocomplete="off" spellcheck="false"/>
+          <button class="btn btn-primary" onclick="doBarcodeLookup()">Look Up</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearBarcode()">✕ Clear</button>
+        </div>
+      </div>
+
+      <div id="barcodeResult">
+        <div class="scan-empty">
+          <div class="scan-empty-icon">📷</div>
+          <div class="scan-empty-title">Ready to Scan</div>
+          <div class="scan-empty-sub">Connect a USB barcode scanner or type a UPC / SKU above and press Enter</div>
+        </div>
+      </div>
+
+      <div class="card" id="barcodeHistoryCard" style="display:none">
+        <div class="card-header">
+          <div class="card-title">Recent Scans</div>
+          <button class="btn btn-ghost btn-sm" onclick="clearScanHistory()">Clear</button>
+        </div>
+        <div class="card-body" id="barcodeHistory" style="padding:0"></div>
       </div>
     </div>
 
@@ -964,6 +1015,9 @@ function fmtNum(n)    { return parseFloat(n||0).toLocaleString('en-US',{maximumF
 function fmtInitials(name) {
   return (name || '?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
 }
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 function avatarColor(role) {
   return { admin:'#b45309', warehouse:'#047857', sales:'#1d4ed8' }[role] || '#374151';
 }
@@ -982,6 +1036,7 @@ const PAGE_TITLES = {
   stock:       'Stock Overview',
   reorder:     'Reorder Alerts',
   adjustments: 'Adjustments',
+  barcode:     'Barcode Lookup',
 };
 const PAGE_LOADERS = {
   dashboard:   loadDashboard,
@@ -999,6 +1054,7 @@ function showPage(id) {
   btns.forEach(b => { if (b.textContent.toLowerCase().includes(PAGE_TITLES[id]?.split(' ')[0]?.toLowerCase())) b.classList.add('active'); });
   document.getElementById('headerTitle').textContent = PAGE_TITLES[id] || '';
   if (PAGE_LOADERS[id]) PAGE_LOADERS[id]();
+  if (id === 'barcode') setTimeout(() => { const inp = document.getElementById('barcodeInput'); if (inp) inp.focus(); }, 60);
 }
 
 // ── Skeleton Rows ──────────────────────────────────────────
@@ -1915,6 +1971,181 @@ async function submitQuickPO() {
   } finally {
     btn.disabled = false; btn.textContent = 'Create Draft PO';
   }
+}
+
+// ══════════════════════════════════════════════════════════
+//  BARCODE LOOKUP
+// ══════════════════════════════════════════════════════════
+let scanHistory = [];
+
+function onBarcodeKey(e) {
+  if (e.key === 'Enter') { e.preventDefault(); doBarcodeLookup(); }
+}
+
+function clearBarcode() {
+  document.getElementById('barcodeInput').value = '';
+  document.getElementById('barcodeResult').innerHTML = `
+    <div class="scan-empty">
+      <div class="scan-empty-icon">📷</div>
+      <div class="scan-empty-title">Ready to Scan</div>
+      <div class="scan-empty-sub">Connect a USB barcode scanner or type a UPC / SKU above and press Enter</div>
+    </div>`;
+  document.getElementById('barcodeInput').focus();
+}
+
+function clearScanHistory() {
+  scanHistory = [];
+  renderScanHistory();
+}
+
+async function doBarcodeLookup() {
+  const raw = (document.getElementById('barcodeInput').value || '').trim();
+  if (!raw) return;
+
+  const el = document.getElementById('barcodeResult');
+  el.innerHTML = `<div class="scan-empty"><div class="scan-empty-icon" style="font-size:32px">⏳</div><div class="scan-empty-title">Looking up…</div></div>`;
+
+  try {
+    // Try UPC lookup first, then fall back to full item list search
+    let item = null;
+    try {
+      const res = await apiFetch(`/api/items/by-upc/${encodeURIComponent(raw)}`);
+      if (res) { const d = await res.json(); if (d && d.id) item = d; }
+    } catch {}
+
+    if (!item) {
+      const res2 = await apiFetch('/api/items');
+      if (res2) {
+        const data = await res2.json();
+        const rows = Array.isArray(data) ? data : (data.data || []);
+        const q = raw.toLowerCase();
+        item = rows.find(r =>
+          (r.code||'').toLowerCase() === q ||
+          (r.upc_code||'').toLowerCase() === q
+        ) || rows.find(r =>
+          (r.code||'').toLowerCase().includes(q) ||
+          (r.name||'').toLowerCase().includes(q)
+        );
+      }
+    }
+
+    if (!item) {
+      el.innerHTML = `
+        <div class="scan-empty">
+          <div class="scan-empty-icon">❌</div>
+          <div class="scan-empty-title">Item Not Found</div>
+          <div class="scan-empty-sub">No item found matching "<strong>${escHtml(raw)}</strong>"</div>
+        </div>`;
+      return;
+    }
+
+    // Load stock levels by warehouse
+    let stockRows = [];
+    try {
+      const sr = await apiFetch(`/api/stock/${item.id}/availability`);
+      if (sr) { const sd = await sr.json(); stockRows = Array.isArray(sd) ? sd : (sd.data || []); }
+    } catch {}
+
+    // Record in history
+    scanHistory = [{ upc: raw, item, time: new Date() }, ...scanHistory.filter(s => s.upc !== raw)].slice(0, 10);
+    renderScanHistory();
+
+    const totalStock = stockRows.reduce((s, r) => s + parseFloat(r.qty_available ?? r.qty_on_hand ?? 0), 0);
+    const reorderPt  = parseFloat(item.reorder_point || 0);
+    const overallBadge = totalStock <= 0
+      ? `<span class="badge badge-red">Out of Stock</span>`
+      : totalStock <= reorderPt
+        ? `<span class="badge badge-yellow">Low Stock</span>`
+        : `<span class="badge badge-green">In Stock</span>`;
+
+    el.innerHTML = `
+      <div class="item-result-card">
+        <div class="item-result-header">
+          <div class="item-result-icon">⌚</div>
+          <div class="item-result-meta">
+            <div class="item-result-name">${escHtml(item.name)}</div>
+            <div class="item-result-sku">
+              SKU: <strong>${escHtml(item.code)}</strong>
+              ${item.upc_code ? ` &nbsp;·&nbsp; UPC: <strong>${escHtml(item.upc_code)}</strong>` : ''}
+              &nbsp;·&nbsp; ${escHtml(item.category || 'Uncategorized')}
+              &nbsp;·&nbsp; ${overallBadge}
+            </div>
+          </div>
+          <div class="item-result-actions">
+            <button class="btn btn-ghost btn-sm" onclick="openItemModal(${item.id})">✏️ Edit</button>
+            <button class="btn btn-primary btn-sm" onclick="openAdjModal()">+ Adjustment</button>
+          </div>
+        </div>
+        <div style="padding:20px 24px">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px">
+            <div class="kpi-card" style="margin:0">
+              <div class="kpi-label"><span class="ki">📦</span> Total Available</div>
+              <div class="kpi-value ${totalStock > 0 ? 'green' : 'red'}">${fmtNum(totalStock)}</div>
+            </div>
+            <div class="kpi-card" style="margin:0">
+              <div class="kpi-label"><span class="ki">💵</span> Standard Cost</div>
+              <div class="kpi-value">${fmtMoney(item.standard_cost || 0)}</div>
+            </div>
+            <div class="kpi-card" style="margin:0">
+              <div class="kpi-label"><span class="ki">🏷</span> Sale Price</div>
+              <div class="kpi-value blue">${fmtMoney(item.sale_price || 0)}</div>
+            </div>
+            <div class="kpi-card" style="margin:0">
+              <div class="kpi-label"><span class="ki">⚠️</span> Reorder Point</div>
+              <div class="kpi-value">${fmtNum(reorderPt)}</div>
+            </div>
+          </div>
+
+          ${stockRows.length ? `
+            <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Stock by Warehouse</div>
+            <table style="width:100%;border-collapse:collapse">
+              <thead>
+                <tr style="background:var(--bg)">
+                  <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--text2);text-align:left;border-bottom:1px solid var(--border)">Warehouse</th>
+                  <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--text2);text-align:right;border-bottom:1px solid var(--border)">On Hand</th>
+                  <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--text2);text-align:right;border-bottom:1px solid var(--border)">Reserved</th>
+                  <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--text2);text-align:right;border-bottom:1px solid var(--border)">Available</th>
+                  <th style="padding:8px 12px;font-size:11px;font-weight:700;color:var(--text2);text-align:left;border-bottom:1px solid var(--border)">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${stockRows.map(r => {
+                  const avail = parseFloat(r.qty_available ?? r.qty_on_hand ?? 0);
+                  return `<tr style="border-bottom:1px solid var(--border)">
+                    <td style="padding:10px 12px;font-weight:600">${escHtml(r.warehouse_name || r.warehouse_code || '—')}</td>
+                    <td style="padding:10px 12px;text-align:right">${fmtNum(r.qty_on_hand || 0)}</td>
+                    <td style="padding:10px 12px;text-align:right;color:var(--text2)">${fmtNum(r.qty_committed || 0)}</td>
+                    <td style="padding:10px 12px;text-align:right;font-weight:700">${fmtNum(avail)}</td>
+                    <td style="padding:10px 12px">${stockBadge(avail, reorderPt)}</td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          ` : `<div style="color:var(--text3);font-size:13px;padding:8px 0">No stock records found for this item.</div>`}
+        </div>
+      </div>
+    `;
+  } catch(e) {
+    el.innerHTML = `<div class="scan-empty"><div class="scan-empty-icon">⚠️</div><div class="scan-empty-title">Lookup Failed</div><div class="scan-empty-sub">${escHtml(e.message)}</div></div>`;
+  }
+}
+
+function renderScanHistory() {
+  const card = document.getElementById('barcodeHistoryCard');
+  const el   = document.getElementById('barcodeHistory');
+  if (!el || !card) return;
+  if (!scanHistory.length) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  el.innerHTML = scanHistory.map(s => `
+    <div class="scan-history-row" onclick="document.getElementById('barcodeInput').value=${JSON.stringify(s.upc)};doBarcodeLookup()">
+      <span style="font-size:18px">📦</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(s.item.name)}</div>
+        <div style="font-size:11px;color:var(--text3)">${escHtml(s.upc)} · SKU: ${escHtml(s.item.code)}</div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);flex-shrink:0">${s.time.toLocaleTimeString()}</div>
+    </div>
+  `).join('');
 }
 </script>
 </body>

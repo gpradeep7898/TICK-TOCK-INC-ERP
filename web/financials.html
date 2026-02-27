@@ -91,6 +91,14 @@
   @media(max-width:900px){
     .charts-row,.tables-row,.aging-wrap{grid-template-columns:1fr}
   }
+
+  /* ── NAV USER CHIP ── */
+  .nav-spacer{flex:1}
+  .nav-user{display:flex;align-items:center;gap:10px}
+  .nav-user-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;background:#475569}
+  .nav-user-name{font-size:.82rem;color:#ccc;white-space:nowrap}
+  .nav-signout{background:none;border:1px solid rgba(255,255,255,.25);color:#ccc;padding:5px 12px;border-radius:4px;cursor:pointer;font-size:.76rem;font-weight:600;transition:all .15s;font-family:inherit}
+  .nav-signout:hover{background:rgba(239,68,68,.2);border-color:#ef4444;color:#fca5a5}
 </style>
 </head>
 <body>
@@ -101,6 +109,12 @@
   <a href="/sales">Sales / AR</a>
   <a href="/purchasing">Purchasing / AP</a>
   <a href="/financials" class="active">Financials</a>
+  <div class="nav-spacer"></div>
+  <div class="nav-user">
+    <div class="nav-user-avatar" id="finUserAvatar">?</div>
+    <span class="nav-user-name" id="finUserName">Loading…</span>
+    <button class="nav-signout" onclick="signOut()">Sign Out</button>
+  </div>
 </nav>
 
 <div class="page-header">
@@ -168,8 +182,39 @@
 </div><!-- /main -->
 
 <script>
-const API = 'http://localhost:3001';
+const API = '';
 let revChartInst = null, splitChartInst = null;
+
+/* ── Auth ── */
+async function apiFetch(path, opts = {}) {
+  const token = localStorage.getItem('tt_token');
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(path, { ...opts, headers });
+  if (res.status === 401) {
+    localStorage.removeItem('tt_token');
+    window.location.href = '/login.html';
+    throw new Error('Unauthorized');
+  }
+  if (!res.ok) { const b = await res.json().catch(()=>({})); throw new Error(b.error || `HTTP ${res.status}`); }
+  return res.json();
+}
+function signOut() { localStorage.removeItem('tt_token'); window.location.href = '/login.html'; }
+(function authGuard(){
+  const token = localStorage.getItem('tt_token');
+  if (!token) { window.location.href = '/login.html'; return; }
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (payload.exp * 1000 < Date.now()) { localStorage.removeItem('tt_token'); window.location.href = '/login.html'; return; }
+    const name = payload.name || payload.email || 'User';
+    const role = payload.role || 'user';
+    const initials = name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+    const colors = { admin:'#b45309', warehouse:'#047857', sales:'#1d4ed8' };
+    document.getElementById('finUserAvatar').textContent = initials;
+    document.getElementById('finUserAvatar').style.background = colors[role] || '#475569';
+    document.getElementById('finUserName').textContent = name;
+  } catch { window.location.href = '/login.html'; }
+})();
 
 function fmt(n){ return '$' + Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtN(n){ return Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -184,7 +229,7 @@ async function loadAll(){
 async function loadSummary(){
   const grid = document.getElementById('kpi-grid');
   try {
-    const r = await fetch(`${API}/api/financials/summary`).then(x=>x.json());
+    const r = await apiFetch('/api/financials/summary');
     grid.innerHTML = `
       <div class="kpi-card green">
         <div class="kpi-label">Revenue MTD</div>
@@ -240,7 +285,7 @@ async function loadSummary(){
 /* ── REVENUE CHART ── */
 async function loadRevByMonth(){
   try {
-    const rows = await fetch(`${API}/api/financials/revenue-by-month`).then(x=>x.json());
+    const rows = await apiFetch('/api/financials/revenue-by-month');
     const labels = rows.map(r=>r.label);
     const rev    = rows.map(r=>+r.revenue);
     const gp     = rows.map(r=>+r.gross_profit);
@@ -288,7 +333,7 @@ async function loadRevByMonth(){
 async function loadTopCustomers(){
   const el = document.getElementById('tbl-customers');
   try {
-    const rows = await fetch(`${API}/api/financials/top-customers`).then(x=>x.json());
+    const rows = await apiFetch('/api/financials/top-customers');
     if(!rows.length){ el.innerHTML='<p style="color:#94a3b8;font-size:.82rem;padding:12px">No data yet.</p>'; return; }
     el.innerHTML = `<table>
       <thead><tr><th>#</th><th>Customer</th><th>Inv</th><th class="num">Revenue YTD</th><th class="num">Open Balance</th></tr></thead>
@@ -307,7 +352,7 @@ async function loadTopCustomers(){
 async function loadTopItems(){
   const el = document.getElementById('tbl-items');
   try {
-    const rows = await fetch(`${API}/api/financials/top-items`).then(x=>x.json());
+    const rows = await apiFetch('/api/financials/top-items');
     if(!rows.length){ el.innerHTML='<p style="color:#94a3b8;font-size:.82rem;padding:12px">No data yet.</p>'; return; }
     el.innerHTML = `<table>
       <thead><tr><th>#</th><th>Item</th><th class="num">Qty</th><th class="num">Revenue</th><th class="num">COGS</th><th class="pct">Margin</th></tr></thead>
@@ -330,7 +375,7 @@ async function loadTopItems(){
 /* ── AGING BARS ── */
 async function loadCashPosition(){
   try {
-    const d = await fetch(`${API}/api/financials/cash-position`).then(x=>x.json());
+    const d = await apiFetch('/api/financials/cash-position');
     renderAging('ar-aging', d.ar, '#3b82f6');
     renderAging('ap-aging', d.ap, '#f59e0b');
   } catch(e){
@@ -366,7 +411,7 @@ function renderAging(elId, d, color){
 async function loadPL(){
   const el = document.getElementById('tbl-pl');
   try {
-    const rows = await fetch(`${API}/api/financials/pl-detail`).then(x=>x.json());
+    const rows = await apiFetch('/api/financials/pl-detail');
     if(!rows.length){ el.innerHTML='<p style="color:#94a3b8;font-size:.82rem;padding:12px">No data yet.</p>'; return; }
     el.innerHTML = `<table>
       <thead><tr>
