@@ -1,0 +1,60 @@
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ticktock
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required — copy .env.example to .env}
+    volumes:
+      # Persistent data
+      - postgres_data:/var/lib/postgresql/data
+      # Auto-apply migrations on first container start (initdb.d runs once, in alpha order)
+      - ../db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ticktock"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - ticktock_net
+
+  # ── API ─────────────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ..                    # project root
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT:           3001
+      DATABASE_URL:   postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/ticktock
+      JWT_SECRET:     ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
+      APP_VERSION:    ${APP_VERSION:-1.0.0}
+      NODE_ENV:       ${NODE_ENV:-production}
+    ports:
+      - "${HOST_PORT:-3001}:3001"
+    volumes:
+      - backups:/app/backups
+    networks:
+      - ticktock_net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  postgres_data:
+  backups:
+
+networks:
+  ticktock_net:
+    driver: bridge

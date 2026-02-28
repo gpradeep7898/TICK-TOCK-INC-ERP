@@ -1,0 +1,25 @@
+# Git
+.git
+.gitignore
+
+# Node
+api/node_modules
+**/node_modules
+
+# Secrets & local config
+api/.env
+docker/.env
+
+# Local dev artefacts
+backups/
+*.log
+.DS_Store
+
+# IDE / tooling
+.claude/
+.vscode/
+.cursor/
+
+# Unused scripts
+api/src/inspect_excel.js
+api/src/import_excel.js
