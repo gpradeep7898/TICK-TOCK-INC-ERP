@@ -9,21 +9,21 @@ const { Router } = require('express');
 const jwt        = require('jsonwebtoken');
 const bcrypt     = require('bcryptjs');
 const { query }  = require('../db/pool');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth }              = require('../middleware/auth');
+const { loginLimiter }             = require('../middleware/rateLimiter');
+const { validate }                 = require('../middleware/validate');
+const { LoginSchema, SwitchCompanySchema } = require('../lib/schemas');
 const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config/env');
 
 const router = Router();
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
-        return res.status(400).json({ success: false, error: 'Email and password are required' });
-    }
+router.post('/login', loginLimiter, validate(LoginSchema), async (req, res) => {
+    const { email, password } = req.body;   // email is already lowercased/trimmed by schema
     try {
         const { rows } = await query(
             `SELECT id, name, email, role, password_hash, is_active FROM users WHERE email = $1`,
-            [email.toLowerCase().trim()]
+            [email]
         );
         if (!rows.length) {
             return res.status(401).json({ success: false, error: 'Invalid email or password' });
@@ -94,9 +94,8 @@ router.get('/me', requireAuth, (req, res) => {
 });
 
 // POST /api/auth/switch-company
-router.post('/switch-company', requireAuth, async (req, res) => {
+router.post('/switch-company', requireAuth, validate(SwitchCompanySchema), async (req, res) => {
     const { company_id } = req.body;
-    if (!company_id) return res.status(400).json({ error: 'company_id is required' });
     try {
         const { rows } = await query(
             `SELECT cu.role, c.name AS company_name, c.slug, c.status

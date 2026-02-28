@@ -4,7 +4,10 @@
 // Stock adjustments CRUD + post action
 
 const { Router } = require('express');
-const { query, pool } = require('../db/pool');
+const { query, pool }           = require('../db/pool');
+const { validate }              = require('../middleware/validate');
+const { parsePage, paginate }   = require('../lib/pagination');
+const { CreateAdjustmentSchema } = require('../lib/schemas');
 
 const router = Router();
 
@@ -25,10 +28,15 @@ async function nextAdjNumber(client) {
 // GET /api/adjustments
 router.get('/', async (req, res) => {
     try {
+        const { page, limit, offset } = parsePage(req.query);
         const status = req.query.status;
         const params = [];
         let where = '';
         if (status) { params.push(status); where = `WHERE sa.status = $${params.length}`; }
+
+        const { rows: [{ count }] } = await query(
+            `SELECT COUNT(*) FROM stock_adjustments sa ${where}`, params
+        );
         const { rows } = await query(
             `SELECT sa.*, w.code AS warehouse_code, w.name AS warehouse_name,
                     u.name AS created_by_name,
@@ -37,20 +45,17 @@ router.get('/', async (req, res) => {
              JOIN   warehouses w ON w.id = sa.warehouse_id
              LEFT JOIN users u ON u.id = sa.created_by
              ${where}
-             ORDER  BY sa.created_at DESC`,
-            params
+             ORDER  BY sa.created_at DESC
+             LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+            [...params, limit, offset]
         );
-        res.json({ success: true, data: rows });
+        res.json(paginate(rows, parseInt(count, 10), page, limit));
     } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // POST /api/adjustments
-router.post('/', async (req, res) => {
-    const { warehouse_id, adjustment_date, reason, notes, lines = [], created_by } = req.body;
-
-    if (!warehouse_id) return res.status(400).json({ error: 'warehouse_id is required' });
-    if (!Array.isArray(lines) || lines.length === 0)
-        return res.status(400).json({ error: 'At least one line is required' });
+router.post('/', validate(CreateAdjustmentSchema), async (req, res) => {
+    const { warehouse_id, adjustment_date, reason, notes, lines, created_by } = req.body;
 
     const client = await pool.connect();
     try {

@@ -5,6 +5,8 @@
 
 const { Router } = require('express');
 const { query }  = require('../db/pool');
+const { validate }            = require('../middleware/validate');
+const { UpdateTaxRateSchema } = require('../lib/schemas');
 
 const router = Router();
 
@@ -51,9 +53,8 @@ router.get('/rates/:stateCode', async (req, res) => {
 });
 
 // PUT /api/tax/rates/:stateCode
-router.put('/rates/:stateCode', async (req, res) => {
+router.put('/rates/:stateCode', validate(UpdateTaxRateSchema), async (req, res) => {
     const { tax_rate, is_active } = req.body;
-    if (tax_rate == null) return res.status(400).json({ error: 'tax_rate required' });
     try {
         const { rows } = await query(
             `UPDATE state_tax_rates

@@ -4,7 +4,12 @@
 // VIP pricing resolution, price locks, cost updates, change log
 
 const { Router } = require('express');
-const { query, pool } = require('../db/pool');
+const { query, pool }   = require('../db/pool');
+const { validate }      = require('../middleware/validate');
+const { requireUserRole } = require('../middleware/roles');
+const {
+    LockPriceSchema, UnlockPriceSchema, UpdateCostSchema, ConfirmCostSchema,
+} = require('../lib/schemas');
 
 const router = Router();
 
@@ -111,10 +116,8 @@ router.get('/customer/:customerId', async (req, res) => {
 });
 
 // POST /api/pricing/lock
-router.post('/lock', async (req, res) => {
+router.post('/lock', validate(LockPriceSchema), async (req, res) => {
     const { customerId, itemId, lockedPrice, reason, lockedBy } = req.body;
-    if (!customerId || !itemId || lockedPrice == null)
-        return res.status(400).json({ error: 'customerId, itemId, and lockedPrice required' });
     try {
         const { rows } = await query(
             `INSERT INTO customer_item_price_locks
@@ -131,9 +134,8 @@ router.post('/lock', async (req, res) => {
 });
 
 // POST /api/pricing/unlock
-router.post('/unlock', async (req, res) => {
+router.post('/unlock', validate(UnlockPriceSchema), async (req, res) => {
     const { customerId, itemId } = req.body;
-    if (!customerId || !itemId) return res.status(400).json({ error: 'customerId and itemId required' });
     try {
         const { rows } = await query(
             `UPDATE customer_item_price_locks SET is_active = false
@@ -146,9 +148,8 @@ router.post('/unlock', async (req, res) => {
 });
 
 // POST /api/pricing/update-cost  (preview — does NOT apply)
-router.post('/update-cost', async (req, res) => {
+router.post('/update-cost', validate(UpdateCostSchema), async (req, res) => {
     const { itemId, newCost, notes } = req.body;
-    if (!itemId || newCost == null) return res.status(400).json({ error: 'itemId and newCost required' });
     try {
         const { rows: [item] } = await query(
             `SELECT id, code, name, standard_cost, sale_price FROM items WHERE id = $1`, [itemId]
@@ -192,9 +193,8 @@ router.post('/update-cost', async (req, res) => {
 });
 
 // POST /api/pricing/update-cost/:itemId/confirm
-router.post('/update-cost/:itemId/confirm', async (req, res) => {
+router.post('/update-cost/:itemId/confirm', requireUserRole('admin', 'manager'), validate(ConfirmCostSchema), async (req, res) => {
     const { newCost, newSalePrice, notes, changedBy } = req.body;
-    if (newCost == null) return res.status(400).json({ error: 'newCost required' });
 
     const client = await pool.connect();
     try {

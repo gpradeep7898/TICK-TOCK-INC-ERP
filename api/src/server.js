@@ -12,8 +12,9 @@ const { query } = require('./db/pool');
 const SERVER_START = Date.now();
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
-const { requireAuth }                 = require('./middleware/auth');
+const { requireAuth }                   = require('./middleware/auth');
 const { errorHandler, notFoundHandler } = require('./middleware/error');
+const { apiLimiter, writeLimiter }      = require('./middleware/rateLimiter');
 
 // ─── Route modules ────────────────────────────────────────────────────────────
 const authRouter        = require('./routes/auth.routes');
@@ -71,6 +72,9 @@ app.get('/api/health', async (_req, res) => {
     } catch (err) { res.status(503).json({ success: false, error: err.message }); }
 });
 
+// ─── Rate limit all /api/* routes ─────────────────────────────────────────────
+app.use('/api', apiLimiter);
+
 // ─── Auth routes (public) ────────────────────────────────────────────────────
 app.use('/api/auth', authRouter);
 
@@ -78,6 +82,14 @@ app.use('/api/auth', authRouter);
 app.use('/api', (req, res, next) => {
     if (req.path.startsWith('/auth/') || req.path === '/health') return next();
     requireAuth(req, res, next);
+});
+
+// ─── Write rate limit — POST/PUT/PATCH/DELETE on authenticated routes ─────────
+app.use('/api', (req, res, next) => {
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        return writeLimiter(req, res, next);
+    }
+    next();
 });
 
 // ─── Protected API routes ────────────────────────────────────────────────────

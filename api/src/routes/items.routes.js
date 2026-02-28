@@ -5,14 +5,23 @@
 
 const { Router } = require('express');
 const { query }  = require('../db/pool');
+const { validate }                       = require('../middleware/validate');
+const { requireUserRole }               = require('../middleware/roles');
+const { parsePage, paginate }           = require('../lib/pagination');
+const { CreateItemSchema, PatchItemSchema } = require('../lib/schemas');
 
 const router = Router();
 
 // GET /api/items
-router.get('/', async (_req, res) => {
+router.get('/', async (req, res) => {
     try {
-        const { rows } = await query(`SELECT * FROM items ORDER BY category, code`);
-        res.json(rows);
+        const { page, limit, offset } = parsePage(req.query);
+        const { rows: [{ count }] } = await query(`SELECT COUNT(*) FROM items`);
+        const { rows } = await query(
+            `SELECT * FROM items ORDER BY category, code LIMIT $1 OFFSET $2`,
+            [limit, offset]
+        );
+        res.json(paginate(rows, parseInt(count, 10), page, limit));
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -61,24 +70,24 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/items
-router.post('/', async (req, res) => {
+router.post('/', validate(CreateItemSchema), async (req, res) => {
     const {
-        code, name, description, unit_of_measure = 'EA',
-        cost_method = 'avg', standard_cost = 0, sale_price = 0,
-        reorder_point = 0, reorder_qty = 0, lead_time_days = 0, category
+        code, name, description, unit_of_measure, cost_method,
+        standard_cost, sale_price, reorder_point, reorder_qty, lead_time_days,
+        category, upc_code, weight_lb, country_of_origin,
     } = req.body;
-
-    if (!code || !name) return res.status(400).json({ error: 'code and name are required' });
 
     try {
         const { rows } = await query(
             `INSERT INTO items
                 (code, name, description, unit_of_measure, cost_method, standard_cost,
-                 sale_price, reorder_point, reorder_qty, lead_time_days, category)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+                 sale_price, reorder_point, reorder_qty, lead_time_days, category,
+                 upc_code, weight_lb, country_of_origin)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
              RETURNING *`,
-            [code, name, description, unit_of_measure, cost_method,
-             standard_cost, sale_price, reorder_point, reorder_qty, lead_time_days, category]
+            [code, name, description ?? null, unit_of_measure, cost_method,
+             standard_cost, sale_price, reorder_point, reorder_qty, lead_time_days,
+             category ?? null, upc_code ?? null, weight_lb ?? null, country_of_origin ?? null]
         );
         res.status(201).json(rows[0]);
     } catch (err) {
@@ -88,12 +97,8 @@ router.post('/', async (req, res) => {
 });
 
 // PATCH /api/items/:id
-router.patch('/:id', async (req, res) => {
-    const allowed = ['name','description','unit_of_measure','cost_method',
-                     'standard_cost','sale_price','reorder_point','reorder_qty',
-                     'lead_time_days','category','is_active',
-                     'upc_code','weight_lb','country_of_origin'];
-    const fields  = Object.keys(req.body).filter(k => allowed.includes(k));
+router.patch('/:id', validate(PatchItemSchema), async (req, res) => {
+    const fields = Object.keys(req.body);
     if (!fields.length) return res.status(400).json({ error: 'No valid fields to update' });
 
     const sets   = fields.map((f, i) => `${f} = $${i + 2}`).join(', ');
@@ -110,7 +115,7 @@ router.patch('/:id', async (req, res) => {
 });
 
 // DELETE /api/items/:id — soft-delete (set is_active = false) if has stock history
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireUserRole('admin', 'manager'), async (req, res) => {
     try {
         const { rows: stockRows } = await query(
             `SELECT COUNT(*) AS cnt FROM stock_ledger WHERE item_id = $1`, [req.params.id]

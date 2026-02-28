@@ -4,7 +4,13 @@
 // Vendors, Purchase Orders, Receipts, Vendor Invoices, AP Payments, AP Aging, Reorder Suggestions
 
 const { Router } = require('express');
-const { query, pool } = require('../db/pool');
+const { query, pool }         = require('../db/pool');
+const { validate }            = require('../middleware/validate');
+const { parsePage, paginate } = require('../lib/pagination');
+const {
+    CreateVendorSchema, CreatePOSchema, CreateReceiptSchema,
+    CreateVendorInvoiceSchema, CreateAPPaymentSchema,
+} = require('../lib/schemas');
 
 const router = Router();
 
@@ -41,17 +47,23 @@ async function checkBackordersForAllItems(client, itemIds) {
 
 // ── Vendors ───────────────────────────────────────────────────────────────────
 
-router.get('/vendors', async (_req, res) => {
+router.get('/vendors', async (req, res) => {
     try {
+        const { page, limit, offset } = parsePage(req.query);
+        const { rows: [{ count }] } = await query(
+            `SELECT COUNT(*) FROM parties WHERE type IN ('vendor','both')`
+        );
         const { rows } = await query(
             `SELECT p.*,
                     COALESCE(ap.total_due, 0) AS ap_balance
              FROM   parties p
              LEFT JOIN v_ap_aging ap ON ap.vendor_id = p.id
              WHERE  p.type IN ('vendor','both')
-             ORDER  BY p.name`
+             ORDER  BY p.name
+             LIMIT $1 OFFSET $2`,
+            [limit, offset]
         );
-        res.json(rows);
+        res.json(paginate(rows, parseInt(count, 10), page, limit));
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -79,10 +91,9 @@ router.get('/vendors/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.post('/vendors', async (req, res) => {
+router.post('/vendors', validate(CreateVendorSchema), async (req, res) => {
     const { code, name, email, phone, billing_address,
-            payment_terms_days = 30, currency = 'USD', notes } = req.body;
-    if (!code || !name) return res.status(400).json({ error: 'code and name are required' });
+            payment_terms_days, currency, notes } = req.body;
     try {
         const { rows } = await query(
             `INSERT INTO parties (type,code,name,email,phone,billing_address,
@@ -143,16 +154,22 @@ router.get('/purchase-orders/dashboard', async (_req, res) => {
 router.get('/purchase-orders', async (req, res) => {
     const { status } = req.query;
     try {
-        const cond   = status ? `WHERE po.status = $1` : '';
+        const { page, limit, offset } = parsePage(req.query);
+        const cond   = status ? `WHERE pos.status = $1` : '';
         const params = status ? [status] : [];
+
+        const { rows: [{ count }] } = await query(
+            `SELECT COUNT(*) FROM v_purchase_order_status pos ${cond}`, params
+        );
         const { rows } = await query(
             `SELECT pos.*
              FROM   v_purchase_order_status pos
              ${cond}
-             ORDER  BY pos.created_at DESC`,
-            params
+             ORDER  BY pos.created_at DESC
+             LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+            [...params, limit, offset]
         );
-        res.json(rows);
+        res.json(paginate(rows, parseInt(count, 10), page, limit));
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -182,11 +199,9 @@ router.get('/purchase-orders/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.post('/purchase-orders', async (req, res) => {
+router.post('/purchase-orders', validate(CreatePOSchema), async (req, res) => {
     const { vendor_id, warehouse_id, order_date, expected_date, notes,
-            lines = [], created_by } = req.body;
-    if (!vendor_id || !warehouse_id) return res.status(400).json({ error: 'vendor_id and warehouse_id required' });
-    if (!lines.length) return res.status(400).json({ error: 'At least one line required' });
+            lines, created_by } = req.body;
 
     const client = await pool.connect();
     try {
@@ -275,8 +290,10 @@ router.post('/purchase-orders/:id/cancel', async (req, res) => {
 
 // ── Receipts ──────────────────────────────────────────────────────────────────
 
-router.get('/receipts', async (_req, res) => {
+router.get('/receipts', async (req, res) => {
     try {
+        const { page, limit, offset } = parsePage(req.query);
+        const { rows: [{ count }] } = await query(`SELECT COUNT(*) FROM purchase_receipts`);
         const { rows } = await query(
             `SELECT pr.*, po.number AS po_number,
                     p.code AS vendor_code, p.name AS vendor_name,
@@ -285,9 +302,11 @@ router.get('/receipts', async (_req, res) => {
              JOIN   purchase_orders po ON po.id = pr.purchase_order_id
              JOIN   parties p ON p.id = po.vendor_id
              JOIN   warehouses w ON w.id = pr.warehouse_id
-             ORDER  BY pr.created_at DESC`
+             ORDER  BY pr.created_at DESC
+             LIMIT $1 OFFSET $2`,
+            [limit, offset]
         );
-        res.json(rows);
+        res.json(paginate(rows, parseInt(count, 10), page, limit));
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -315,11 +334,9 @@ router.get('/receipts/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.post('/receipts', async (req, res) => {
+router.post('/receipts', validate(CreateReceiptSchema), async (req, res) => {
     const { purchase_order_id, receipt_date, vendor_ref, notes,
-            lines = [], created_by } = req.body;
-    if (!purchase_order_id) return res.status(400).json({ error: 'purchase_order_id required' });
-    if (!lines.length) return res.status(400).json({ error: 'At least one line required' });
+            lines, created_by } = req.body;
 
     const client = await pool.connect();
     try {
@@ -487,8 +504,13 @@ router.post('/receipts/:id/post', async (req, res) => {
 router.get('/vendor-invoices', async (req, res) => {
     const { status } = req.query;
     try {
+        const { page, limit, offset } = parsePage(req.query);
         const cond   = status ? `AND vi.status = $1` : '';
         const params = status ? [status] : [];
+
+        const { rows: [{ count }] } = await query(
+            `SELECT COUNT(*) FROM vendor_invoices vi WHERE 1=1 ${cond}`, params
+        );
         const { rows } = await query(
             `SELECT vi.*, p.code AS vendor_code, p.name AS vendor_name,
                     po.number AS po_number
@@ -496,9 +518,11 @@ router.get('/vendor-invoices', async (req, res) => {
              JOIN   parties p ON p.id = vi.vendor_id
              LEFT JOIN purchase_orders po ON po.id = vi.purchase_order_id
              WHERE 1=1 ${cond}
-             ORDER  BY vi.invoice_date DESC`, params
+             ORDER  BY vi.invoice_date DESC
+             LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+            [...params, limit, offset]
         );
-        res.json(rows);
+        res.json(paginate(rows, parseInt(count, 10), page, limit));
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -525,10 +549,9 @@ router.get('/vendor-invoices/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.post('/vendor-invoices', async (req, res) => {
+router.post('/vendor-invoices', validate(CreateVendorInvoiceSchema), async (req, res) => {
     const { vendor_id, purchase_order_id, receipt_id, invoice_date,
-            subtotal, tax_amount = 0, notes, vendor_invoice_number } = req.body;
-    if (!vendor_id || !subtotal) return res.status(400).json({ error: 'vendor_id and subtotal required' });
+            subtotal, tax_amount, notes, vendor_invoice_number } = req.body;
 
     const client = await pool.connect();
     try {
@@ -658,10 +681,9 @@ router.post('/vendor-invoices/:id/void', async (req, res) => {
 
 // ── AP Payments ───────────────────────────────────────────────────────────────
 
-router.post('/vendor-payments', async (req, res) => {
-    const { vendor_id, payment_date, amount, method = 'check',
-            reference_number, notes, applications = [] } = req.body;
-    if (!vendor_id || !amount) return res.status(400).json({ error: 'vendor_id and amount required' });
+router.post('/vendor-payments', validate(CreateAPPaymentSchema), async (req, res) => {
+    const { vendor_id, payment_date, amount, method,
+            reference_number, notes, applications } = req.body;
 
     const totalApplied = applications.reduce((s, a) => s + parseFloat(a.amount_applied || 0), 0);
     if (totalApplied > parseFloat(amount))

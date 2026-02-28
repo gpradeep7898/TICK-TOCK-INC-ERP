@@ -4,7 +4,13 @@
 // Customers, Sales Orders, Shipments, Invoices, AR Payments, AR Aging
 
 const { Router } = require('express');
-const { query, pool } = require('../db/pool');
+const { query, pool }         = require('../db/pool');
+const { validate }            = require('../middleware/validate');
+const { parsePage, paginate } = require('../lib/pagination');
+const {
+    CreateCustomerSchema, PatchCustomerSchema,
+    CreateSOSchema, CreateShipmentSchema, CreatePaymentSchema,
+} = require('../lib/schemas');
 
 const router = Router();
 
@@ -44,17 +50,23 @@ async function calculateInvoiceTax(customerId, subtotal) {
 
 // ── Customers ─────────────────────────────────────────────────────────────────
 
-router.get('/customers', async (_req, res) => {
+router.get('/customers', async (req, res) => {
     try {
+        const { page, limit, offset } = parsePage(req.query);
+        const { rows: [{ count }] } = await query(
+            `SELECT COUNT(*) FROM parties WHERE type IN ('customer','both')`
+        );
         const { rows } = await query(
             `SELECT p.*,
                     COALESCE(ar.total_due,0) AS ar_balance
              FROM   parties p
              LEFT JOIN v_ar_aging ar ON ar.customer_id = p.id
              WHERE  p.type IN ('customer','both')
-             ORDER  BY p.name`
+             ORDER  BY p.name
+             LIMIT $1 OFFSET $2`,
+            [limit, offset]
         );
-        res.json(rows);
+        res.json(paginate(rows, parseInt(count, 10), page, limit));
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -82,12 +94,11 @@ router.get('/customers/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.post('/customers', async (req, res) => {
+router.post('/customers', validate(CreateCustomerSchema), async (req, res) => {
     const { code, name, email, phone, billing_address, shipping_address,
-            payment_terms_days = 30, credit_limit = 0, currency = 'USD', notes,
-            tax_exempt = false, tax_exempt_certificate, tax_exempt_expiry,
-            state_code, vip_tier = 'standard' } = req.body;
-    if (!code || !name) return res.status(400).json({ error: 'code and name are required' });
+            payment_terms_days, credit_limit, currency, notes,
+            tax_exempt, tax_exempt_certificate, tax_exempt_expiry,
+            state_code, vip_tier } = req.body;
     try {
         const { rows } = await query(
             `INSERT INTO parties (type,code,name,email,phone,billing_address,shipping_address,
@@ -108,12 +119,8 @@ router.post('/customers', async (req, res) => {
     }
 });
 
-router.patch('/customers/:id', async (req, res) => {
-    const allowed = ['name','email','phone','billing_address','shipping_address',
-                     'payment_terms_days','credit_limit','currency','notes','is_active',
-                     'tax_exempt','tax_exempt_certificate','tax_exempt_expiry',
-                     'state_code','vip_tier'];
-    const fields  = Object.keys(req.body).filter(k => allowed.includes(k));
+router.patch('/customers/:id', validate(PatchCustomerSchema), async (req, res) => {
+    const fields = Object.keys(req.body).filter(k => req.body[k] !== undefined);
     if (!fields.length) return res.status(400).json({ error: 'No valid fields' });
     const sets   = fields.map((f, i) => `${f} = $${i + 2}`).join(', ');
     const values = fields.map(f => {
@@ -156,8 +163,13 @@ router.get('/sales-orders/dashboard', async (_req, res) => {
 router.get('/sales-orders', async (req, res) => {
     const { status } = req.query;
     try {
-        const cond   = status ? `WHERE status = $1` : '';
+        const { page, limit, offset } = parsePage(req.query);
+        const cond   = status ? `WHERE so.status = $1` : '';
         const params = status ? [status] : [];
+
+        const { rows: [{ count }] } = await query(
+            `SELECT COUNT(*) FROM sales_orders so ${cond}`, params
+        );
         const { rows } = await query(
             `SELECT so.id, so.number, so.status, so.order_date, so.requested_ship_date,
                     so.subtotal, so.tax_amount, so.total, so.created_at, so.notes,
@@ -168,10 +180,11 @@ router.get('/sales-orders', async (req, res) => {
              JOIN   parties p ON p.id = so.customer_id
              JOIN   warehouses w ON w.id = so.warehouse_id
              ${cond}
-             ORDER  BY so.created_at DESC`,
-            params
+             ORDER  BY so.created_at DESC
+             LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+            [...params, limit, offset]
         );
-        res.json(rows);
+        res.json(paginate(rows, parseInt(count, 10), page, limit));
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -219,11 +232,9 @@ router.get('/sales-orders/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.post('/sales-orders', async (req, res) => {
+router.post('/sales-orders', validate(CreateSOSchema), async (req, res) => {
     const { customer_id, warehouse_id, price_list_id, order_date, requested_ship_date,
-            tax_rate = 0, notes, lines = [], created_by } = req.body;
-    if (!customer_id || !warehouse_id) return res.status(400).json({ error: 'customer_id and warehouse_id required' });
-    if (!lines.length) return res.status(400).json({ error: 'At least one line required' });
+            tax_rate, notes, lines, created_by } = req.body;
 
     const client = await pool.connect();
     try {
@@ -372,8 +383,10 @@ router.post('/sales-orders/:id/cancel', async (req, res) => {
 
 // ── Shipments ─────────────────────────────────────────────────────────────────
 
-router.get('/shipments', async (_req, res) => {
+router.get('/shipments', async (req, res) => {
     try {
+        const { page, limit, offset } = parsePage(req.query);
+        const { rows: [{ count }] } = await query(`SELECT COUNT(*) FROM shipments`);
         const { rows } = await query(
             `SELECT s.*, so.number AS order_number, p.name AS customer_name,
                     w.code AS warehouse_code
@@ -381,9 +394,11 @@ router.get('/shipments', async (_req, res) => {
              JOIN   sales_orders so ON so.id = s.sales_order_id
              JOIN   parties p ON p.id = so.customer_id
              JOIN   warehouses w ON w.id = s.warehouse_id
-             ORDER  BY s.created_at DESC`
+             ORDER  BY s.created_at DESC
+             LIMIT $1 OFFSET $2`,
+            [limit, offset]
         );
-        res.json(rows);
+        res.json(paginate(rows, parseInt(count, 10), page, limit));
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -406,10 +421,8 @@ router.get('/shipments/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.post('/shipments', async (req, res) => {
-    const { sales_order_id, ship_date, carrier, tracking_number, notes, lines = [], created_by } = req.body;
-    if (!sales_order_id) return res.status(400).json({ error: 'sales_order_id required' });
-    if (!lines.length)   return res.status(400).json({ error: 'At least one line required' });
+router.post('/shipments', validate(CreateShipmentSchema), async (req, res) => {
+    const { sales_order_id, ship_date, carrier, tracking_number, notes, lines, created_by } = req.body;
 
     const client = await pool.connect();
     try {
@@ -594,17 +607,21 @@ router.post('/shipments/:id/post', async (req, res) => {
 
 // ── Invoices ──────────────────────────────────────────────────────────────────
 
-router.get('/invoices', async (_req, res) => {
+router.get('/invoices', async (req, res) => {
     try {
+        const { page, limit, offset } = parsePage(req.query);
+        const { rows: [{ count }] } = await query(`SELECT COUNT(*) FROM sales_invoices`);
         const { rows } = await query(
             `SELECT si.*, p.name AS customer_name, p.code AS customer_code,
                     so.number AS order_number
              FROM   sales_invoices si
              JOIN   parties p ON p.id = si.customer_id
              LEFT JOIN sales_orders so ON so.id = si.sales_order_id
-             ORDER  BY si.invoice_date DESC`
+             ORDER  BY si.invoice_date DESC
+             LIMIT $1 OFFSET $2`,
+            [limit, offset]
         );
-        res.json(rows);
+        res.json(paginate(rows, parseInt(count, 10), page, limit));
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -644,10 +661,9 @@ router.post('/invoices/:id/send', async (req, res) => {
 
 // ── AR Payments ───────────────────────────────────────────────────────────────
 
-router.post('/payments', async (req, res) => {
-    const { customer_id, payment_date, amount, method = 'check',
-            reference_number, notes, applications = [] } = req.body;
-    if (!customer_id || !amount) return res.status(400).json({ error: 'customer_id and amount required' });
+router.post('/payments', validate(CreatePaymentSchema), async (req, res) => {
+    const { customer_id, payment_date, amount, method,
+            reference_number, notes, applications } = req.body;
 
     const totalApplied = applications.reduce((s, a) => s + parseFloat(a.amount_applied || 0), 0);
     if (totalApplied > parseFloat(amount))
