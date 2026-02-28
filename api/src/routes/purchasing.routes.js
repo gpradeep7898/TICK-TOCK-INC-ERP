@@ -8,7 +8,7 @@ const { query, pool }         = require('../db/pool');
 const { validate }            = require('../middleware/validate');
 const { parsePage, paginate } = require('../lib/pagination');
 const {
-    CreateVendorSchema, CreatePOSchema, CreateReceiptSchema,
+    CreateVendorSchema, PatchVendorSchema, CreatePOSchema, CreateReceiptSchema,
     CreateVendorInvoiceSchema, CreateAPPaymentSchema,
 } = require('../lib/schemas');
 
@@ -92,22 +92,48 @@ router.get('/vendors/:id', async (req, res) => {
 });
 
 router.post('/vendors', validate(CreateVendorSchema), async (req, res) => {
-    const { code, name, email, phone, billing_address,
-            payment_terms_days, currency, notes } = req.body;
+    const { code, name, contact_name, email, phone, fax, website,
+            billing_address, city, state_province, postal_code, country,
+            payment_terms_days, payment_terms_label, lead_time_days,
+            currency, notes } = req.body;
     try {
         const { rows } = await query(
-            `INSERT INTO parties (type,code,name,email,phone,billing_address,
-                                  payment_terms_days,currency,notes)
-             VALUES ('vendor',$1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-            [code, name, email, phone,
+            `INSERT INTO parties
+                (type,code,name,contact_name,email,phone,fax,website,billing_address,
+                 city,state_province,postal_code,country,
+                 payment_terms_days,payment_terms_label,lead_time_days,currency,notes)
+             VALUES ('vendor',$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+             RETURNING *`,
+            [code, name, contact_name || null, email || null, phone || null, fax || null, website || null,
              billing_address ? JSON.stringify(billing_address) : null,
-             payment_terms_days, currency, notes]
+             city || null, state_province || null, postal_code || null, country || 'US',
+             payment_terms_days, payment_terms_label || 'NET30', lead_time_days || 0,
+             currency, notes || null]
         );
         res.status(201).json(rows[0]);
     } catch (err) {
         if (err.code === '23505') return res.status(409).json({ error: 'Vendor code already exists' });
         res.status(500).json({ error: err.message });
     }
+});
+
+router.patch('/vendors/:id', validate(PatchVendorSchema), async (req, res) => {
+    const fields = Object.keys(req.body).filter(k => req.body[k] !== undefined);
+    if (!fields.length) return res.status(400).json({ error: 'No valid fields' });
+    const sets   = fields.map((f, i) => `${f} = $${i + 2}`).join(', ');
+    const values = fields.map(f => {
+        const v = req.body[f];
+        return f === 'billing_address' && typeof v === 'object' ? JSON.stringify(v) : v;
+    });
+    try {
+        const { rows } = await query(
+            `UPDATE parties SET ${sets}, updated_at = NOW()
+             WHERE id = $1 AND type IN ('vendor','both') RETURNING *`,
+            [req.params.id, ...values]
+        );
+        if (!rows.length) return res.status(404).json({ error: 'Vendor not found' });
+        res.json(rows[0]);
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // ── Vendors AP aging ──────────────────────────────────────────────────────────
@@ -361,21 +387,55 @@ router.post('/receipts', validate(CreateReceiptSchema), async (req, res) => {
         );
 
         for (const line of lines) {
-            const { purchase_order_line_id, qty_received, actual_cost } = line;
+            const { purchase_order_line_id, qty_received, actual_cost,
+                    discrepancy_reason, allow_over_receipt } = line;
             const { rows: [pol] } = await client.query(
                 `SELECT * FROM purchase_order_lines WHERE id = $1`, [purchase_order_line_id]
             );
             if (!pol) throw new Error(`PO line ${purchase_order_line_id} not found`);
-            if (parseFloat(qty_received) > parseFloat(pol.qty_remaining))
-                throw new Error(`Cannot receive ${qty_received} — only ${pol.qty_remaining} remaining on line ${pol.line_number}`);
+
+            const qtyRemaining  = parseFloat(pol.qty_remaining);
+            const qtyRcv        = parseFloat(qty_received);
+            const isOverReceipt = qtyRcv > qtyRemaining;
+
+            if (isOverReceipt && !allow_over_receipt) {
+                throw Object.assign(
+                    new Error(`Over-receipt on line ${pol.line_number}: ordered ${pol.qty_ordered}, remaining ${qtyRemaining}, receiving ${qtyRcv}. Pass allow_over_receipt=true to proceed.`),
+                    { status: 400 }
+                );
+            }
+
+            const discPct = qtyRemaining > 0
+                ? ((qtyRcv - qtyRemaining) / qtyRemaining * 100).toFixed(4)
+                : null;
 
             await client.query(
                 `INSERT INTO purchase_receipt_lines
-                    (receipt_id, purchase_order_line_id, item_id, qty_received, actual_cost)
-                 VALUES ($1,$2,$3,$4,$5)`,
+                    (receipt_id, purchase_order_line_id, item_id, qty_received, actual_cost,
+                     qty_ordered_at_time, over_receipt_flag, discrepancy_reason, discrepancy_pct)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
                 [rcv.id, purchase_order_line_id, pol.item_id,
-                 qty_received, actual_cost != null ? actual_cost : pol.unit_cost]
+                 qty_received, actual_cost != null ? actual_cost : pol.unit_cost,
+                 pol.qty_remaining, isOverReceipt,
+                 discrepancy_reason || null, discPct]
             );
+
+            // Audit discrepancies
+            if (Math.abs(qtyRcv - qtyRemaining) > 0.0001) {
+                await client.query(
+                    `INSERT INTO audit_log (action, table_name, record_id, new_values)
+                     VALUES ('receiving_discrepancy','purchase_receipt_lines',$1,$2)`,
+                    [rcv.id, JSON.stringify({
+                        po_line: pol.line_number,
+                        item_id: pol.item_id,
+                        qty_ordered: pol.qty_remaining,
+                        qty_received: qtyRcv,
+                        over_receipt: isOverReceipt,
+                        discrepancy_reason: discrepancy_reason || null,
+                        discrepancy_pct: discPct
+                    })]
+                );
+            }
         }
 
         await client.query('COMMIT');

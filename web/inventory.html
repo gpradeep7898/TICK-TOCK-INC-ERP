@@ -474,6 +474,15 @@ td .cell-sub{font-size:11px;color:var(--text2);margin-top:1px}
       </button>
     </div>
     <div class="nav-section">
+      <div class="nav-label">Master Data</div>
+      <button class="nav-item" onclick="showPage('customers')">
+        <span class="ni">🏢</span> Customers
+      </button>
+      <button class="nav-item" onclick="showPage('vendors')">
+        <span class="ni">🏭</span> Vendors
+      </button>
+    </div>
+    <div class="nav-section">
       <div class="nav-label">Operations</div>
       <a class="nav-item" href="/sales">
         <span class="ni">🛒</span> Sales Orders
@@ -484,6 +493,22 @@ td .cell-sub{font-size:11px;color:var(--text2);margin-top:1px}
       <a class="nav-item" href="/financials">
         <span class="ni">💰</span> Financials
       </a>
+      <button class="nav-item" onclick="showPage('backorders')">
+        <span class="ni">🔄</span> Backorders
+        <span class="nav-badge" id="backorderNavBadge" style="display:none">0</span>
+      </button>
+      <button class="nav-item" onclick="showPage('transfers')">
+        <span class="ni">↔️</span> Transfers
+      </button>
+      <button class="nav-item" onclick="showPage('picklists')">
+        <span class="ni">✅</span> Pick Lists
+      </button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Reports</div>
+      <button class="nav-item" onclick="showPage('reports')">
+        <span class="ni">📈</span> Reports
+      </button>
     </div>
   </nav>
   <div class="sidebar-footer">
@@ -733,6 +758,203 @@ td .cell-sub{font-size:11px;color:var(--text2);margin-top:1px}
           <button class="btn btn-ghost btn-sm" onclick="clearScanHistory()">Clear</button>
         </div>
         <div class="card-body" id="barcodeHistory" style="padding:0"></div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: Customers ══════════════════════════════════ -->
+    <div id="page-customers" class="page">
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="custSearch" placeholder="Search customers…" oninput="filterCustomers()"/>
+        </div>
+        <button class="btn btn-primary" onclick="alert('Customer creation: use the Sales module.')">+ New Customer</button>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Customers</div>
+          <span id="custCount" style="font-size:12px;color:var(--text2)"></span>
+        </div>
+        <div class="card-body">
+          <div class="tbl-wrap">
+            <table id="custTable">
+              <thead><tr><th>Code</th><th>Name</th><th>Contact</th><th>Email</th><th>Phone</th><th>Terms</th><th>AR Balance</th><th>Status</th></tr></thead>
+              <tbody id="custBody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="custPagination"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: Vendors ═════════════════════════════════════ -->
+    <div id="page-vendors" class="page">
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="vendSearch" placeholder="Search vendors…" oninput="filterVendors()"/>
+        </div>
+        <button class="btn btn-primary" onclick="alert('Vendor creation: use the Purchasing module.')">+ New Vendor</button>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Vendors</div>
+          <span id="vendCount" style="font-size:12px;color:var(--text2)"></span>
+        </div>
+        <div class="card-body">
+          <div class="tbl-wrap">
+            <table id="vendTable">
+              <thead><tr><th>Code</th><th>Name</th><th>Contact</th><th>Email</th><th>Lead Time</th><th>Terms</th><th>AP Balance</th><th>Status</th></tr></thead>
+              <tbody id="vendBody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="vendPagination"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: Backorders ══════════════════════════════════ -->
+    <div id="page-backorders" class="page">
+      <div class="toolbar">
+        <select class="filter-select" id="backorderStatusFilter" onchange="loadBackorders()">
+          <option value="">All Open</option>
+          <option value="open">Open</option>
+          <option value="partial">Partial</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="loadBackorders()">⟳ Refresh</button>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🔄 Open Backorders</div>
+          <span id="backorderCount" style="font-size:12px;color:var(--text2)"></span>
+        </div>
+        <div class="card-body">
+          <div class="tbl-wrap">
+            <table id="backorderTable">
+              <thead><tr><th>Order #</th><th>Customer</th><th>Item</th><th>Warehouse</th><th style="text-align:right">Backordered</th><th style="text-align:right">Remaining</th><th>Status</th><th>Created</th></tr></thead>
+              <tbody id="backorderBody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="backorderPagination"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: Transfers ═══════════════════════════════════ -->
+    <div id="page-transfers" class="page">
+      <div class="toolbar">
+        <select class="filter-select" id="transferStatusFilter" onchange="loadTransfers()">
+          <option value="">All Statuses</option>
+          <option value="draft">Draft</option>
+          <option value="posted">Posted</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <button class="btn btn-primary" onclick="openTransferModal()">+ New Transfer</button>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">↔️ Stock Transfers</div>
+          <span id="transferCount" style="font-size:12px;color:var(--text2)"></span>
+        </div>
+        <div class="card-body">
+          <div class="tbl-wrap">
+            <table id="transferTable">
+              <thead><tr><th>Number</th><th>Date</th><th>From</th><th>To</th><th>Lines</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="transferBody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="transferPagination"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: Pick Lists ══════════════════════════════════ -->
+    <div id="page-picklists" class="page">
+      <div class="toolbar">
+        <select class="filter-select" id="plStatusFilter" onchange="loadPickLists()">
+          <option value="">All Statuses</option>
+          <option value="open">Open</option>
+          <option value="in_progress">In Progress</option>
+          <option value="completed">Completed</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="loadPickLists()">⟳ Refresh</button>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">✅ Pick Lists</div>
+          <span id="plCount" style="font-size:12px;color:var(--text2)"></span>
+        </div>
+        <div class="card-body">
+          <div class="tbl-wrap">
+            <table id="plTable">
+              <thead><tr><th>Number</th><th>Order #</th><th>Customer</th><th>Warehouse</th><th>Lines</th><th>Picked</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="plBody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="plPagination"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: Reports ═════════════════════════════════════ -->
+    <div id="page-reports" class="page">
+      <div class="kpi-grid" id="reportKpiGrid" style="margin-bottom:24px"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" id="reportCards">
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📦 Inventory Valuation</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost btn-sm" onclick="loadInventoryValuation()">⟳ Refresh</button>
+              <a id="invValCSV" class="btn btn-ghost btn-sm" href="/api/reports/inventory-valuation?format=csv" download>⬇ CSV</a>
+            </div>
+          </div>
+          <div class="card-body" id="invValBody">
+            <div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-title">Click Refresh to load</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📊 Stock Summary by Warehouse</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost btn-sm" onclick="loadStockSummary()">⟳ Refresh</button>
+              <a class="btn btn-ghost btn-sm" href="/api/reports/stock-summary?format=csv" download>⬇ CSV</a>
+            </div>
+          </div>
+          <div class="card-body" id="stockSummaryBody">
+            <div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-title">Click Refresh to load</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🔄 Stock Movement</div>
+            <div style="display:flex;gap:8px">
+              <input type="date" id="movFromDate" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px">
+              <input type="date" id="movToDate" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px">
+              <button class="btn btn-ghost btn-sm" onclick="loadStockMovement()">⟳ Load</button>
+              <a id="movCSV" class="btn btn-ghost btn-sm" href="/api/reports/stock-movement?format=csv" download>⬇ CSV</a>
+            </div>
+          </div>
+          <div class="card-body" id="stockMovBody">
+            <div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Select date range and click Load</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">⚠️ Reorder Recommendations</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost btn-sm" onclick="loadReorderReport()">⟳ Refresh</button>
+              <a class="btn btn-ghost btn-sm" href="/api/reports/reorder-recommendations?format=csv" download>⬇ CSV</a>
+            </div>
+          </div>
+          <div class="card-body" id="reorderReportBody">
+            <div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-title">Click Refresh to load</div></div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -1037,6 +1259,12 @@ const PAGE_TITLES = {
   reorder:     'Reorder Alerts',
   adjustments: 'Adjustments',
   barcode:     'Barcode Lookup',
+  customers:   'Customers',
+  vendors:     'Vendors',
+  backorders:  'Backorders',
+  transfers:   'Stock Transfers',
+  picklists:   'Pick Lists',
+  reports:     'Reports',
 };
 const PAGE_LOADERS = {
   dashboard:   loadDashboard,
@@ -1044,6 +1272,12 @@ const PAGE_LOADERS = {
   stock:       loadStock,
   reorder:     loadReorderAlerts,
   adjustments: loadAdjustments,
+  customers:   loadCustomers,
+  vendors:     loadVendors,
+  backorders:  loadBackorders,
+  transfers:   loadTransfers,
+  picklists:   loadPickLists,
+  reports:     loadReports,
 };
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -2146,6 +2380,395 @@ function renderScanHistory() {
       <div style="font-size:11px;color:var(--text3);flex-shrink:0">${s.time.toLocaleTimeString()}</div>
     </div>
   `).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+//  CUSTOMERS
+// ══════════════════════════════════════════════════════════
+let _allCustomers = [], _custPage = 1;
+const CUST_PER_PAGE = 20;
+
+async function loadCustomers() {
+  const body = document.getElementById('custBody');
+  body.innerHTML = skeletonRows(8);
+  try {
+    const res  = await apiFetch('/api/customers?limit=200');
+    if (!res) return;
+    const data = await res.json();
+    _allCustomers = Array.isArray(data) ? data : (data.data || []);
+    _custPage = 1;
+    renderCustomers();
+  } catch(e) { toast('error', 'Load Failed', e.message); }
+}
+
+function filterCustomers() {
+  const q = (document.getElementById('custSearch')?.value || '').toLowerCase();
+  _custPage = 1;
+  renderCustomers(q);
+}
+
+function renderCustomers(q = '') {
+  const filtered = q ? _allCustomers.filter(c =>
+    (c.code||'').toLowerCase().includes(q) ||
+    (c.name||'').toLowerCase().includes(q) ||
+    (c.email||'').toLowerCase().includes(q) ||
+    (c.contact_name||'').toLowerCase().includes(q)
+  ) : _allCustomers;
+
+  const start   = (_custPage - 1) * CUST_PER_PAGE;
+  const slice   = filtered.slice(start, start + CUST_PER_PAGE);
+
+  document.getElementById('custCount').textContent = `${filtered.length} customers`;
+  document.getElementById('custBody').innerHTML = slice.length ? slice.map(c => `
+    <tr>
+      <td><span class="badge badge-blue">${escHtml(c.code)}</span></td>
+      <td style="font-weight:600">${escHtml(c.name)}</td>
+      <td>${escHtml(c.contact_name||'—')}</td>
+      <td>${escHtml(c.email||'—')}</td>
+      <td>${escHtml(c.phone||'—')}</td>
+      <td><span class="badge">${escHtml(c.payment_terms_label||c.payment_terms_days+'d')}</span></td>
+      <td style="text-align:right;font-weight:600;color:${parseFloat(c.ar_balance||0)>0?'var(--red)':'var(--text1)'}">${fmtMoney(c.ar_balance||0)}</td>
+      <td>${c.is_active!==false ? '<span class="badge badge-green">Active</span>' : '<span class="badge">Inactive</span>'}</td>
+    </tr>`).join('') :
+    `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text3)">No customers found</td></tr>`;
+
+  buildPagination('custPagination', _custPage, filtered.length, CUST_PER_PAGE, p => { _custPage=p; renderCustomers(q); });
+}
+
+// ══════════════════════════════════════════════════════════
+//  VENDORS
+// ══════════════════════════════════════════════════════════
+let _allVendors = [], _vendPage = 1;
+const VEND_PER_PAGE = 20;
+
+async function loadVendors() {
+  const body = document.getElementById('vendBody');
+  body.innerHTML = skeletonRows(8);
+  try {
+    const res  = await apiFetch('/api/vendors?limit=200');
+    if (!res) return;
+    const data = await res.json();
+    _allVendors = Array.isArray(data) ? data : (data.data || []);
+    _vendPage = 1;
+    renderVendors();
+  } catch(e) { toast('error', 'Load Failed', e.message); }
+}
+
+function filterVendors() {
+  const q = (document.getElementById('vendSearch')?.value || '').toLowerCase();
+  _vendPage = 1;
+  renderVendors(q);
+}
+
+function renderVendors(q = '') {
+  const filtered = q ? _allVendors.filter(v =>
+    (v.code||'').toLowerCase().includes(q) ||
+    (v.name||'').toLowerCase().includes(q) ||
+    (v.email||'').toLowerCase().includes(q) ||
+    (v.contact_name||'').toLowerCase().includes(q)
+  ) : _allVendors;
+
+  const start = (_vendPage - 1) * VEND_PER_PAGE;
+  const slice = filtered.slice(start, start + VEND_PER_PAGE);
+
+  document.getElementById('vendCount').textContent = `${filtered.length} vendors`;
+  document.getElementById('vendBody').innerHTML = slice.length ? slice.map(v => `
+    <tr>
+      <td><span class="badge badge-blue">${escHtml(v.code)}</span></td>
+      <td style="font-weight:600">${escHtml(v.name)}</td>
+      <td>${escHtml(v.contact_name||'—')}</td>
+      <td>${escHtml(v.email||'—')}</td>
+      <td style="text-align:right">${escHtml(String(v.lead_time_days||0))} days</td>
+      <td><span class="badge">${escHtml(v.payment_terms_label||v.payment_terms_days+'d')}</span></td>
+      <td style="text-align:right;font-weight:600;color:${parseFloat(v.ap_balance||0)>0?'var(--red)':'var(--text1)'}">${fmtMoney(v.ap_balance||0)}</td>
+      <td>${v.is_active!==false ? '<span class="badge badge-green">Active</span>' : '<span class="badge">Inactive</span>'}</td>
+    </tr>`).join('') :
+    `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text3)">No vendors found</td></tr>`;
+
+  buildPagination('vendPagination', _vendPage, filtered.length, VEND_PER_PAGE, p => { _vendPage=p; renderVendors(q); });
+}
+
+// ══════════════════════════════════════════════════════════
+//  BACKORDERS
+// ══════════════════════════════════════════════════════════
+let _boPage = 1, _boTotal = 0;
+const BO_PER_PAGE = 20;
+
+async function loadBackorders() {
+  const body = document.getElementById('backorderBody');
+  body.innerHTML = skeletonRows(8);
+  const status = document.getElementById('backorderStatusFilter')?.value || '';
+  const qs = new URLSearchParams({ limit: BO_PER_PAGE, page: _boPage });
+  if (status) qs.set('status', status);
+  try {
+    const res  = await apiFetch(`/api/backorders?${qs}`);
+    if (!res) return;
+    const data = await res.json();
+    const rows = Array.isArray(data) ? data : (data.data || []);
+    _boTotal = data.meta?.total || rows.length;
+
+    // Update badge
+    const badge = document.getElementById('backorderNavBadge');
+    if (badge && _boTotal > 0) { badge.textContent = _boTotal; badge.style.display = ''; }
+    else if (badge) badge.style.display = 'none';
+
+    document.getElementById('backorderCount').textContent = `${_boTotal} backorders`;
+    document.getElementById('backorderBody').innerHTML = rows.length ? rows.map(b => `
+      <tr>
+        <td><a href="/sales" style="font-weight:600;color:var(--blue)">${escHtml(b.order_number)}</a></td>
+        <td>${escHtml(b.customer_name)}</td>
+        <td>${escHtml(b.item_name)} <span style="color:var(--text3);font-size:11px">${escHtml(b.item_code)}</span></td>
+        <td>${escHtml(b.warehouse_code)}</td>
+        <td style="text-align:right;font-weight:600">${fmtNum(b.qty_backordered)}</td>
+        <td style="text-align:right;font-weight:600;color:var(--red)">${fmtNum(b.qty_remaining)}</td>
+        <td>${statusBadge(b.status)}</td>
+        <td style="color:var(--text2)">${fmtDateShort(b.created_at)}</td>
+      </tr>`).join('') :
+      `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text3)">No open backorders</td></tr>`;
+
+    buildPagination('backorderPagination', _boPage, _boTotal, BO_PER_PAGE, p => { _boPage=p; loadBackorders(); });
+  } catch(e) { toast('error', 'Load Failed', e.message); }
+}
+
+// ══════════════════════════════════════════════════════════
+//  TRANSFERS
+// ══════════════════════════════════════════════════════════
+let _trPage = 1, _trTotal = 0;
+const TR_PER_PAGE = 20;
+
+async function loadTransfers() {
+  const body = document.getElementById('transferBody');
+  body.innerHTML = skeletonRows(7);
+  const status = document.getElementById('transferStatusFilter')?.value || '';
+  const qs = new URLSearchParams({ limit: TR_PER_PAGE, page: _trPage });
+  if (status) qs.set('status', status);
+  try {
+    const res  = await apiFetch(`/api/transfers?${qs}`);
+    if (!res) return;
+    const data = await res.json();
+    const rows = Array.isArray(data) ? data : (data.data || []);
+    _trTotal = data.meta?.total || rows.length;
+
+    document.getElementById('transferCount').textContent = `${_trTotal} transfers`;
+    document.getElementById('transferBody').innerHTML = rows.length ? rows.map(t => `
+      <tr>
+        <td style="font-weight:600">${escHtml(t.number)}</td>
+        <td>${fmtDateShort(t.transfer_date)}</td>
+        <td><span class="badge">${escHtml(t.from_warehouse_code)}</span></td>
+        <td><span class="badge badge-blue">${escHtml(t.to_warehouse_code)}</span></td>
+        <td style="text-align:right">${escHtml(String(t.line_count||0))}</td>
+        <td>${statusBadge(t.status)}</td>
+        <td>
+          ${t.status==='draft' ? `<button class="btn btn-ghost btn-sm" onclick="postTransfer('${t.id}',this)">✓ Post</button>` : ''}
+        </td>
+      </tr>`).join('') :
+      `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text3)">No transfers found</td></tr>`;
+
+    buildPagination('transferPagination', _trPage, _trTotal, TR_PER_PAGE, p => { _trPage=p; loadTransfers(); });
+  } catch(e) { toast('error', 'Load Failed', e.message); }
+}
+
+async function postTransfer(id, btn) {
+  if (!confirm('Post this transfer? Stock will be moved immediately.')) return;
+  btn.disabled = true; btn.textContent = 'Posting…';
+  try {
+    const res  = await apiFetch(`/api/transfers/${id}/post`, { method: 'POST', body: JSON.stringify({}) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || data.message || 'Failed');
+    toast('success', 'Transfer Posted', `Stock moved successfully.`);
+    loadTransfers();
+  } catch(e) {
+    toast('error', 'Post Failed', e.message);
+    btn.disabled = false; btn.textContent = '✓ Post';
+  }
+}
+
+function openTransferModal() {
+  toast('info', 'Coming Soon', 'Transfer creation UI — use the API directly for now.');
+}
+
+// ══════════════════════════════════════════════════════════
+//  PICK LISTS
+// ══════════════════════════════════════════════════════════
+let _plPage = 1, _plTotal = 0;
+const PL_PER_PAGE = 20;
+
+async function loadPickLists() {
+  const body = document.getElementById('plBody');
+  body.innerHTML = skeletonRows(8);
+  const status = document.getElementById('plStatusFilter')?.value || '';
+  const qs = new URLSearchParams({ limit: PL_PER_PAGE, page: _plPage });
+  if (status) qs.set('status', status);
+  try {
+    const res  = await apiFetch(`/api/picklists?${qs}`);
+    if (!res) return;
+    const data = await res.json();
+    const rows = Array.isArray(data) ? data : (data.data || []);
+    _plTotal = data.meta?.total || rows.length;
+
+    document.getElementById('plCount').textContent = `${_plTotal} pick lists`;
+    document.getElementById('plBody').innerHTML = rows.length ? rows.map(p => `
+      <tr>
+        <td style="font-weight:600">${escHtml(p.number)}</td>
+        <td><a href="/sales" style="color:var(--blue)">${escHtml(p.order_number)}</a></td>
+        <td>${escHtml(p.customer_name)}</td>
+        <td>${escHtml(p.warehouse_code)}</td>
+        <td style="text-align:right">${escHtml(String(p.line_count||0))}</td>
+        <td style="text-align:right">${escHtml(String(p.lines_picked||0))}</td>
+        <td>${statusBadge(p.status)}</td>
+        <td>
+          <a href="/api/picklists/${p.id}/print?format=html" target="_blank" class="btn btn-ghost btn-sm">🖨 Print</a>
+        </td>
+      </tr>`).join('') :
+      `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text3)">No pick lists found</td></tr>`;
+
+    buildPagination('plPagination', _plPage, _plTotal, PL_PER_PAGE, p => { _plPage=p; loadPickLists(); });
+  } catch(e) { toast('error', 'Load Failed', e.message); }
+}
+
+// ══════════════════════════════════════════════════════════
+//  REPORTS
+// ══════════════════════════════════════════════════════════
+async function loadReports() {
+  await Promise.all([loadInventoryValuation(), loadStockSummary(), loadReorderReport()]);
+}
+
+async function loadInventoryValuation() {
+  const el = document.getElementById('invValBody');
+  el.innerHTML = '<div class="empty-state"><div class="empty-icon" style="font-size:24px">⏳</div><div class="empty-title">Loading…</div></div>';
+  try {
+    const res  = await apiFetch('/api/reports/inventory-valuation');
+    if (!res) return;
+    const data = await res.json();
+    const rows = data.data?.rows || data.rows || [];
+    const total = data.data?.grand_total || 0;
+    if (!rows.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">No inventory data</div></div>'; return; }
+    el.innerHTML = `
+      <div style="font-size:20px;font-weight:700;color:var(--green);margin-bottom:16px">Total: ${fmtMoney(total)}</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>SKU</th><th>Item</th><th>Category</th><th style="text-align:right">On Hand</th><th style="text-align:right">Cost</th><th style="text-align:right">Value</th></tr></thead>
+          <tbody>${rows.slice(0,20).map(r=>`
+            <tr>
+              <td><span class="badge badge-blue">${escHtml(r.item_code)}</span></td>
+              <td>${escHtml(r.item_name)}</td>
+              <td>${escHtml(r.category||'—')}</td>
+              <td style="text-align:right">${fmtNum(r.total_qty_on_hand)}</td>
+              <td style="text-align:right">${fmtMoney(r.standard_cost)}</td>
+              <td style="text-align:right;font-weight:600">${fmtMoney(r.total_value)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      ${rows.length > 20 ? `<div style="text-align:center;padding:12px;color:var(--text2);font-size:12px">Showing top 20 of ${rows.length}. Download CSV for full report.</div>` : ''}`;
+  } catch(e) { el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${escHtml(e.message)}</div></div>`; }
+}
+
+async function loadStockSummary() {
+  const el = document.getElementById('stockSummaryBody');
+  el.innerHTML = '<div class="empty-state"><div class="empty-icon" style="font-size:24px">⏳</div><div class="empty-title">Loading…</div></div>';
+  try {
+    const res  = await apiFetch('/api/reports/stock-summary');
+    if (!res) return;
+    const data = await res.json();
+    const rows = data.data?.by_warehouse || [];
+    if (!rows.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">🏭</div><div class="empty-title">No warehouse data</div></div>'; return; }
+    el.innerHTML = `
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Warehouse</th><th style="text-align:right">Items</th><th style="text-align:right">Total Qty</th><th style="text-align:right">Available</th><th style="text-align:right">Value</th></tr></thead>
+          <tbody>${rows.map(r=>`
+            <tr>
+              <td><strong>${escHtml(r.warehouse_name)}</strong> <span style="color:var(--text3)">(${escHtml(r.warehouse_code)})</span></td>
+              <td style="text-align:right">${escHtml(String(r.item_count||0))}</td>
+              <td style="text-align:right">${fmtNum(r.total_qty||0)}</td>
+              <td style="text-align:right">${fmtNum(r.qty_available||0)}</td>
+              <td style="text-align:right;font-weight:600">${fmtMoney(r.total_value||0)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch(e) { el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${escHtml(e.message)}</div></div>`; }
+}
+
+async function loadStockMovement() {
+  const el = document.getElementById('stockMovBody');
+  const from = document.getElementById('movFromDate')?.value;
+  const to   = document.getElementById('movToDate')?.value;
+  el.innerHTML = '<div class="empty-state"><div class="empty-icon" style="font-size:24px">⏳</div><div class="empty-title">Loading…</div></div>';
+  const qs = new URLSearchParams({ limit: 50 });
+  if (from) qs.set('from_date', from);
+  if (to)   qs.set('to_date', to);
+  const csvHref = `/api/reports/stock-movement?format=csv${from?'&from_date='+from:''}${to?'&to_date='+to:''}`;
+  const csvLink = document.getElementById('movCSV');
+  if (csvLink) csvLink.href = csvHref;
+  try {
+    const res  = await apiFetch(`/api/reports/stock-movement?${qs}`);
+    if (!res) return;
+    const data = await res.json();
+    const rows = Array.isArray(data) ? data : (data.data || []);
+    if (!rows.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No movements found</div></div>'; return; }
+    el.innerHTML = `
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Type</th><th>Item</th><th>Warehouse</th><th style="text-align:right">Qty</th><th style="text-align:right">Value</th></tr></thead>
+          <tbody>${rows.map(r=>`
+            <tr>
+              <td>${fmtDateShort(r.posting_date)}</td>
+              <td><span class="badge ${r.qty>0?'badge-green':'badge-red'}">${escHtml(r.transaction_type)}</span></td>
+              <td>${escHtml(r.item_name)} <span style="color:var(--text3);font-size:11px">${escHtml(r.item_code)}</span></td>
+              <td>${escHtml(r.warehouse_code)}</td>
+              <td style="text-align:right;font-weight:600;color:${parseFloat(r.qty)>=0?'var(--green)':'var(--red)'}">${parseFloat(r.qty)>0?'+':''}${fmtNum(r.qty)}</td>
+              <td style="text-align:right">${fmtMoney(r.line_value||0)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch(e) { el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${escHtml(e.message)}</div></div>`; }
+}
+
+async function loadReorderReport() {
+  const el = document.getElementById('reorderReportBody');
+  el.innerHTML = '<div class="empty-state"><div class="empty-icon" style="font-size:24px">⏳</div><div class="empty-title">Loading…</div></div>';
+  try {
+    const res  = await apiFetch('/api/reports/reorder-recommendations');
+    if (!res) return;
+    const data = await res.json();
+    const rows = data.data || data || [];
+    if (!rows.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">No items need reordering</div></div>'; return; }
+    el.innerHTML = `
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>SKU</th><th>Item</th><th style="text-align:right">Available</th><th style="text-align:right">Reorder Pt.</th><th style="text-align:right">Reorder Qty</th><th>Vendor</th></tr></thead>
+          <tbody>${rows.map(r=>`
+            <tr>
+              <td><span class="badge badge-yellow">${escHtml(r.item_code)}</span></td>
+              <td>${escHtml(r.item_name)}</td>
+              <td style="text-align:right;color:var(--red);font-weight:600">${fmtNum(r.qty_available||0)}</td>
+              <td style="text-align:right">${fmtNum(r.reorder_point||0)}</td>
+              <td style="text-align:right">${fmtNum(r.reorder_qty||0)}</td>
+              <td>${escHtml(r.preferred_vendor_name||'—')}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch(e) { el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${escHtml(e.message)}</div></div>`; }
+}
+
+// ── Status / date helpers ──────────────────────────────────
+function statusBadge(s) {
+  const map = {
+    open: 'badge-blue', in_progress: 'badge-yellow', posted: 'badge-green',
+    completed: 'badge-green', draft: '', cancelled: 'badge-red',
+    partial: 'badge-yellow', fulfilled: 'badge-green'
+  };
+  return `<span class="badge ${map[s]||''}">${escHtml((s||'').replace(/_/g,' '))}</span>`;
+}
+
+function fmtDateShort(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  return `${dt.getMonth()+1}/${dt.getDate()}/${dt.getFullYear()}`;
 }
 </script>
 </body>

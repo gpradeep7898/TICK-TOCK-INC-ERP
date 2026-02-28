@@ -31,6 +31,9 @@ const printRouter       = require('./routes/print.routes');
 const financialsRouter  = require('./routes/financials.routes');
 const dashboardRouter   = require('./routes/dashboard.routes');
 const companiesRouter   = require('./modules/companies/companies.routes');
+const reportsRouter     = require('./routes/reports.routes');
+const transfersRouter   = require('./routes/transfers.routes');
+const pickListsRouter   = require('./routes/picklists.routes');
 
 // ─── App setup ────────────────────────────────────────────────────────────────
 const app = express();
@@ -106,6 +109,9 @@ app.use('/api/migration',           migrationRouter);
 app.use('/api/print',               printRouter);
 app.use('/api/financials',          financialsRouter);
 app.use('/api/dashboard',           dashboardRouter);
+app.use('/api/reports',             reportsRouter);
+app.use('/api/transfers',           transfersRouter);
+app.use('/api/picklists',           pickListsRouter);
 
 // ─── Error handling ───────────────────────────────────────────────────────────
 app.use(errorHandler);

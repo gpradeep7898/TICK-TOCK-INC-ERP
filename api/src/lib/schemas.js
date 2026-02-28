@@ -89,14 +89,24 @@ const AddressSchema = z.object({
     country:z.string().optional(),
 }).optional();
 
+const PaymentTermsLabel = z.enum(['NET15','NET30','NET45','NET60','NET90','COD','PREPAID','DUE_ON_RECEIPT']).default('NET30');
+
 const CreateCustomerSchema = z.object({
     code:                    z.string().trim().min(1),
     name:                    z.string().trim().min(1),
+    contact_name:            z.string().trim().optional(),
     email:                   Email.optional(),
     phone:                   z.string().trim().optional(),
+    fax:                     z.string().trim().optional(),
+    website:                 z.string().trim().optional(),
     billing_address:         AddressSchema,
     shipping_address:        AddressSchema,
+    city:                    z.string().trim().optional(),
+    state_province:          z.string().trim().optional(),
+    postal_code:             z.string().trim().optional(),
+    country:                 z.string().trim().default('US'),
     payment_terms_days:      PosInt.default(30),
+    payment_terms_label:     PaymentTermsLabel,
     credit_limit:            PosNum.default(0),
     currency:                z.string().length(3).default('USD'),
     notes:                   z.string().trim().optional(),
@@ -109,11 +119,19 @@ const CreateCustomerSchema = z.object({
 
 const PatchCustomerSchema = z.object({
     name:                   z.string().trim().min(1).optional(),
+    contact_name:           z.string().trim().optional(),
     email:                  Email.optional(),
     phone:                  z.string().trim().optional(),
+    fax:                    z.string().trim().optional(),
+    website:                z.string().trim().optional(),
     billing_address:        AddressSchema,
     shipping_address:       AddressSchema,
+    city:                   z.string().trim().optional(),
+    state_province:         z.string().trim().optional(),
+    postal_code:            z.string().trim().optional(),
+    country:                z.string().trim().optional(),
     payment_terms_days:     PosInt.optional(),
+    payment_terms_label:    z.enum(['NET15','NET30','NET45','NET60','NET90','COD','PREPAID','DUE_ON_RECEIPT']).optional(),
     credit_limit:           PosNum.optional(),
     currency:               z.string().length(3).optional(),
     notes:                  z.string().trim().optional(),
@@ -185,15 +203,45 @@ const CreatePaymentSchema = z.object({
 // ── Vendors ───────────────────────────────────────────────────────────────────
 
 const CreateVendorSchema = z.object({
-    code:               z.string().trim().min(1),
-    name:               z.string().trim().min(1),
-    email:              Email.optional(),
-    phone:              z.string().trim().optional(),
-    billing_address:    AddressSchema,
-    payment_terms_days: PosInt.default(30),
-    currency:           z.string().length(3).default('USD'),
-    notes:              z.string().trim().optional(),
+    code:                z.string().trim().min(1),
+    name:                z.string().trim().min(1),
+    contact_name:        z.string().trim().optional(),
+    email:               Email.optional(),
+    phone:               z.string().trim().optional(),
+    fax:                 z.string().trim().optional(),
+    website:             z.string().trim().optional(),
+    billing_address:     AddressSchema,
+    city:                z.string().trim().optional(),
+    state_province:      z.string().trim().optional(),
+    postal_code:         z.string().trim().optional(),
+    country:             z.string().trim().default('US'),
+    payment_terms_days:  PosInt.default(30),
+    payment_terms_label: PaymentTermsLabel,
+    lead_time_days:      PosInt.default(0),
+    currency:            z.string().length(3).default('USD'),
+    notes:               z.string().trim().optional(),
 });
+
+const PatchVendorSchema = z.object({
+    name:                z.string().trim().min(1).optional(),
+    contact_name:        z.string().trim().optional(),
+    email:               Email.optional(),
+    phone:               z.string().trim().optional(),
+    fax:                 z.string().trim().optional(),
+    website:             z.string().trim().optional(),
+    billing_address:     AddressSchema,
+    city:                z.string().trim().optional(),
+    state_province:      z.string().trim().optional(),
+    postal_code:         z.string().trim().optional(),
+    country:             z.string().trim().optional(),
+    payment_terms_days:  PosInt.optional(),
+    payment_terms_label: z.enum(['NET15','NET30','NET45','NET60','NET90','COD','PREPAID','DUE_ON_RECEIPT']).optional(),
+    lead_time_days:      PosInt.optional(),
+    currency:            z.string().length(3).optional(),
+    notes:               z.string().trim().optional(),
+    is_active:           z.boolean().optional(),
+}).refine(d => Object.keys(d).filter(k => d[k] !== undefined).length > 0,
+    { message: 'At least one field required' });
 
 // ── Purchase Orders ───────────────────────────────────────────────────────────
 
@@ -220,6 +268,8 @@ const RcvLineSchema = z.object({
     purchase_order_line_id: UUID,
     qty_received:           z.coerce.number().positive(),
     actual_cost:            PosNum.optional(),
+    discrepancy_reason:     z.string().trim().optional(),
+    allow_over_receipt:     z.boolean().default(false),
 });
 
 const CreateReceiptSchema = z.object({
@@ -308,7 +358,7 @@ module.exports = {
     // Sales
     CreateSOSchema, CreateShipmentSchema, CreatePaymentSchema,
     // Purchasing
-    CreateVendorSchema, CreatePOSchema, CreateReceiptSchema,
+    CreateVendorSchema, PatchVendorSchema, CreatePOSchema, CreateReceiptSchema,
     CreateVendorInvoiceSchema, CreateAPPaymentSchema,
     // Pricing
     LockPriceSchema, UnlockPriceSchema, UpdateCostSchema, ConfirmCostSchema,

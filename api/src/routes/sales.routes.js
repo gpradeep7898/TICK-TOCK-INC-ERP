@@ -95,20 +95,27 @@ router.get('/customers/:id', async (req, res) => {
 });
 
 router.post('/customers', validate(CreateCustomerSchema), async (req, res) => {
-    const { code, name, email, phone, billing_address, shipping_address,
-            payment_terms_days, credit_limit, currency, notes,
+    const { code, name, contact_name, email, phone, fax, website,
+            billing_address, shipping_address,
+            city, state_province, postal_code, country,
+            payment_terms_days, payment_terms_label, credit_limit, currency, notes,
             tax_exempt, tax_exempt_certificate, tax_exempt_expiry,
             state_code, vip_tier } = req.body;
     try {
         const { rows } = await query(
-            `INSERT INTO parties (type,code,name,email,phone,billing_address,shipping_address,
-                                  payment_terms_days,credit_limit,currency,notes,
-                                  tax_exempt,tax_exempt_certificate,tax_exempt_expiry,state_code,vip_tier)
-             VALUES ('customer',$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
-            [code, name, email, phone,
+            `INSERT INTO parties
+                (type,code,name,contact_name,email,phone,fax,website,
+                 billing_address,shipping_address,
+                 city,state_province,postal_code,country,
+                 payment_terms_days,payment_terms_label,credit_limit,currency,notes,
+                 tax_exempt,tax_exempt_certificate,tax_exempt_expiry,state_code,vip_tier)
+             VALUES ('customer',$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
+             RETURNING *`,
+            [code, name, contact_name || null, email || null, phone || null, fax || null, website || null,
              billing_address ? JSON.stringify(billing_address) : null,
              shipping_address ? JSON.stringify(shipping_address) : null,
-             payment_terms_days, credit_limit, currency, notes,
+             city || null, state_province || null, postal_code || null, country || 'US',
+             payment_terms_days, payment_terms_label || 'NET30', credit_limit, currency, notes || null,
              tax_exempt, tax_exempt_certificate || null, tax_exempt_expiry || null,
              state_code || null, vip_tier]
         );
@@ -497,6 +504,26 @@ router.post('/shipments/:id/post', async (req, res) => {
 
         let invoiceSubtotal = 0;
 
+        // ── Task 4: Negative Stock Prevention ────────────────────────────────
+        for (const line of lines) {
+            const { rows: [stockCheck] } = await client.query(
+                `SELECT check_stock_availability($1, $2, $3) AS shortfall`,
+                [line.item_id, shp.warehouse_id, parseFloat(line.qty_shipped)]
+            );
+            const shortfall = parseFloat(stockCheck.shortfall);
+            if (shortfall < 0) {
+                const { rows: [avail] } = await client.query(
+                    `SELECT COALESCE(qty_available,0) AS qty_available
+                     FROM v_stock_availability WHERE item_id=$1 AND warehouse_id=$2`,
+                    [line.item_id, shp.warehouse_id]
+                );
+                throw Object.assign(
+                    new Error(`Insufficient stock for item ${line.item_id}: need ${line.qty_shipped}, available ${avail ? avail.qty_available : 0}`),
+                    { status: 400, available: avail ? avail.qty_available : 0, requested: line.qty_shipped }
+                );
+            }
+        }
+
         for (const line of lines) {
             await client.query(
                 `INSERT INTO stock_ledger
@@ -597,6 +624,46 @@ router.post('/shipments/:id/post', async (req, res) => {
                AND sol.status NOT IN ('fulfilled','cancelled')`
         );
 
+        // ── Task 5: Create / update backorder records for unfulfilled lines ──
+        if (!allDone) {
+            const { rows: openLines } = await client.query(
+                `SELECT sol.*, sl_shipped.qty_this_ship
+                 FROM sales_order_lines sol
+                 LEFT JOIN LATERAL (
+                     SELECT SUM(sl.qty_shipped) AS qty_this_ship
+                     FROM shipment_lines sl WHERE sl.shipment_id = $1 AND sl.sales_order_line_id = sol.id
+                 ) sl_shipped ON true
+                 WHERE sol.sales_order_id = $2 AND sol.status IN ('open','partial')`,
+                [shp.id, order.id]
+            );
+            for (const sol of openLines) {
+                const qtyBack = parseFloat(sol.qty_ordered) - parseFloat(sol.qty_shipped);
+                if (qtyBack <= 0) continue;
+                // Upsert backorder (one record per order line)
+                await client.query(
+                    `INSERT INTO backorders
+                        (sales_order_id, sales_order_line_id, item_id, warehouse_id,
+                         qty_backordered, qty_fulfilled, status)
+                     VALUES ($1,$2,$3,$4,$5, COALESCE(
+                         (SELECT qty_fulfilled FROM backorders
+                          WHERE sales_order_line_id = $2 LIMIT 1), 0), 'open')
+                     ON CONFLICT (sales_order_line_id)
+                     DO UPDATE SET
+                         qty_backordered = EXCLUDED.qty_backordered,
+                         status = CASE WHEN backorders.qty_fulfilled > 0 THEN 'partial' ELSE 'open' END,
+                         updated_at = NOW()`,
+                    [order.id, sol.id, sol.item_id, order.warehouse_id, qtyBack]
+                );
+            }
+        } else {
+            // All fulfilled — close any open backorders for this order
+            await client.query(
+                `UPDATE backorders SET status='fulfilled', updated_at=NOW()
+                 WHERE sales_order_id=$1 AND status IN ('open','partial')`,
+                [order.id]
+            );
+        }
+
         await client.query('COMMIT');
         res.json({ shipment: shp, invoice, order_status: newOrderStatus });
     } catch (err) {
@@ -657,6 +724,68 @@ router.post('/invoices/:id/send', async (req, res) => {
         if (!rows.length) return res.status(400).json({ error: 'Invoice not found or not in draft' });
         res.json(rows[0]);
     } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Task 6: Direct invoice payment (creates payment + applies it to this invoice)
+router.post('/invoices/:id/payment', async (req, res) => {
+    const { amount, method, reference_number, payment_date, notes } = req.body;
+    if (!amount || parseFloat(amount) <= 0)
+        return res.status(400).json({ error: 'amount is required and must be positive' });
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        const { rows: [inv] } = await client.query(
+            `SELECT * FROM sales_invoices WHERE id = $1 FOR UPDATE`, [req.params.id]
+        );
+        if (!inv) throw Object.assign(new Error('Invoice not found'), { status: 404 });
+        if (['paid','void'].includes(inv.status))
+            throw Object.assign(new Error(`Invoice is already ${inv.status}`), { status: 400 });
+
+        const applyAmt = Math.min(parseFloat(amount), parseFloat(inv.balance_due));
+
+        const { rows: [pmt] } = await client.query(
+            `INSERT INTO payments_received
+                (customer_id, payment_date, amount, method, reference_number, notes)
+             VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+            [inv.customer_id,
+             payment_date || new Date().toISOString().slice(0, 10),
+             applyAmt,
+             method || 'check',
+             reference_number || null,
+             notes || null]
+        );
+
+        await client.query(
+            `INSERT INTO payment_applications (payment_id, invoice_id, amount_applied)
+             VALUES ($1,$2,$3)`,
+            [pmt.id, inv.id, applyAmt]
+        );
+
+        const newPaid   = parseFloat(inv.amount_paid) + applyAmt;
+        const invTotal  = parseFloat(inv.total);
+        const newStatus = newPaid >= invTotal ? 'paid'
+                        : newPaid > 0         ? 'partial_paid'
+                        : 'sent';
+
+        const { rows: [updated] } = await client.query(
+            `UPDATE sales_invoices
+             SET amount_paid = $1, status = $2,
+                 last_payment_date = $3, last_payment_method = $4,
+                 last_payment_reference = $5, updated_at = NOW()
+             WHERE id = $6 RETURNING *`,
+            [newPaid, newStatus,
+             pmt.payment_date, pmt.method, pmt.reference_number,
+             inv.id]
+        );
+
+        await client.query('COMMIT');
+        res.status(201).json({ invoice: updated, payment: pmt, amount_applied: applyAmt });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(err.status || 400).json({ error: err.message });
+    } finally { client.release(); }
 });
 
 // ── AR Payments ───────────────────────────────────────────────────────────────
@@ -746,6 +875,44 @@ router.get('/ar-aging', async (_req, res) => {
              FROM v_ar_aging`
         );
         res.json({ customers: rows, totals });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── Backorders ────────────────────────────────────────────────────────────────
+
+router.get('/backorders', async (req, res) => {
+    const { status, customer_id, item_id } = req.query;
+    try {
+        const { page, limit, offset } = parsePage(req.query);
+        const conds  = [`b.status != 'fulfilled'`];
+        const params = [];
+        if (status)      { params.push(status);      conds.push(`b.status = $${params.length}`); }
+        if (customer_id) { params.push(customer_id); conds.push(`so.customer_id = $${params.length}`); }
+        if (item_id)     { params.push(item_id);     conds.push(`b.item_id = $${params.length}`); }
+
+        const where = `WHERE ${conds.join(' AND ')}`;
+
+        const { rows: [{ count }] } = await query(
+            `SELECT COUNT(*) FROM backorders b
+             JOIN sales_orders so ON so.id = b.sales_order_id ${where}`, params
+        );
+        const { rows } = await query(
+            `SELECT b.*,
+                    so.number AS order_number,
+                    p.name AS customer_name, p.code AS customer_code,
+                    i.code AS item_code, i.name AS item_name,
+                    w.code AS warehouse_code
+             FROM backorders b
+             JOIN sales_orders so ON so.id = b.sales_order_id
+             JOIN parties p ON p.id = so.customer_id
+             JOIN items i ON i.id = b.item_id
+             JOIN warehouses w ON w.id = b.warehouse_id
+             ${where}
+             ORDER BY b.created_at DESC
+             LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+            [...params, limit, offset]
+        );
+        res.json(paginate(rows, parseInt(count, 10), page, limit));
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
