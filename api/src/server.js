@@ -5,16 +5,12 @@ require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') }
 const express = require('express');
 const cors    = require('cors');
 const path    = require('path');
-const { Pool } = require('pg');
 const jwt     = require('jsonwebtoken');
 const bcrypt  = require('bcryptjs');
 
 // ─── DB Pool ─────────────────────────────────────────────────────────────────
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-
-pool.on('error', (err) => {
-    console.error('Unexpected DB error:', err.message);
-});
+// Centralised pool + withTenant helper (see api/src/db/pool.js)
+const { pool, query: dbQuery, withTenant } = require('./db/pool');
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 const app  = express();
@@ -46,7 +42,16 @@ function requireAuth(req, res, next) {
     const token  = header.startsWith('Bearer ') ? header.slice(7) : null;
     if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
     try {
-        req.user = jwt.verify(token, JWT_SECRET);
+        const payload = jwt.verify(token, JWT_SECRET);
+        // Normalise payload — supports old tokens (no companyId) during migration
+        req.user = {
+            userId:          payload.userId,
+            email:           payload.email,
+            role:            payload.role,
+            name:            payload.name,
+            companyId:       payload.companyId       || null,
+            isPlatformAdmin: payload.isPlatformAdmin || false,
+        };
         next();
     } catch {
         res.status(401).json({ success: false, error: 'Token expired or invalid' });
@@ -77,19 +82,110 @@ app.post('/api/auth/login', async (req, res) => {
         if (!match) {
             return res.status(401).json({ success: false, error: 'Invalid email or password' });
         }
-        const payload = { userId: user.id, email: user.email, role: user.role, name: user.name };
-        const token   = jwt.sign(payload, JWT_SECRET, {
+
+        // ── Resolve active company for this user ──────────────────────────
+        // Priority: last_company_id from users table → first active membership
+        const { rows: memberships } = await query(
+            `SELECT cu.company_id, cu.role, c.name AS company_name, c.slug
+             FROM   company_users cu
+             JOIN   companies     c ON c.id = cu.company_id
+             WHERE  cu.user_id   = $1
+               AND  cu.is_active = TRUE
+               AND  c.status     = 'active'
+             ORDER BY (cu.company_id = $2) DESC, cu.joined_at ASC
+             LIMIT 20`,
+            [user.id, user.last_company_id || '00000000-0000-0000-0000-000000000000']
+        );
+
+        const activeMembership = memberships[0] || null;
+        const companyId        = activeMembership?.company_id || null;
+
+        // Update last_company_id so next login remembers this company
+        if (companyId && companyId !== user.last_company_id) {
+            await query(
+                `UPDATE users SET last_company_id = $1 WHERE id = $2`,
+                [companyId, user.id]
+            );
+        }
+
+        const payload = {
+            userId:          user.id,
+            email:           user.email,
+            role:            user.role,
+            name:            user.name,
+            companyId,
+            isPlatformAdmin: user.is_platform_admin || false,
+        };
+        const token = jwt.sign(payload, JWT_SECRET, {
             expiresIn: process.env.JWT_EXPIRES_IN || '8h'
         });
-        res.json({ success: true, data: { token, user: payload } });
+
+        res.json({
+            success: true,
+            data: {
+                token,
+                user:      payload,
+                companies: memberships.map(m => ({
+                    id:   m.company_id,
+                    name: m.company_name,
+                    slug: m.slug,
+                    role: m.role,
+                })),
+            },
+        });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
 });
 
-// GET /api/auth/me — verify token and return user info
+// GET /api/auth/me — verify token and return user + company info
 app.get('/api/auth/me', requireAuth, (req, res) => {
     res.json({ success: true, data: req.user });
+});
+
+// POST /api/auth/switch-company
+// Lets a user who belongs to multiple companies switch active tenant.
+// Returns a fresh JWT with the new companyId embedded.
+app.post('/api/auth/switch-company', requireAuth, async (req, res) => {
+    const { company_id } = req.body;
+    if (!company_id) return res.status(400).json({ error: 'company_id is required' });
+    try {
+        const { rows } = await query(
+            `SELECT cu.role, c.name AS company_name, c.slug, c.status
+             FROM   company_users cu
+             JOIN   companies     c ON c.id = cu.company_id
+             WHERE  cu.user_id   = $1
+               AND  cu.company_id = $2
+               AND  cu.is_active = TRUE`,
+            [req.user.userId, company_id]
+        );
+        if (!rows.length) {
+            return res.status(403).json({ error: 'You are not an active member of this company.' });
+        }
+        if (rows[0].status !== 'active') {
+            return res.status(403).json({ error: 'This company account is not active.' });
+        }
+
+        await query(
+            `UPDATE users SET last_company_id = $1 WHERE id = $2`,
+            [company_id, req.user.userId]
+        );
+
+        const payload = {
+            userId:          req.user.userId,
+            email:           req.user.email,
+            role:            req.user.role,
+            name:            req.user.name,
+            companyId:       company_id,
+            isPlatformAdmin: req.user.isPlatformAdmin,
+        };
+        const token = jwt.sign(payload, JWT_SECRET, {
+            expiresIn: process.env.JWT_EXPIRES_IN || '8h',
+        });
+        res.json({ success: true, data: { token, company: rows[0] } });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Apply auth to all /api/* except auth and health
@@ -98,8 +194,15 @@ app.use('/api', (req, res, next) => {
     requireAuth(req, res, next);
 });
 
+// ─── Module Routers (registered AFTER the global auth gate) ──────────────────
+// All routes below are protected by the requireAuth gate above.
+// Tenant isolation is applied per-route inside each router.
+const companiesRouter = require('./modules/companies/companies.routes');
+app.use('/api/companies', companiesRouter);
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const query = (text, params) => pool.query(text, params);
+// Alias so the 3000+ lines below that call query() need no change yet.
+const query = dbQuery;
 
 // Generate next adjustment number (ADJ-YYYYMMDD-NNN)
 async function nextAdjNumber(client) {
