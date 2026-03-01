@@ -503,6 +503,9 @@ td .cell-sub{font-size:11px;color:var(--text2);margin-top:1px}
       <button class="nav-item" onclick="showPage('picklists')">
         <span class="ni">✅</span> Pick Lists
       </button>
+      <button class="nav-item" onclick="showPage('shipping')">
+        <span class="ni">🚚</span> Shipping
+      </button>
     </div>
     <div class="nav-section">
       <div class="nav-label">Reports</div>
@@ -896,6 +899,37 @@ td .cell-sub{font-size:11px;color:var(--text2);margin-top:1px}
       </div>
     </div>
 
+    <!-- ══ PAGE: Shipping ════════════════════════════════════ -->
+    <div id="page-shipping" class="page">
+      <div class="toolbar">
+        <select class="filter-select" id="shpCarrierFilter" onchange="loadShipping()">
+          <option value="">All Carriers</option>
+          <option value="UPS">UPS</option>
+          <option value="FEDEX">FedEx</option>
+          <option value="USPS">USPS</option>
+          <option value="DHL">DHL</option>
+          <option value="CUSTOM">Custom</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="loadShipping()">⟳ Refresh</button>
+        <button class="btn btn-primary btn-sm" onclick="openRateQuoteModal()">📦 Rate Quote</button>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🚚 Shipments — Carrier & Tracking</div>
+          <span id="shpCount" style="font-size:12px;color:var(--text2)"></span>
+        </div>
+        <div class="card-body">
+          <div class="tbl-wrap">
+            <table id="shpTable">
+              <thead><tr><th>Shipment #</th><th>Order #</th><th>Customer</th><th>Carrier</th><th>Service</th><th>Tracking #</th><th>Weight</th><th>Freight</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="shpBody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="shpPagination"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ══ PAGE: Reports ═════════════════════════════════════ -->
     <div id="page-reports" class="page">
       <div class="kpi-grid" id="reportKpiGrid" style="margin-bottom:24px"></div>
@@ -1156,6 +1190,80 @@ td .cell-sub{font-size:11px;color:var(--text2);margin-top:1px}
   </div>
 </div>
 
+<!-- ── Add Tracking Modal ─────────────────────────────────── -->
+<div class="modal-overlay" id="trackingModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">Add Tracking Info</div>
+      <button class="modal-close" onclick="closeModal('trackingModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="trackingShipmentId">
+      <div class="form-group">
+        <label class="form-label">Carrier *</label>
+        <select class="form-control" id="trackingCarrier">
+          <option value="">Select carrier…</option>
+          <option value="UPS">UPS</option>
+          <option value="FEDEX">FedEx</option>
+          <option value="USPS">USPS</option>
+          <option value="DHL">DHL</option>
+          <option value="CUSTOM">Custom / Local Carrier</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Service Level</label>
+        <input class="form-control" id="trackingService" placeholder="e.g. UPS Ground, FedEx 2Day…">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tracking Number *</label>
+        <input class="form-control" id="trackingNumber" placeholder="Enter tracking number">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label class="form-label">Weight (lb)</label>
+          <input class="form-control" type="number" step="0.001" id="trackingWeight" placeholder="0.000">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Freight Cost ($)</label>
+          <input class="form-control" type="number" step="0.01" id="trackingFreight" placeholder="0.00">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('trackingModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTracking()">Save Tracking</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Rate Quote Modal ───────────────────────────────────── -->
+<div class="modal-overlay" id="rateQuoteModal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title">📦 Get Rate Quote</div>
+      <button class="modal-close" onclick="closeModal('rateQuoteModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+        <div class="form-group">
+          <label class="form-label">From ZIP *</label>
+          <input class="form-control" id="rqFromZip" placeholder="10001">
+        </div>
+        <div class="form-group">
+          <label class="form-label">To ZIP *</label>
+          <input class="form-control" id="rqToZip" placeholder="90210">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Weight (lb) *</label>
+          <input class="form-control" type="number" step="0.001" id="rqWeight" placeholder="1.000">
+        </div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-bottom:16px" onclick="getRates()">Get Rates</button>
+      <div id="rateResults"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 'use strict';
 
@@ -1264,6 +1372,7 @@ const PAGE_TITLES = {
   backorders:  'Backorders',
   transfers:   'Stock Transfers',
   picklists:   'Pick Lists',
+  shipping:    'Shipping',
   reports:     'Reports',
 };
 const PAGE_LOADERS = {
@@ -1277,6 +1386,7 @@ const PAGE_LOADERS = {
   backorders:  loadBackorders,
   transfers:   loadTransfers,
   picklists:   loadPickLists,
+  shipping:    loadShipping,
   reports:     loadReports,
 };
 function showPage(id) {
@@ -2769,6 +2879,128 @@ function fmtDateShort(d) {
   if (!d) return '—';
   const dt = new Date(d);
   return `${dt.getMonth()+1}/${dt.getDate()}/${dt.getFullYear()}`;
+}
+
+// ── Shipping ───────────────────────────────────────────────
+let shpPage = 1;
+async function loadShipping() {
+  const carrier = document.getElementById('shpCarrierFilter').value;
+  const params  = new URLSearchParams({ page: shpPage, limit: 25 });
+  if (carrier) params.set('carrier', carrier);
+
+  const res  = await apiFetch(`/api/shipments?${params}`);
+  const data = await res.json();
+  const rows = data.data || [];
+  const meta = data.meta || {};
+
+  document.getElementById('shpCount').textContent = meta.total ? `${meta.total} shipments` : '';
+
+  const tbody = document.getElementById('shpBody');
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--text2);padding:24px">No shipments found</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(s => `
+    <tr>
+      <td><strong>${escHtml(s.number)}</strong></td>
+      <td>${escHtml(s.order_number || '')}</td>
+      <td>${escHtml(s.customer_name || '')}</td>
+      <td>${s.carrier ? `<span class="badge" style="background:#e7f3fe;color:#0d6efd">${escHtml(s.carrier)}</span>` : '<span style="color:var(--text2)">—</span>'}</td>
+      <td style="font-size:12px">${escHtml(s.service_level || '—')}</td>
+      <td style="font-size:12px">${s.tracking_number ? `<code>${escHtml(s.tracking_number)}</code>` : '<span style="color:var(--text2)">—</span>'}</td>
+      <td>${s.weight_lb ? parseFloat(s.weight_lb).toFixed(2) + ' lb' : '—'}</td>
+      <td>${s.freight_cost && s.freight_cost > 0 ? '$' + parseFloat(s.freight_cost).toFixed(2) : '—'}</td>
+      <td>${statusBadge(s.status)}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="openTrackingModal('${s.id}','${escHtml(s.carrier||'')}','${escHtml(s.service_level||'')}','${escHtml(s.tracking_number||'')}')">
+          ${s.tracking_number ? '✏️ Update' : '+ Track'}
+        </button>
+        <a class="btn btn-ghost btn-sm" href="/api/print/packing-slip/${s.id}?format=html" target="_blank">📄 Slip</a>
+        <a class="btn btn-ghost btn-sm" href="/api/print/bol/${s.id}?format=html" target="_blank">📋 BOL</a>
+      </td>
+    </tr>`).join('');
+
+  buildPagination('shpPagination', meta.page || 1, meta.total || 0, meta.limit || 25, p => { shpPage = p; loadShipping(); });
+}
+
+function openTrackingModal(id, carrier, service, tracking) {
+  document.getElementById('trackingShipmentId').value = id;
+  document.getElementById('trackingCarrier').value    = carrier || '';
+  document.getElementById('trackingService').value    = service || '';
+  document.getElementById('trackingNumber').value     = tracking || '';
+  document.getElementById('trackingWeight').value     = '';
+  document.getElementById('trackingFreight').value    = '';
+  document.getElementById('trackingModal').classList.add('active');
+}
+
+async function saveTracking() {
+  const id       = document.getElementById('trackingShipmentId').value;
+  const carrier  = document.getElementById('trackingCarrier').value;
+  const service  = document.getElementById('trackingService').value.trim();
+  const tracking = document.getElementById('trackingNumber').value.trim();
+  const weight   = document.getElementById('trackingWeight').value;
+  const freight  = document.getElementById('trackingFreight').value;
+
+  if (!carrier || !tracking) return showToast('Carrier and tracking number are required', 'error');
+
+  const body = { carrier, tracking_number: tracking };
+  if (service)  body.service_level = service;
+  if (weight)   body.weight_lb     = parseFloat(weight);
+  if (freight)  body.freight_cost  = parseFloat(freight);
+
+  const res = await apiFetch(`/api/shipping/shipments/${id}/tracking`, { method: 'PATCH', body: JSON.stringify(body) });
+  const data = await res.json();
+  if (!data.success) return showToast(data.error || 'Failed to save tracking', 'error');
+
+  showToast('Tracking info saved', 'success');
+  closeModal('trackingModal');
+  loadShipping();
+}
+
+function openRateQuoteModal() {
+  document.getElementById('rqFromZip').value = '';
+  document.getElementById('rqToZip').value   = '';
+  document.getElementById('rqWeight').value  = '';
+  document.getElementById('rateResults').innerHTML = '';
+  document.getElementById('rateQuoteModal').classList.add('active');
+}
+
+async function getRates() {
+  const fromZip = document.getElementById('rqFromZip').value.trim();
+  const toZip   = document.getElementById('rqToZip').value.trim();
+  const weight  = parseFloat(document.getElementById('rqWeight').value);
+
+  if (!fromZip || !toZip || !weight) return showToast('From ZIP, To ZIP and weight are required', 'error');
+
+  const res  = await apiFetch('/api/shipping/rate-quote', {
+    method: 'POST',
+    body: JSON.stringify({ from_zip: fromZip, to_zip: toZip, weight_lb: weight }),
+  });
+  const data = await res.json();
+  if (!data.success) return showToast(data.error || 'Rate quote failed', 'error');
+
+  const rates = data.data;
+  const carrierColors = { UPS:'#8b5cf6', FEDEX:'#f97316', USPS:'#2563eb', DHL:'#d97706', CUSTOM:'#6b7280' };
+
+  document.getElementById('rateResults').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="background:#f1f5f9">
+        <th style="padding:8px;text-align:left">Carrier</th>
+        <th style="padding:8px;text-align:left">Service</th>
+        <th style="padding:8px;text-align:center">Est. Days</th>
+        <th style="padding:8px;text-align:right">Rate</th>
+      </tr></thead>
+      <tbody>${rates.map(r => `
+        <tr style="border-bottom:1px solid #e9ecef">
+          <td style="padding:8px"><span class="badge" style="background:${carrierColors[r.carrier]||'#6b7280'}22;color:${carrierColors[r.carrier]||'#6b7280'}">${r.carrier}</span></td>
+          <td style="padding:8px">${escHtml(r.service_level)}</td>
+          <td style="padding:8px;text-align:center">${r.estimated_days}d</td>
+          <td style="padding:8px;text-align:right;font-weight:600">$${r.rate.toFixed(2)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    <p style="font-size:11px;color:var(--text2);margin-top:8px;text-align:center">* Rates are estimates. Actual rates may vary by carrier.</p>`;
 }
 </script>
 </body>

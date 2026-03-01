@@ -487,4 +487,211 @@ ${adj.notes ? `<div class="notes"><strong>Notes:</strong> ${esc(adj.notes)}</div
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── GET /api/print/packing-slip/:id ──────────────────────────────────────────
+router.get('/packing-slip/:id', async (req, res) => {
+    try {
+        const { rows: [shp] } = await query(
+            `SELECT s.*,
+                    so.number AS order_number, so.shipping_address,
+                    p.name AS customer_name, p.code AS customer_code,
+                    p.shipping_address AS customer_shipping_address,
+                    w.name AS warehouse_name, w.code AS warehouse_code,
+                    w.address AS warehouse_address,
+                    sc.name AS carrier_name,
+                    sc.tracking_url_template
+             FROM   shipments s
+             JOIN   sales_orders so ON so.id = s.sales_order_id
+             JOIN   parties p ON p.id = so.customer_id
+             JOIN   warehouses w ON w.id = s.warehouse_id
+             LEFT JOIN shipping_carriers sc ON sc.code = s.carrier
+             WHERE  s.id = $1`, [req.params.id]
+        );
+        if (!shp) return res.status(404).json({ error: 'Shipment not found' });
+
+        const { rows: lines } = await query(
+            `SELECT sl.*, i.code AS item_code, i.name AS item_name,
+                    i.unit_of_measure, i.upc_code, i.weight_lb AS unit_weight_lb
+             FROM   shipment_lines sl
+             JOIN   items i ON i.id = sl.item_id
+             WHERE  sl.shipment_id = $1
+             ORDER  BY sl.line_number`, [req.params.id]
+        );
+
+        if (req.query.format !== 'html') return res.json({ shipment: shp, lines });
+
+        const trackingUrl = shp.tracking_url_template && shp.tracking_number
+            ? shp.tracking_url_template.replace('{tracking_number}', shp.tracking_number)
+            : null;
+
+        const totalQty = lines.reduce((s, l) => s + parseFloat(l.qty_shipped || 0), 0);
+        const totalWeight = lines.reduce((s, l) =>
+            s + parseFloat(l.qty_shipped || 0) * parseFloat(l.unit_weight_lb || 0), 0);
+
+        const lineRows = lines.map(l => `
+            <tr>
+              <td>${esc(l.line_number)}</td>
+              <td>${esc(l.item_code)}</td>
+              <td>${esc(l.item_name)}</td>
+              <td>${esc(l.upc_code) || '—'}</td>
+              <td class="r">${esc(l.qty_shipped)} ${esc(l.unit_of_measure)}</td>
+              <td class="r">${l.unit_weight_lb ? (parseFloat(l.qty_shipped) * parseFloat(l.unit_weight_lb)).toFixed(2) + ' lb' : '—'}</td>
+            </tr>`).join('');
+
+        const shipAddr = addrBlock(shp.shipping_address || shp.customer_shipping_address);
+        const fromAddr = addrBlock(shp.warehouse_address) || `${esc(shp.warehouse_name)} (${esc(shp.warehouse_code)})`;
+
+        const html = `
+<div class="header">
+  <div class="company"><h1>Tick Tock Inc.</h1><p>Packing Slip</p></div>
+  <div class="doc-meta">
+    <div class="doc-label">Shipment</div>
+    <div class="doc-number">${esc(shp.number)}</div>
+    <div class="badge">${esc(shp.status || '').toUpperCase()}</div>
+  </div>
+</div>
+<div class="parties">
+  <div class="party"><h3>Ship To</h3><p>${esc(shp.customer_name)} (${esc(shp.customer_code)})<br>${shipAddr || '—'}</p></div>
+  <div class="party"><h3>Ship From</h3><p>${fromAddr}</p></div>
+</div>
+<div class="meta-row">
+  <div class="meta-item"><label>Order #</label><span>${esc(shp.order_number)}</span></div>
+  <div class="meta-item"><label>Ship Date</label><span>${fmtDate(shp.ship_date || shp.created_at)}</span></div>
+  <div class="meta-item"><label>Carrier</label><span>${shp.carrier_name ? esc(shp.carrier_name) : '—'}</span></div>
+  <div class="meta-item"><label>Service</label><span>${shp.service_level ? esc(shp.service_level) : '—'}</span></div>
+  ${shp.tracking_number ? `<div class="meta-item"><label>Tracking #</label><span>${trackingUrl ? `<a href="${esc(trackingUrl)}" target="_blank">${esc(shp.tracking_number)}</a>` : esc(shp.tracking_number)}</span></div>` : ''}
+  ${shp.weight_lb ? `<div class="meta-item"><label>Total Weight</label><span>${parseFloat(shp.weight_lb).toFixed(2)} lb</span></div>` : ''}
+  ${shp.freight_cost ? `<div class="meta-item"><label>Freight Cost</label><span>${fmtMoney(shp.freight_cost)}</span></div>` : ''}
+</div>
+<table>
+  <thead><tr><th>#</th><th>SKU</th><th>Item</th><th>UPC</th><th class="r">Qty Shipped</th><th class="r">Weight</th></tr></thead>
+  <tbody>${lineRows}</tbody>
+  <tfoot><tr><td colspan="4" style="text-align:right;font-weight:600">Totals</td><td class="r">${totalQty.toFixed(2)}</td><td class="r">${totalWeight.toFixed(2)} lb</td></tr></tfoot>
+</table>
+${shp.notes ? `<div class="notes"><strong>Notes:</strong> ${esc(shp.notes)}</div>` : ''}
+<div style="margin-top:32px;padding:12px;border:1px dashed #dee2e6;border-radius:4px;font-size:11px;color:#6c757d;text-align:center">
+  Please inspect your order upon receipt. Report discrepancies within 48 hours.<br>
+  Tick Tock Inc. &bull; Thank you for your business!
+</div>`;
+
+        res.setHeader('Content-Type', 'text/html');
+        res.send(printPage(`Packing Slip ${shp.number}`, html));
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── GET /api/print/bol/:id ────────────────────────────────────────────────────
+router.get('/bol/:id', async (req, res) => {
+    try {
+        const { rows: [shp] } = await query(
+            `SELECT s.*,
+                    so.number AS order_number, so.shipping_address,
+                    p.name AS customer_name, p.code AS customer_code,
+                    p.shipping_address AS customer_shipping_address,
+                    w.name AS warehouse_name, w.code AS warehouse_code,
+                    w.address AS warehouse_address,
+                    sc.name AS carrier_name
+             FROM   shipments s
+             JOIN   sales_orders so ON so.id = s.sales_order_id
+             JOIN   parties p ON p.id = so.customer_id
+             JOIN   warehouses w ON w.id = s.warehouse_id
+             LEFT JOIN shipping_carriers sc ON sc.code = s.carrier
+             WHERE  s.id = $1`, [req.params.id]
+        );
+        if (!shp) return res.status(404).json({ error: 'Shipment not found' });
+
+        const { rows: lines } = await query(
+            `SELECT sl.*, i.code AS item_code, i.name AS item_name,
+                    i.unit_of_measure, i.weight_lb AS unit_weight_lb,
+                    i.country_of_origin
+             FROM   shipment_lines sl
+             JOIN   items i ON i.id = sl.item_id
+             WHERE  sl.shipment_id = $1
+             ORDER  BY sl.line_number`, [req.params.id]
+        );
+
+        if (req.query.format !== 'html') return res.json({ shipment: shp, lines });
+
+        const totalWeight = shp.weight_lb
+            ? parseFloat(shp.weight_lb).toFixed(2)
+            : lines.reduce((s, l) =>
+                s + parseFloat(l.qty_shipped || 0) * parseFloat(l.unit_weight_lb || 0), 0
+              ).toFixed(2);
+
+        const lineRows = lines.map(l => `
+            <tr>
+              <td>${esc(l.line_number)}</td>
+              <td>${esc(l.item_code)}</td>
+              <td>${esc(l.item_name)}</td>
+              <td>${esc(l.country_of_origin) || 'US'}</td>
+              <td class="r">${esc(l.qty_shipped)} ${esc(l.unit_of_measure)}</td>
+              <td class="r">${l.unit_weight_lb ? (parseFloat(l.qty_shipped) * parseFloat(l.unit_weight_lb)).toFixed(2) + ' lb' : '—'}</td>
+            </tr>`).join('');
+
+        const shipAddr = addrBlock(shp.shipping_address || shp.customer_shipping_address);
+        const fromAddr = addrBlock(shp.warehouse_address) || esc(shp.warehouse_name);
+
+        const html = `
+<div class="header">
+  <div class="company"><h1>Tick Tock Inc.</h1><p>Bill of Lading</p></div>
+  <div class="doc-meta">
+    <div class="doc-label">BOL / Shipment</div>
+    <div class="doc-number">${esc(shp.number)}</div>
+    <div style="font-size:11px;color:#6c757d;margin-top:4px">Date: ${fmtDate(shp.ship_date || shp.created_at)}</div>
+  </div>
+</div>
+
+<!-- Parties -->
+<table style="margin-bottom:20px;border:1px solid #dee2e6">
+  <thead><tr><th style="width:50%">Shipper (Bill of Lading)</th><th>Consignee</th></tr></thead>
+  <tbody>
+    <tr>
+      <td style="padding:12px;vertical-align:top">
+        <strong>Tick Tock Inc.</strong><br>
+        ${fromAddr}
+      </td>
+      <td style="padding:12px;vertical-align:top">
+        <strong>${esc(shp.customer_name)}</strong><br>
+        ${shipAddr || '—'}
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Carrier -->
+<div class="meta-row">
+  <div class="meta-item"><label>Carrier</label><span>${shp.carrier_name ? esc(shp.carrier_name) : esc(shp.carrier) || '—'}</span></div>
+  <div class="meta-item"><label>Service</label><span>${shp.service_level ? esc(shp.service_level) : '—'}</span></div>
+  <div class="meta-item"><label>Tracking / PRO #</label><span>${shp.tracking_number ? esc(shp.tracking_number) : '—'}</span></div>
+  <div class="meta-item"><label>Total Weight</label><span>${totalWeight} lb</span></div>
+  <div class="meta-item"><label>Freight Terms</label><span>Prepaid</span></div>
+  <div class="meta-item"><label>Reference (SO)</label><span>${esc(shp.order_number)}</span></div>
+</div>
+
+<!-- Commodities -->
+<table>
+  <thead><tr><th>#</th><th>SKU</th><th>Description</th><th>Origin</th><th class="r">Qty</th><th class="r">Weight</th></tr></thead>
+  <tbody>${lineRows}</tbody>
+  <tfoot><tr><td colspan="4" style="text-align:right;font-weight:600">Totals</td>
+    <td></td>
+    <td class="r" style="font-weight:700">${totalWeight} lb</td>
+  </tr></tfoot>
+</table>
+
+<!-- Signature block -->
+<table style="margin-top:32px;border:1px solid #dee2e6;border-collapse:collapse">
+  <thead><tr><th style="width:50%;padding:8px">Shipper Signature</th><th style="padding:8px">Carrier Signature / Date</th></tr></thead>
+  <tbody>
+    <tr>
+      <td style="height:60px;padding:8px;vertical-align:bottom;font-size:11px;color:#6c757d">Signed: ____________________________  Date: __________</td>
+      <td style="height:60px;padding:8px;vertical-align:bottom;font-size:11px;color:#6c757d">Signed: ____________________________  Date: __________</td>
+    </tr>
+  </tbody>
+</table>
+${shp.notes ? `<div class="notes" style="margin-top:16px"><strong>Special Instructions:</strong> ${esc(shp.notes)}</div>` : ''}
+<div class="footer">This Bill of Lading is the contract between Tick Tock Inc. and the carrier. Subject to standard freight terms and conditions.</div>`;
+
+        res.setHeader('Content-Type', 'text/html');
+        res.send(printPage(`BOL — ${shp.number}`, html));
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;

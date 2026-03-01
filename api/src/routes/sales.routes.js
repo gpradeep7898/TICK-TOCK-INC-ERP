@@ -396,11 +396,13 @@ router.get('/shipments', async (req, res) => {
         const { rows: [{ count }] } = await query(`SELECT COUNT(*) FROM shipments`);
         const { rows } = await query(
             `SELECT s.*, so.number AS order_number, p.name AS customer_name,
-                    w.code AS warehouse_code
+                    w.code AS warehouse_code,
+                    sc.name AS carrier_name
              FROM   shipments s
              JOIN   sales_orders so ON so.id = s.sales_order_id
              JOIN   parties p ON p.id = so.customer_id
              JOIN   warehouses w ON w.id = s.warehouse_id
+             LEFT JOIN shipping_carriers sc ON sc.code = s.carrier
              ORDER  BY s.created_at DESC
              LIMIT $1 OFFSET $2`,
             [limit, offset]
