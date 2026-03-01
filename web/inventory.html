@@ -506,6 +506,9 @@ td .cell-sub{font-size:11px;color:var(--text2);margin-top:1px}
       <button class="nav-item" onclick="showPage('shipping')">
         <span class="ni">🚚</span> Shipping
       </button>
+      <button class="nav-item" onclick="showPage('demand')">
+        <span class="ni">🔮</span> Demand Planning
+      </button>
     </div>
     <div class="nav-section">
       <div class="nav-label">Reports</div>
@@ -926,6 +929,89 @@ td .cell-sub{font-size:11px;color:var(--text2);margin-top:1px}
             </table>
           </div>
           <div class="pagination" id="shpPagination"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: Demand Planning ════════════════════════════ -->
+    <div id="page-demand" class="page">
+      <!-- KPI row -->
+      <div class="kpi-grid" id="demandKpiGrid" style="margin-bottom:20px"></div>
+
+      <!-- Velocity Tab Bar -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+        <select class="filter-select" id="demandUrgency" onchange="loadVelocity()">
+          <option value="">All Items</option>
+          <option value="critical">🔴 Critical</option>
+          <option value="high">🟡 High</option>
+          <option value="normal">🔵 Normal</option>
+          <option value="ok">🟢 OK</option>
+        </select>
+        <select class="filter-select" id="demandSort" onchange="loadVelocity()">
+          <option value="days_of_stock">Sort: Days of Stock</option>
+          <option value="velocity_30d">Sort: 30d Velocity</option>
+          <option value="sold_90d">Sort: 90d Sold</option>
+          <option value="qty_available">Sort: Stock on Hand</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="loadVelocity()">⟳ Refresh</button>
+        <button class="btn btn-primary btn-sm" onclick="refreshSuggestions()">⚡ Refresh Suggestions</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr;gap:16px">
+        <!-- Velocity Table -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📊 Sales Velocity &amp; Days of Stock</div>
+            <span id="velCount" style="font-size:12px;color:var(--text2)"></span>
+          </div>
+          <div class="card-body">
+            <div class="tbl-wrap">
+              <table id="velTable">
+                <thead><tr>
+                  <th>SKU</th><th>Item</th>
+                  <th style="text-align:right">Stock</th>
+                  <th style="text-align:right">30d Sales</th>
+                  <th style="text-align:right">Velocity/Day</th>
+                  <th style="text-align:right">Days Left</th>
+                  <th>Lead Time</th>
+                  <th>Urgency</th>
+                  <th>Vendor</th>
+                </tr></thead>
+                <tbody id="velBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="velPagination"></div>
+          </div>
+        </div>
+
+        <!-- Replenishment Suggestions -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">💡 Replenishment Suggestions</div>
+            <div style="display:flex;gap:8px">
+              <select class="filter-select" id="suggUrgency" onchange="loadSuggestions()" style="padding:4px 8px;font-size:12px">
+                <option value="pending">Pending</option>
+                <option value="converted">Converted</option>
+                <option value="dismissed">Dismissed</option>
+              </select>
+              <span id="suggCount" style="font-size:12px;color:var(--text2);align-self:center"></span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="tbl-wrap">
+              <table id="suggTable">
+                <thead><tr>
+                  <th>SKU</th><th>Item</th><th>Vendor</th>
+                  <th style="text-align:right">Suggest Qty</th>
+                  <th style="text-align:right">Est. Value</th>
+                  <th style="text-align:right">Days Left</th>
+                  <th>Urgency</th><th>Notes</th><th>Actions</th>
+                </tr></thead>
+                <tbody id="suggBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="suggPagination"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1373,6 +1459,7 @@ const PAGE_TITLES = {
   transfers:   'Stock Transfers',
   picklists:   'Pick Lists',
   shipping:    'Shipping',
+  demand:      'Demand Planning',
   reports:     'Reports',
 };
 const PAGE_LOADERS = {
@@ -1387,6 +1474,7 @@ const PAGE_LOADERS = {
   transfers:   loadTransfers,
   picklists:   loadPickLists,
   shipping:    loadShipping,
+  demand:      loadDemand,
   reports:     loadReports,
 };
 function showPage(id) {
@@ -3001,6 +3089,140 @@ async function getRates() {
       </tbody>
     </table>
     <p style="font-size:11px;color:var(--text2);margin-top:8px;text-align:center">* Rates are estimates. Actual rates may vary by carrier.</p>`;
+}
+
+// ── Demand Planning ────────────────────────────────────────
+const URGENCY_STYLE = {
+  critical: { bg:'#fee2e2', color:'#dc2626', label:'🔴 Critical' },
+  high:     { bg:'#fef3c7', color:'#d97706', label:'🟡 High' },
+  normal:   { bg:'#dbeafe', color:'#2563eb', label:'🔵 Normal' },
+  ok:       { bg:'#dcfce7', color:'#16a34a', label:'🟢 OK' },
+};
+function urgencyBadge(u) {
+  const s = URGENCY_STYLE[u] || URGENCY_STYLE.ok;
+  return `<span style="background:${s.bg};color:${s.color};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${s.label}</span>`;
+}
+
+let _velPage = 1, _suggPage = 1;
+
+async function loadDemand() {
+  await Promise.all([loadDemandKpi(), loadVelocity(), loadSuggestions()]);
+}
+
+async function loadDemandKpi() {
+  const res  = await apiFetch('/api/demand/summary');
+  const d    = (await res.json()).data || {};
+  document.getElementById('demandKpiGrid').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">🔴 Critical Items</div><div class="kpi-value" style="color:#dc2626">${d.critical_count||0}</div><div class="kpi-sub">Need immediate reorder</div></div>
+    <div class="kpi-card"><div class="kpi-label">🟡 High Priority</div><div class="kpi-value" style="color:#d97706">${d.high_count||0}</div><div class="kpi-sub">Below reorder point</div></div>
+    <div class="kpi-card"><div class="kpi-label">⚠️ Stockouts</div><div class="kpi-value" style="color:#ef4444">${d.stockout_count||0}</div><div class="kpi-sub">Zero stock on hand</div></div>
+    <div class="kpi-card"><div class="kpi-label">📅 Avg Days of Stock</div><div class="kpi-value">${d.avg_days_of_stock||'—'}</div><div class="kpi-sub">Across all active items</div></div>
+    <div class="kpi-card"><div class="kpi-label">💡 Pending Suggestions</div><div class="kpi-value">${d.pending_suggestions||0}</div><div class="kpi-sub">Est. $${Number(d.pending_value||0).toLocaleString('en-US',{maximumFractionDigits:0})}</div></div>`;
+}
+
+async function loadVelocity() {
+  const urgency = document.getElementById('demandUrgency').value;
+  const sort    = document.getElementById('demandSort').value;
+  const params  = new URLSearchParams({ page: _velPage, limit: 25, sort });
+  if (urgency) params.set('urgency', urgency);
+
+  const res  = await apiFetch(`/api/demand/velocity?${params}`);
+  const data = await res.json();
+  const rows = data.data || [];
+  const meta = data.meta || {};
+
+  document.getElementById('velCount').textContent = meta.total ? `${meta.total} items` : '';
+  const tbody = document.getElementById('velBody');
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text2);padding:24px">No items found</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const days = r.days_of_stock !== null ? parseFloat(r.days_of_stock).toFixed(0) : '—';
+    const daysColor = r.days_of_stock === null ? 'var(--text2)'
+      : r.days_of_stock < (r.lead_time_days || 14) ? '#dc2626'
+      : r.days_of_stock < 30 ? '#d97706' : '#16a34a';
+    return `<tr>
+      <td><code>${escHtml(r.code)}</code></td>
+      <td>${escHtml(r.item_name)}</td>
+      <td style="text-align:right;font-weight:600">${parseFloat(r.qty_available).toFixed(0)} <span style="color:var(--text2);font-size:11px">${escHtml(r.unit_of_measure||'')}</span></td>
+      <td style="text-align:right">${parseFloat(r.sold_30d).toFixed(0)}</td>
+      <td style="text-align:right;font-weight:600">${parseFloat(r.velocity_30d).toFixed(2)}/day</td>
+      <td style="text-align:right;font-weight:700;color:${daysColor}">${days}d</td>
+      <td style="text-align:center;color:var(--text2)">${r.lead_time_days}d</td>
+      <td>${urgencyBadge(r.urgency)}</td>
+      <td style="font-size:12px;color:var(--text2)">${r.vendor_name ? escHtml(r.vendor_name) : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  buildPagination('velPagination', meta.page||1, meta.total||0, meta.limit||25, p => { _velPage=p; loadVelocity(); });
+}
+
+async function loadSuggestions() {
+  const status = document.getElementById('suggUrgency').value;
+  const params = new URLSearchParams({ page: _suggPage, limit: 25, status });
+  const res    = await apiFetch(`/api/demand/suggestions?${params}`);
+  const data   = await res.json();
+  const rows   = data.data || [];
+  const meta   = data.meta || {};
+
+  document.getElementById('suggCount').textContent = meta.total ? `${meta.total} suggestions` : '';
+  const tbody = document.getElementById('suggBody');
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text2);padding:24px">No suggestions found</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td><code>${escHtml(r.item_code)}</code></td>
+      <td>${escHtml(r.item_name)}</td>
+      <td style="font-size:12px">${r.vendor_name ? escHtml(r.vendor_name) : '<span style="color:var(--text2)">No vendor</span>'}</td>
+      <td style="text-align:right;font-weight:600">${parseFloat(r.suggested_qty).toFixed(0)}</td>
+      <td style="text-align:right">$${Number(r.estimated_value||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td style="text-align:right;color:${r.days_of_stock&&r.days_of_stock<14?'#dc2626':'inherit'};font-weight:600">${r.days_of_stock ? parseFloat(r.days_of_stock).toFixed(0)+'d' : '—'}</td>
+      <td>${urgencyBadge(r.urgency)}</td>
+      <td style="font-size:11px;color:var(--text2);max-width:200px">${escHtml(r.notes||'')}</td>
+      <td>
+        ${r.status==='pending' ? `
+          <button class="btn btn-primary btn-sm" onclick="approveSuggestion('${r.id}')">✓ Create PO</button>
+          <button class="btn btn-ghost btn-sm" onclick="dismissSuggestion('${r.id}')">✕</button>
+        ` : r.status === 'converted' ? `<span style="color:#16a34a;font-size:12px">✓ PO Created</span>` : `<span style="color:var(--text2);font-size:12px">Dismissed</span>`}
+      </td>
+    </tr>`).join('');
+
+  buildPagination('suggPagination', meta.page||1, meta.total||0, meta.limit||25, p => { _suggPage=p; loadSuggestions(); });
+}
+
+async function refreshSuggestions() {
+  const btn = event.currentTarget;
+  btn.disabled = true; btn.textContent = '⏳ Computing…';
+  try {
+    const res  = await apiFetch('/api/demand/refresh', { method: 'POST', body: '{}' });
+    const data = await res.json();
+    showToast(`Generated ${data.data?.suggestions_created || 0} suggestions`, 'success');
+    await Promise.all([loadDemandKpi(), loadSuggestions()]);
+  } catch(e) { showToast(e.message || 'Refresh failed', 'error'); }
+  finally { btn.disabled = false; btn.textContent = '⚡ Refresh Suggestions'; }
+}
+
+async function approveSuggestion(id) {
+  if (!confirm('Create a draft Purchase Order for this suggestion?')) return;
+  try {
+    const res  = await apiFetch(`/api/demand/suggestions/${id}/approve`, { method: 'PATCH', body: '{}' });
+    const data = await res.json();
+    showToast(`Draft PO created: ${data.data?.po_number}`, 'success');
+    await Promise.all([loadDemandKpi(), loadSuggestions()]);
+  } catch(e) { showToast(e.message || 'Failed to create PO', 'error'); }
+}
+
+async function dismissSuggestion(id) {
+  try {
+    await apiFetch(`/api/demand/suggestions/${id}/dismiss`, { method: 'PATCH', body: '{}' });
+    showToast('Suggestion dismissed', 'success');
+    await Promise.all([loadDemandKpi(), loadSuggestions()]);
+  } catch(e) { showToast(e.message || 'Failed to dismiss', 'error'); }
 }
 </script>
 </body>
