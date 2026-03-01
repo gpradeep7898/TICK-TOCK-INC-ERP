@@ -509,6 +509,9 @@ td .cell-sub{font-size:11px;color:var(--text2);margin-top:1px}
       <button class="nav-item" onclick="showPage('demand')">
         <span class="ni">🔮</span> Demand Planning
       </button>
+      <button class="nav-item" onclick="showPage('crm')">
+        <span class="ni">🤝</span> CRM
+      </button>
     </div>
     <div class="nav-section">
       <div class="nav-label">Reports</div>
@@ -1016,6 +1019,152 @@ td .cell-sub{font-size:11px;color:var(--text2);margin-top:1px}
       </div>
     </div>
 
+    <!-- ══ PAGE: CRM ═════════════════════════════════════════ -->
+    <div id="page-crm" class="page">
+      <!-- Tab bar -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+        <div style="display:flex;gap:4px;background:var(--bg2);border-radius:var(--radius-sm);padding:3px">
+          <button id="crmTabInteractions" class="btn btn-sm btn-primary" onclick="crmTab('interactions')">💬 Interactions</button>
+          <button id="crmTabPipeline"     class="btn btn-sm btn-ghost"   onclick="crmTab('pipeline')">🏆 Pipeline</button>
+          <button id="crmTabHealth"       class="btn btn-sm btn-ghost"   onclick="crmTab('health')">❤️ Health</button>
+        </div>
+        <div id="crmActionsBar" style="margin-left:auto;display:flex;gap:8px"></div>
+      </div>
+
+      <!-- ── Interactions panel ──────────────────────────── -->
+      <div id="crmPanelInteractions">
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+          <select class="filter-select" id="crmIntType" onchange="loadInteractions()">
+            <option value="">All Types</option>
+            <option value="call">📞 Call</option>
+            <option value="email">✉️ Email</option>
+            <option value="meeting">🤝 Meeting</option>
+            <option value="note">📝 Note</option>
+            <option value="demo">🖥️ Demo</option>
+            <option value="follow_up">🔔 Follow-up</option>
+          </select>
+          <input type="date" id="crmIntFrom" class="filter-select" style="padding:5px 8px" onchange="loadInteractions()">
+          <input type="date" id="crmIntTo"   class="filter-select" style="padding:5px 8px" onchange="loadInteractions()">
+          <button class="btn btn-ghost btn-sm" onclick="loadInteractions()">⟳ Refresh</button>
+          <button class="btn btn-primary btn-sm" onclick="openInteractionModal()">+ Log Interaction</button>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">💬 Customer Interactions</div>
+            <span id="intCount" style="font-size:12px;color:var(--text2)"></span>
+          </div>
+          <div class="card-body">
+            <div class="tbl-wrap">
+              <table id="intTable">
+                <thead><tr>
+                  <th>Date</th><th>Customer</th><th>Type</th><th>Dir.</th>
+                  <th>Subject</th><th>Outcome</th><th>Agent</th><th>Follow-up</th>
+                </tr></thead>
+                <tbody id="intBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="intPagination"></div>
+          </div>
+        </div>
+
+        <!-- Follow-ups card -->
+        <div class="card" style="margin-top:16px">
+          <div class="card-header">
+            <div class="card-title">🔔 Upcoming Follow-ups (14 days)</div>
+            <button class="btn btn-ghost btn-sm" onclick="loadFollowups()">⟳</button>
+          </div>
+          <div class="card-body">
+            <div class="tbl-wrap">
+              <table id="fuTable">
+                <thead><tr><th>Date</th><th>Customer</th><th>Type</th><th>Subject</th></tr></thead>
+                <tbody id="fuBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Pipeline panel ──────────────────────────────── -->
+      <div id="crmPanelPipeline" style="display:none">
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+          <select class="filter-select" id="crmOppStage" onchange="loadOpportunities()">
+            <option value="">All Stages</option>
+            <option value="lead">Lead</option>
+            <option value="qualified">Qualified</option>
+            <option value="proposal">Proposal</option>
+            <option value="negotiation">Negotiation</option>
+            <option value="won">Won</option>
+            <option value="lost">Lost</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="loadOpportunities()">⟳ Refresh</button>
+          <button class="btn btn-primary btn-sm" onclick="openOpportunityModal()">+ New Opportunity</button>
+        </div>
+
+        <!-- Pipeline KPI strip -->
+        <div id="pipelineKpi" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px"></div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🏆 Opportunities</div>
+            <span id="oppCount" style="font-size:12px;color:var(--text2)"></span>
+          </div>
+          <div class="card-body">
+            <div class="tbl-wrap">
+              <table id="oppTable">
+                <thead><tr>
+                  <th>Number</th><th>Customer</th><th>Title</th>
+                  <th style="text-align:right">Est. Value</th>
+                  <th>Stage</th><th style="text-align:right">Prob%</th>
+                  <th>Close Date</th><th>Assigned</th><th>Actions</th>
+                </tr></thead>
+                <tbody id="oppBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="oppPagination"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Health panel ────────────────────────────────── -->
+      <div id="crmPanelHealth" style="display:none">
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+          <select class="filter-select" id="crmHealthLabel" onchange="loadCustomerHealth()">
+            <option value="">All Customers</option>
+            <option value="Excellent">🌟 Excellent</option>
+            <option value="Good">✅ Good</option>
+            <option value="Fair">🟡 Fair</option>
+            <option value="Poor">🔴 Poor</option>
+            <option value="At Risk">⚠️ At Risk</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="loadCustomerHealth()">⟳ Refresh</button>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">❤️ Customer Health Scores</div>
+            <span id="healthCount" style="font-size:12px;color:var(--text2)"></span>
+          </div>
+          <div class="card-body">
+            <div class="tbl-wrap">
+              <table id="healthTable">
+                <thead><tr>
+                  <th>Code</th><th>Customer</th>
+                  <th style="text-align:right">Score</th><th>Label</th>
+                  <th style="text-align:right">Rev 12m</th>
+                  <th style="text-align:right">Orders 90d</th>
+                  <th style="text-align:right">Overdue</th>
+                  <th style="text-align:right">Avg Pay Days</th>
+                  <th>Last Order</th>
+                  <th style="text-align:right">Interact 30d</th>
+                </tr></thead>
+                <tbody id="healthBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="healthPagination"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ══ PAGE: Reports ═════════════════════════════════════ -->
     <div id="page-reports" class="page">
       <div class="kpi-grid" id="reportKpiGrid" style="margin-bottom:24px"></div>
@@ -1350,6 +1499,131 @@ td .cell-sub{font-size:11px;color:var(--text2);margin-top:1px}
   </div>
 </div>
 
+<!-- ── CRM: New Interaction Modal ── -->
+<div class="modal-overlay" id="interactionModal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title">💬 Log Interaction</div>
+      <button class="modal-close" onclick="closeModal('interactionModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Customer *</label>
+          <select class="form-control" id="intCustId"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type *</label>
+          <select class="form-control" id="intType">
+            <option value="call">Call</option>
+            <option value="email">Email</option>
+            <option value="meeting">Meeting</option>
+            <option value="note">Note</option>
+            <option value="demo">Demo</option>
+            <option value="follow_up">Follow-up</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Direction</label>
+          <select class="form-control" id="intDirection">
+            <option value="outbound">Outbound</option>
+            <option value="inbound">Inbound</option>
+            <option value="internal">Internal</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input class="form-control" type="datetime-local" id="intDate">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Subject *</label>
+        <input class="form-control" id="intSubject" placeholder="What was this about?">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes / Body</label>
+        <textarea class="form-control" id="intBody" rows="3" placeholder="Details…"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Outcome</label>
+          <input class="form-control" id="intOutcome" placeholder="Result or next step">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Follow-up Date</label>
+          <input class="form-control" type="date" id="intFollowUp">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('interactionModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveInteraction()">Save Interaction</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CRM: New Opportunity Modal ── -->
+<div class="modal-overlay" id="opportunityModal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title" id="oppModalTitle">🏆 New Opportunity</div>
+      <button class="modal-close" onclick="closeModal('opportunityModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="oppEditId">
+      <div class="form-group">
+        <label class="form-label">Customer *</label>
+        <select class="form-control" id="oppCustId"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Title *</label>
+        <input class="form-control" id="oppTitle" placeholder="e.g. Q3 Rolex Collection Order">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Stage</label>
+          <select class="form-control" id="oppStage" onchange="oppStageChanged()">
+            <option value="lead">Lead</option>
+            <option value="qualified">Qualified</option>
+            <option value="proposal">Proposal</option>
+            <option value="negotiation">Negotiation</option>
+            <option value="won">Won</option>
+            <option value="lost">Lost</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Probability %</label>
+          <input class="form-control" type="number" id="oppProb" min="0" max="100" value="10">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Estimated Value ($)</label>
+          <input class="form-control" type="number" step="0.01" id="oppValue" value="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Expected Close Date</label>
+          <input class="form-control" type="date" id="oppCloseDate">
+        </div>
+      </div>
+      <div class="form-group" id="oppLostReasonRow" style="display:none">
+        <label class="form-label">Lost Reason</label>
+        <input class="form-control" id="oppLostReason" placeholder="Why was this lost?">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-control" id="oppNotes" rows="2" placeholder="Additional context…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('opportunityModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveOpportunity()">Save Opportunity</button>
+    </div>
+  </div>
+</div>
+
 <script>
 'use strict';
 
@@ -1460,6 +1734,7 @@ const PAGE_TITLES = {
   picklists:   'Pick Lists',
   shipping:    'Shipping',
   demand:      'Demand Planning',
+  crm:         'CRM',
   reports:     'Reports',
 };
 const PAGE_LOADERS = {
@@ -1475,6 +1750,7 @@ const PAGE_LOADERS = {
   picklists:   loadPickLists,
   shipping:    loadShipping,
   demand:      loadDemand,
+  crm:         loadCRM,
   reports:     loadReports,
 };
 function showPage(id) {
@@ -3223,6 +3499,346 @@ async function dismissSuggestion(id) {
     showToast('Suggestion dismissed', 'success');
     await Promise.all([loadDemandKpi(), loadSuggestions()]);
   } catch(e) { showToast(e.message || 'Failed to dismiss', 'error'); }
+}
+
+// ══════════════════════════════════════════════════════════════
+// Module 9 — CRM Light
+// ══════════════════════════════════════════════════════════════
+
+let _intPage = 1, _oppPage = 1, _healthPage = 1;
+let _crmCustomers = [];
+let _activeCrmTab = 'interactions';
+
+function crmTab(tab) {
+  _activeCrmTab = tab;
+  ['interactions','pipeline','health'].forEach(t => {
+    const panelId = 'crmPanel' + t.charAt(0).toUpperCase() + t.slice(1);
+    const panel = document.getElementById(panelId);
+    if (panel) panel.style.display = t === tab ? '' : 'none';
+    const btnId = 'crmTab' + t.charAt(0).toUpperCase() + t.slice(1);
+    const btn = document.getElementById(btnId);
+    if (btn) {
+      btn.classList.toggle('btn-primary', t === tab);
+      btn.classList.toggle('btn-ghost', t !== tab);
+    }
+  });
+  if (tab === 'interactions') { loadInteractions(); loadFollowups(); }
+  else if (tab === 'pipeline') loadOpportunities();
+  else if (tab === 'health')   loadCustomerHealth();
+}
+
+async function loadCRM() {
+  try {
+    const res  = await apiFetch('/api/customers?limit=500');
+    const data = await res.json();
+    _crmCustomers = data.data || [];
+  } catch(e) { _crmCustomers = []; }
+  crmTab(_activeCrmTab);
+}
+
+// ─── Interactions ──────────────────────────────────────────────
+async function loadInteractions(page) {
+  if (page) _intPage = page;
+  const type     = document.getElementById('crmIntType')?.value || '';
+  const fromDate = document.getElementById('crmIntFrom')?.value || '';
+  const toDate   = document.getElementById('crmIntTo')?.value   || '';
+  const params   = new URLSearchParams({ page: _intPage, limit: 25 });
+  if (type)     params.set('type',      type);
+  if (fromDate) params.set('from_date', fromDate);
+  if (toDate)   params.set('to_date',   toDate);
+
+  const tbody = document.getElementById('intBody');
+  if (!tbody) return;
+  tbody.innerHTML = skeletonRows(8);
+  try {
+    const res  = await apiFetch(`/api/crm/interactions?${params}`);
+    const data = await res.json();
+    const rows = data.data || [];
+    const meta = data.meta || {};
+    document.getElementById('intCount').textContent = meta.total ? `${meta.total} interactions` : '';
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text2);padding:24px">No interactions found</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td style="font-size:12px;white-space:nowrap">${new Date(r.interaction_date).toLocaleDateString()}</td>
+        <td style="font-weight:500">${escHtml(r.customer_name)}</td>
+        <td>${intTypeBadge(r.type)}</td>
+        <td><span style="font-size:11px;color:var(--text2)">${r.direction}</span></td>
+        <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(r.subject)}</td>
+        <td style="font-size:12px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(r.outcome||'—')}</td>
+        <td style="font-size:12px">${escHtml(r.agent_name||'—')}</td>
+        <td style="font-size:12px;color:${r.follow_up_date ? 'var(--blue)' : 'var(--text2)'}">${r.follow_up_date || '—'}</td>
+      </tr>`).join('');
+    buildPagination('intPagination', meta.page||1, meta.total||0, meta.limit||25, p => loadInteractions(p));
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="8" style="color:var(--red);padding:16px">${escHtml(e.message)}</td></tr>`;
+  }
+}
+
+async function loadFollowups() {
+  const tbody = document.getElementById('fuBody');
+  if (!tbody) return;
+  tbody.innerHTML = skeletonRows(4, 3);
+  try {
+    const res  = await apiFetch('/api/crm/interactions/followups');
+    const data = await res.json();
+    const rows = data.data || [];
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:16px">No upcoming follow-ups</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td style="font-size:12px;font-weight:600;color:var(--blue)">${r.follow_up_date}</td>
+        <td>${escHtml(r.customer_name)}</td>
+        <td>${intTypeBadge(r.type)}</td>
+        <td>${escHtml(r.subject)}</td>
+      </tr>`).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="4" style="color:var(--red);padding:12px">${escHtml(e.message)}</td></tr>`;
+  }
+}
+
+function intTypeBadge(t) {
+  const map = { call:'#3b82f6', email:'#8b5cf6', meeting:'#10b981', note:'#94a3b8', demo:'#f97316', follow_up:'#f59e0b' };
+  const col = map[t] || '#94a3b8';
+  return `<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;background:${col}20;color:${col}">${t.replace('_',' ')}</span>`;
+}
+
+async function openInteractionModal() {
+  const sel = document.getElementById('intCustId');
+  sel.innerHTML = _crmCustomers.length
+    ? _crmCustomers.map(c => `<option value="${c.id}">${escHtml(c.name)} (${escHtml(c.code)})</option>`).join('')
+    : '<option value="">No customers loaded</option>';
+  const now = new Date(); now.setSeconds(0,0);
+  document.getElementById('intDate').value     = now.toISOString().slice(0,16);
+  document.getElementById('intSubject').value  = '';
+  document.getElementById('intBody').value     = '';
+  document.getElementById('intOutcome').value  = '';
+  document.getElementById('intFollowUp').value = '';
+  document.getElementById('interactionModal').classList.add('open');
+}
+
+async function saveInteraction() {
+  const body = {
+    customer_id:      document.getElementById('intCustId').value,
+    type:             document.getElementById('intType').value,
+    direction:        document.getElementById('intDirection').value,
+    subject:          document.getElementById('intSubject').value.trim(),
+    body:             document.getElementById('intBody').value.trim() || undefined,
+    outcome:          document.getElementById('intOutcome').value.trim() || undefined,
+    follow_up_date:   document.getElementById('intFollowUp').value || undefined,
+    interaction_date: document.getElementById('intDate').value || undefined,
+  };
+  if (!body.customer_id) { showToast('Select a customer', 'error'); return; }
+  if (!body.subject)     { showToast('Subject is required', 'error'); return; }
+  try {
+    const res  = await apiFetch('/api/crm/interactions', { method: 'POST', body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Save failed');
+    showToast('Interaction logged', 'success');
+    closeModal('interactionModal');
+    loadInteractions();
+    loadFollowups();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+// ─── Opportunities ─────────────────────────────────────────────
+const STAGE_COLORS = {
+  lead:'#94a3b8', qualified:'#3b82f6', proposal:'#8b5cf6',
+  negotiation:'#f97316', won:'#10b981', lost:'#ef4444'
+};
+function stageBadge(s) {
+  const c = STAGE_COLORS[s] || '#94a3b8';
+  return `<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;background:${c}20;color:${c}">${s}</span>`;
+}
+
+async function loadOpportunities(page) {
+  if (page) _oppPage = page;
+  const stage  = document.getElementById('crmOppStage')?.value || '';
+  const params = new URLSearchParams({ page: _oppPage, limit: 25 });
+  if (stage) params.set('stage', stage);
+
+  const tbody = document.getElementById('oppBody');
+  if (!tbody) return;
+  tbody.innerHTML = skeletonRows(9);
+  try {
+    const res  = await apiFetch(`/api/crm/opportunities?${params}`);
+    const data = await res.json();
+    const rows = data.data || [];
+    const meta = data.meta || {};
+    document.getElementById('oppCount').textContent = meta.total ? `${meta.total} opportunities` : '';
+
+    if (data.pipeline_summary) {
+      const ps = data.pipeline_summary;
+      document.getElementById('pipelineKpi').innerHTML = Object.entries(ps).map(([stg, info]) => `
+        <div class="card" style="padding:12px;text-align:center">
+          <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;margin-bottom:4px">${stg}</div>
+          <div style="font-size:20px;font-weight:800;color:var(--text0)">${info.count}</div>
+          <div style="font-size:11px;color:var(--blue)">$${Number(info.value||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
+        </div>`).join('');
+    }
+
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text2);padding:24px">No opportunities found</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td><code style="font-size:11px">${escHtml(r.number)}</code></td>
+        <td style="font-size:12px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(r.customer_name)}</td>
+        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${escHtml(r.title)}</td>
+        <td style="text-align:right;font-weight:700">$${Number(r.estimated_value||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}</td>
+        <td>${stageBadge(r.stage)}</td>
+        <td style="text-align:right;font-size:12px">${r.probability}%</td>
+        <td style="font-size:12px">${r.expected_close_date || '—'}</td>
+        <td style="font-size:12px;color:var(--text2)">${escHtml(r.assigned_to_name||'—')}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-ghost btn-sm" onclick='openOpportunityModal(${JSON.stringify(r)})'>✎</button>
+          ${r.stage === 'won' && !r.sales_order_id ? `<button class="btn btn-primary btn-sm" onclick="convertOppToSO('${r.id}')">→ SO</button>` : ''}
+        </td>
+      </tr>`).join('');
+    buildPagination('oppPagination', meta.page||1, meta.total||0, meta.limit||25, p => loadOpportunities(p));
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="9" style="color:var(--red);padding:16px">${escHtml(e.message)}</td></tr>`;
+  }
+}
+
+function oppStageChanged() {
+  const stageProb = { lead:10, qualified:25, proposal:50, negotiation:75, won:100, lost:0 };
+  const s = document.getElementById('oppStage').value;
+  document.getElementById('oppProb').value = stageProb[s] ?? 10;
+  document.getElementById('oppLostReasonRow').style.display = s === 'lost' ? '' : 'none';
+}
+
+async function openOpportunityModal(opp) {
+  const sel = document.getElementById('oppCustId');
+  sel.innerHTML = _crmCustomers.length
+    ? _crmCustomers.map(c => `<option value="${c.id}">${escHtml(c.name)} (${escHtml(c.code)})</option>`).join('')
+    : '<option value="">No customers loaded</option>';
+
+  if (opp && typeof opp === 'object') {
+    document.getElementById('oppModalTitle').textContent = '✎ Edit Opportunity';
+    document.getElementById('oppEditId').value      = opp.id;
+    document.getElementById('oppCustId').value      = opp.customer_id;
+    document.getElementById('oppTitle').value       = opp.title;
+    document.getElementById('oppStage').value       = opp.stage;
+    document.getElementById('oppProb').value        = opp.probability;
+    document.getElementById('oppValue').value       = opp.estimated_value;
+    document.getElementById('oppCloseDate').value   = opp.expected_close_date || '';
+    document.getElementById('oppNotes').value       = opp.notes || '';
+    document.getElementById('oppLostReasonRow').style.display = opp.stage === 'lost' ? '' : 'none';
+    document.getElementById('oppLostReason').value  = opp.lost_reason || '';
+  } else {
+    document.getElementById('oppModalTitle').textContent = '🏆 New Opportunity';
+    document.getElementById('oppEditId').value    = '';
+    document.getElementById('oppTitle').value     = '';
+    document.getElementById('oppStage').value     = 'lead';
+    document.getElementById('oppProb').value      = 10;
+    document.getElementById('oppValue').value     = 0;
+    document.getElementById('oppCloseDate').value = '';
+    document.getElementById('oppNotes').value     = '';
+    document.getElementById('oppLostReasonRow').style.display = 'none';
+    document.getElementById('oppLostReason').value = '';
+  }
+  document.getElementById('opportunityModal').classList.add('open');
+}
+
+async function saveOpportunity() {
+  const id    = document.getElementById('oppEditId').value;
+  const stage = document.getElementById('oppStage').value;
+  const body  = {
+    customer_id:         document.getElementById('oppCustId').value,
+    title:               document.getElementById('oppTitle').value.trim(),
+    stage,
+    probability:         parseInt(document.getElementById('oppProb').value, 10),
+    estimated_value:     parseFloat(document.getElementById('oppValue').value) || 0,
+    expected_close_date: document.getElementById('oppCloseDate').value || undefined,
+    notes:               document.getElementById('oppNotes').value.trim() || undefined,
+    lost_reason:         stage === 'lost' ? (document.getElementById('oppLostReason').value.trim() || undefined) : undefined,
+  };
+  if (!body.title) { showToast('Title is required', 'error'); return; }
+  try {
+    let res;
+    if (id) {
+      res = await apiFetch(`/api/crm/opportunities/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+    } else {
+      res = await apiFetch('/api/crm/opportunities', { method: 'POST', body: JSON.stringify(body) });
+    }
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Save failed');
+    showToast(id ? 'Opportunity updated' : 'Opportunity created', 'success');
+    closeModal('opportunityModal');
+    loadOpportunities();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function convertOppToSO(id) {
+  if (!confirm('Convert this won opportunity to a draft Sales Order?')) return;
+  try {
+    const res  = await apiFetch(`/api/crm/opportunities/${id}/convert`, { method: 'POST', body: '{}' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Conversion failed');
+    showToast(`Draft SO created: ${data.data?.so_number}`, 'success');
+    loadOpportunities();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+// ─── Customer Health ───────────────────────────────────────────
+function healthBadge(label) {
+  const map = { 'Excellent':'#10b981', 'Good':'#3b82f6', 'Fair':'#f59e0b', 'Poor':'#ef4444', 'At Risk':'#dc2626' };
+  const col = map[label] || '#94a3b8';
+  return `<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;background:${col}20;color:${col}">${label}</span>`;
+}
+
+async function loadCustomerHealth(page) {
+  if (page) _healthPage = page;
+  const label  = document.getElementById('crmHealthLabel')?.value || '';
+  const params = new URLSearchParams({ page: _healthPage, limit: 25 });
+  if (label) params.set('label', label);
+
+  const tbody = document.getElementById('healthBody');
+  if (!tbody) return;
+  tbody.innerHTML = skeletonRows(10);
+  try {
+    const res  = await apiFetch(`/api/crm/health?${params}`);
+    const data = await res.json();
+    const rows = data.data || [];
+    const meta = data.meta || {};
+    document.getElementById('healthCount').textContent = meta.total ? `${meta.total} customers` : '';
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--text2);padding:24px">No customers found</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(r => {
+      const score      = parseInt(r.health_score, 10);
+      const scoreColor = score >= 65 ? '#10b981' : score >= 45 ? '#3b82f6' : score >= 25 ? '#f59e0b' : '#ef4444';
+      return `<tr>
+        <td><code style="font-size:11px">${escHtml(r.customer_code)}</code></td>
+        <td style="font-weight:500">${escHtml(r.customer_name)}</td>
+        <td style="text-align:right">
+          <span style="display:inline-flex;align-items:center;gap:6px">
+            <span style="font-weight:800;font-size:15px;color:${scoreColor}">${score}</span>
+            <span style="width:48px;height:5px;border-radius:3px;background:#e2e8f0;display:inline-block;overflow:hidden">
+              <span style="display:block;height:100%;width:${score}%;background:${scoreColor}"></span>
+            </span>
+          </span>
+        </td>
+        <td>${healthBadge(r.health_label)}</td>
+        <td style="text-align:right">$${Number(r.revenue_12m||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}</td>
+        <td style="text-align:right">${r.order_count_90d}</td>
+        <td style="text-align:right;color:${Number(r.overdue_balance)>0?'#dc2626':'inherit'}">$${Number(r.overdue_balance||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}</td>
+        <td style="text-align:right;font-size:12px">${r.avg_days_to_pay ? parseFloat(r.avg_days_to_pay).toFixed(1)+'d' : '—'}</td>
+        <td style="font-size:12px">${r.last_order_date || '—'}</td>
+        <td style="text-align:right">${r.interactions_30d}</td>
+      </tr>`;
+    }).join('');
+    buildPagination('healthPagination', meta.page||1, meta.total||0, meta.limit||25, p => loadCustomerHealth(p));
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="10" style="color:var(--red);padding:16px">${escHtml(e.message)}</td></tr>`;
+  }
 }
 </script>
 </body>

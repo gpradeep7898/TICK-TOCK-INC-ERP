@@ -37,6 +37,7 @@ const pickListsRouter   = require('./routes/picklists.routes');
 const shippingRouter    = require('./routes/shipping.routes');
 const glRouter          = require('./routes/gl.routes');
 const demandRouter      = require('./routes/demand.routes');
+const crmRouter         = require('./routes/crm.routes');
 
 // ─── App setup ────────────────────────────────────────────────────────────────
 const app = express();
@@ -118,6 +119,7 @@ app.use('/api/picklists',           pickListsRouter);
 app.use('/api/shipping',            shippingRouter);
 app.use('/api/gl',                  glRouter);
 app.use('/api/demand',              demandRouter);
+app.use('/api/crm',                 crmRouter);
 
 // ─── Error handling ───────────────────────────────────────────────────────────
 app.use(errorHandler);
