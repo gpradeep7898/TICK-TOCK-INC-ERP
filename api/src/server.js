@@ -35,6 +35,7 @@ const reportsRouter     = require('./routes/reports.routes');
 const transfersRouter   = require('./routes/transfers.routes');
 const pickListsRouter   = require('./routes/picklists.routes');
 const shippingRouter    = require('./routes/shipping.routes');
+const glRouter          = require('./routes/gl.routes');
 
 // ─── App setup ────────────────────────────────────────────────────────────────
 const app = express();
@@ -114,6 +115,7 @@ app.use('/api/reports',             reportsRouter);
 app.use('/api/transfers',           transfersRouter);
 app.use('/api/picklists',           pickListsRouter);
 app.use('/api/shipping',            shippingRouter);
+app.use('/api/gl',                  glRouter);
 
 // ─── Error handling ───────────────────────────────────────────────────────────
 app.use(errorHandler);

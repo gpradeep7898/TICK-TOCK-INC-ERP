@@ -92,6 +92,44 @@
     .charts-row,.tables-row,.aging-wrap{grid-template-columns:1fr}
   }
 
+  /* ── GL TABS ── */
+  .gl-section{margin-top:32px}
+  .tab-bar{display:flex;gap:4px;border-bottom:2px solid #e2e8f0;margin-bottom:20px}
+  .tab-btn{background:none;border:none;padding:10px 18px;font-size:.82rem;font-weight:600;color:#64748b;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;border-radius:4px 4px 0 0;transition:all .15s;font-family:inherit}
+  .tab-btn:hover{background:#f1f5f9;color:#1a1a2e}
+  .tab-btn.active{color:#1a1a2e;border-bottom-color:#1a1a2e;background:#fff}
+  .tab-panel{display:none}.tab-panel.active{display:block}
+  .gl-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+  .gl-toolbar input,.gl-toolbar select{padding:7px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:.82rem;background:#fff;font-family:inherit}
+  .gl-btn{padding:7px 16px;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:600;font-family:inherit;transition:all .15s}
+  .gl-btn-primary{background:#1a1a2e;color:#fff}.gl-btn-primary:hover{background:#2d2d4e}
+  .gl-btn-ghost{background:#fff;color:#475569;border:1px solid #e2e8f0}.gl-btn-ghost:hover{background:#f1f5f9}
+  .gl-btn-green{background:#16a34a;color:#fff}.gl-btn-green:hover{background:#15803d}
+  .gl-btn-red{background:#dc2626;color:#fff}.gl-btn-red:hover{background:#b91c1c}
+  .gl-card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:20px;overflow:auto}
+  .gl-card h3{font-size:.85rem;font-weight:700;color:#475569;margin-bottom:14px}
+  .bs-section{font-size:.78rem;font-weight:700;color:#1a1a2e;background:#f8fafc;padding:6px 10px;border-left:3px solid #1a1a2e}
+  .bs-header{font-weight:700;color:#64748b;font-size:.75rem;background:#f1f5f9;padding:4px 10px}
+  .bs-total{font-weight:700;border-top:2px solid #e2e8f0}
+  /* GL modal */
+  .gl-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center}
+  .gl-overlay.active{display:flex}
+  .gl-modal{background:#fff;border-radius:12px;width:min(700px,95vw);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .gl-modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 0}
+  .gl-modal-title{font-size:1rem;font-weight:700;color:#1a1a2e}
+  .gl-modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;line-height:1}
+  .gl-modal-body{padding:20px 24px}
+  .gl-modal-footer{padding:0 24px 20px;display:flex;gap:10px;justify-content:flex-end}
+  .gl-form-group{margin-bottom:14px}
+  .gl-label{display:block;font-size:.78rem;font-weight:600;color:#475569;margin-bottom:5px}
+  .gl-input{width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:.82rem;font-family:inherit}
+  .gl-grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .je-line-row{display:grid;grid-template-columns:1fr 2fr 90px 90px 30px;gap:8px;align-items:center;margin-bottom:8px;font-size:.8rem}
+  .je-totals-row{display:flex;gap:24px;justify-content:flex-end;padding:8px 0;font-size:.82rem;font-weight:700;border-top:2px solid #e2e8f0;margin-top:8px}
+  .badge-posted{color:#16a34a;background:#dcfce7;padding:2px 7px;border-radius:12px;font-size:.72rem;font-weight:700}
+  .badge-draft{color:#f59e0b;background:#fef3c7;padding:2px 7px;border-radius:12px;font-size:.72rem;font-weight:700}
+  .badge-void{color:#94a3b8;background:#f1f5f9;padding:2px 7px;border-radius:12px;font-size:.72rem;font-weight:700}
+
   /* ── NAV USER CHIP ── */
   .nav-spacer{flex:1}
   .nav-user{display:flex;align-items:center;gap:10px}
@@ -180,6 +218,182 @@
   </div>
 
 </div><!-- /main -->
+
+<!-- ══ GENERAL LEDGER SECTION ════════════════════════════════════════════ -->
+<div class="main gl-section">
+  <div class="section-title">General Ledger</div>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="glTab('coa')">📋 Chart of Accounts</button>
+    <button class="tab-btn" onclick="glTab('je')">📝 Journal Entries</button>
+    <button class="tab-btn" onclick="glTab('tb')">⚖️ Trial Balance</button>
+    <button class="tab-btn" onclick="glTab('pl')">📈 P&amp;L Statement</button>
+    <button class="tab-btn" onclick="glTab('bs')">🏛 Balance Sheet</button>
+  </div>
+
+  <!-- ── Chart of Accounts ── -->
+  <div id="gl-coa" class="tab-panel active">
+    <div class="gl-toolbar">
+      <input id="coaSearch" placeholder="Search accounts…" oninput="filterCOA()" style="width:220px">
+      <select id="coaTypeFilter" onchange="filterCOA()">
+        <option value="">All Types</option>
+        <option value="asset">Asset</option>
+        <option value="liability">Liability</option>
+        <option value="equity">Equity</option>
+        <option value="revenue">Revenue</option>
+        <option value="cogs">COGS</option>
+        <option value="expense">Expense</option>
+      </select>
+      <button class="gl-btn gl-btn-ghost" onclick="loadCOA()">⟳ Refresh</button>
+      <button class="gl-btn gl-btn-primary" onclick="openNewAccountModal()">+ Add Account</button>
+    </div>
+    <div class="gl-card">
+      <div id="coaBody"><div class="loading-state"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+
+  <!-- ── Journal Entries ── -->
+  <div id="gl-je" class="tab-panel">
+    <div class="gl-toolbar">
+      <select id="jeStatusFilter" onchange="loadJE()">
+        <option value="">All Statuses</option>
+        <option value="draft">Draft</option>
+        <option value="posted">Posted</option>
+        <option value="void">Void</option>
+      </select>
+      <input type="date" id="jeFromDate">
+      <input type="date" id="jeToDate">
+      <button class="gl-btn gl-btn-ghost" onclick="loadJE()">⟳ Refresh</button>
+      <button class="gl-btn gl-btn-primary" onclick="openNewJEModal()">+ New Entry</button>
+    </div>
+    <div class="gl-card">
+      <div id="jeBody"><div class="loading-state"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+
+  <!-- ── Trial Balance ── -->
+  <div id="gl-tb" class="tab-panel">
+    <div class="gl-toolbar">
+      <label style="font-size:.82rem;font-weight:600;color:#475569">As of:</label>
+      <input type="date" id="tbAsOf">
+      <button class="gl-btn gl-btn-primary" onclick="loadTrialBalance()">Run Trial Balance</button>
+    </div>
+    <div class="gl-card" id="tbCard">
+      <div class="loading-state" style="color:#94a3b8">Select a date and click Run Trial Balance</div>
+    </div>
+  </div>
+
+  <!-- ── P&L Statement ── -->
+  <div id="gl-pl" class="tab-panel">
+    <div class="gl-toolbar">
+      <label style="font-size:.82rem;font-weight:600;color:#475569">From:</label>
+      <input type="date" id="plFrom">
+      <label style="font-size:.82rem;font-weight:600;color:#475569">To:</label>
+      <input type="date" id="plTo">
+      <button class="gl-btn gl-btn-primary" onclick="loadGLPL()">Run P&amp;L</button>
+    </div>
+    <div class="gl-card" id="plCard">
+      <div class="loading-state" style="color:#94a3b8">Select a date range and click Run P&L</div>
+    </div>
+  </div>
+
+  <!-- ── Balance Sheet ── -->
+  <div id="gl-bs" class="tab-panel">
+    <div class="gl-toolbar">
+      <label style="font-size:.82rem;font-weight:600;color:#475569">As of:</label>
+      <input type="date" id="bsAsOf">
+      <button class="gl-btn gl-btn-primary" onclick="loadBalanceSheet()">Run Balance Sheet</button>
+    </div>
+    <div class="gl-card" id="bsCard">
+      <div class="loading-state" style="color:#94a3b8">Select a date and click Run Balance Sheet</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── New Account Modal ── -->
+<div class="gl-overlay" id="newAcctModal">
+  <div class="gl-modal">
+    <div class="gl-modal-header">
+      <div class="gl-modal-title">Add GL Account</div>
+      <button class="gl-modal-close" onclick="closeGLModal('newAcctModal')">✕</button>
+    </div>
+    <div class="gl-modal-body">
+      <div class="gl-grid2">
+        <div class="gl-form-group">
+          <label class="gl-label">Account Number *</label>
+          <input class="gl-input" id="acctNum" placeholder="e.g. 6200">
+        </div>
+        <div class="gl-form-group">
+          <label class="gl-label">Type *</label>
+          <select class="gl-input" id="acctType">
+            <option value="asset">Asset</option>
+            <option value="liability">Liability</option>
+            <option value="equity">Equity</option>
+            <option value="revenue">Revenue</option>
+            <option value="cogs">COGS</option>
+            <option value="expense">Expense</option>
+          </select>
+        </div>
+      </div>
+      <div class="gl-form-group">
+        <label class="gl-label">Account Name *</label>
+        <input class="gl-input" id="acctName" placeholder="e.g. Warehouse Supplies">
+      </div>
+      <div class="gl-form-group">
+        <label class="gl-label">Description</label>
+        <input class="gl-input" id="acctDesc" placeholder="Optional description">
+      </div>
+    </div>
+    <div class="gl-modal-footer">
+      <button class="gl-btn gl-btn-ghost" onclick="closeGLModal('newAcctModal')">Cancel</button>
+      <button class="gl-btn gl-btn-primary" onclick="saveNewAccount()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── New Journal Entry Modal ── -->
+<div class="gl-overlay" id="newJEModal">
+  <div class="gl-modal">
+    <div class="gl-modal-header">
+      <div class="gl-modal-title">New Journal Entry</div>
+      <button class="gl-modal-close" onclick="closeGLModal('newJEModal')">✕</button>
+    </div>
+    <div class="gl-modal-body">
+      <div class="gl-grid2">
+        <div class="gl-form-group">
+          <label class="gl-label">Entry Date *</label>
+          <input type="date" class="gl-input" id="jeDate">
+        </div>
+        <div class="gl-form-group">
+          <label class="gl-label">Reference</label>
+          <input class="gl-input" id="jeRef" placeholder="Invoice #, SO #, etc.">
+        </div>
+      </div>
+      <div class="gl-form-group">
+        <label class="gl-label">Description *</label>
+        <input class="gl-input" id="jeDesc" placeholder="Brief description of this entry">
+      </div>
+      <div style="margin:16px 0 8px;font-size:.78rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.4px">
+        Lines <button class="gl-btn gl-btn-ghost" style="padding:3px 10px;font-size:.75rem;margin-left:8px" onclick="addJELine()">+ Add Line</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 2fr 90px 90px 30px;gap:8px;margin-bottom:6px;font-size:.72rem;font-weight:700;color:#64748b;text-transform:uppercase">
+        <span>Account</span><span>Description</span><span style="text-align:right">Debit</span><span style="text-align:right">Credit</span><span></span>
+      </div>
+      <div id="jeLinesContainer"></div>
+      <div class="je-totals-row" id="jeTotalsRow">
+        <span>Debits: <span id="jeTotalDebit">$0.00</span></span>
+        <span>Credits: <span id="jeTotalCredit">$0.00</span></span>
+        <span id="jeBalanceMsg" style="color:#94a3b8">—</span>
+      </div>
+    </div>
+    <div class="gl-modal-footer">
+      <button class="gl-btn gl-btn-ghost" onclick="closeGLModal('newJEModal')">Cancel</button>
+      <button class="gl-btn gl-btn-primary" onclick="saveJE(false)">Save Draft</button>
+      <button class="gl-btn gl-btn-green" onclick="saveJE(true)">Save &amp; Post</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const API = '';
@@ -463,6 +677,315 @@ async function loadPL(){
 
 // Boot
 loadAll();
+
+// ══ General Ledger ═══════════════════════════════════════════════════════════
+function fmtM(v) { return v == null ? '—' : '$' + Number(v).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2}); }
+function escGL(s) { return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+const typeColors = { asset:'#3b82f6', liability:'#ef4444', equity:'#8b5cf6', revenue:'#22c55e', cogs:'#f97316', expense:'#f59e0b' };
+
+function glTab(id) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('gl-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (id === 'coa') loadCOA();
+  if (id === 'je')  loadJE();
+}
+function closeGLModal(id) { document.getElementById(id).classList.remove('active'); }
+
+// ── Chart of Accounts ─────────────────────────────────────────────────────────
+let _coaRows = [];
+async function loadCOA() {
+  document.getElementById('coaBody').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  try {
+    const d = await apiFetch('/api/gl/accounts');
+    _coaRows = d.data || [];
+    filterCOA();
+  } catch(e) { document.getElementById('coaBody').innerHTML = `<div class="loading-state" style="color:#ef4444">${e.message}</div>`; }
+}
+function filterCOA() {
+  const q    = (document.getElementById('coaSearch').value || '').toLowerCase();
+  const type = document.getElementById('coaTypeFilter').value;
+  const rows = _coaRows.filter(r =>
+    (!q    || r.account_number.toLowerCase().includes(q) || r.name.toLowerCase().includes(q)) &&
+    (!type || r.type === type)
+  );
+  const color = r => typeColors[r.type] || '#94a3b8';
+  document.getElementById('coaBody').innerHTML = `
+    <table>
+      <thead><tr><th>Number</th><th>Name</th><th>Type</th><th>Sub-Type</th><th>Normal Bal.</th><th style="text-align:right">Balance</th><th>Status</th></tr></thead>
+      <tbody>${rows.map(r => `
+        <tr>
+          <td><code>${escGL(r.account_number)}</code></td>
+          <td>${escGL(r.name)}</td>
+          <td><span style="background:${color(r)}22;color:${color(r)};padding:2px 8px;border-radius:10px;font-size:.72rem;font-weight:700">${r.type.toUpperCase()}</span></td>
+          <td style="color:#64748b;font-size:.78rem">${r.sub_type ? r.sub_type.replace(/_/g,' ') : '—'}</td>
+          <td style="text-align:center">${r.normal_balance}</td>
+          <td style="text-align:right;font-weight:600;color:${parseFloat(r.balance||0)<0?'#dc2626':'#16a34a'}">${fmtM(r.balance)}</td>
+          <td>${r.is_active ? '<span class="badge-green">Active</span>' : '<span class="badge-void">Inactive</span>'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    <div style="font-size:.78rem;color:#94a3b8;margin-top:10px">${rows.length} accounts</div>`;
+}
+function openNewAccountModal() {
+  ['acctNum','acctName','acctDesc'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('acctType').value = 'expense';
+  document.getElementById('newAcctModal').classList.add('active');
+}
+async function saveNewAccount() {
+  const body = {
+    account_number: document.getElementById('acctNum').value.trim(),
+    name:           document.getElementById('acctName').value.trim(),
+    type:           document.getElementById('acctType').value,
+    description:    document.getElementById('acctDesc').value.trim() || undefined,
+  };
+  if (!body.account_number || !body.name) return alert('Account number and name are required.');
+  try {
+    await apiFetch('/api/gl/accounts', { method:'POST', body: JSON.stringify(body) });
+    closeGLModal('newAcctModal');
+    loadCOA();
+  } catch(e) { alert(e.message); }
+}
+
+// ── Journal Entries ───────────────────────────────────────────────────────────
+async function loadJE() {
+  document.getElementById('jeBody').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  const status = document.getElementById('jeStatusFilter').value;
+  const from   = document.getElementById('jeFromDate').value;
+  const to     = document.getElementById('jeToDate').value;
+  const params = new URLSearchParams({ limit: 50 });
+  if (status) params.set('status', status);
+  if (from)   params.set('from_date', from);
+  if (to)     params.set('to_date', to);
+  try {
+    const d = await apiFetch(`/api/gl/journal-entries?${params}`);
+    const rows = d.data || [];
+    if (!rows.length) {
+      document.getElementById('jeBody').innerHTML = '<div class="loading-state" style="color:#94a3b8">No journal entries found</div>';
+      return;
+    }
+    document.getElementById('jeBody').innerHTML = `
+      <table>
+        <thead><tr><th>Number</th><th>Date</th><th>Description</th><th>Reference</th><th>Lines</th><th style="text-align:right">Total</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>${rows.map(r => `
+          <tr>
+            <td><strong>${escGL(r.number)}</strong></td>
+            <td>${r.entry_date ? r.entry_date.slice(0,10) : '—'}</td>
+            <td>${escGL(r.description)}</td>
+            <td style="color:#64748b;font-size:.78rem">${escGL(r.reference||'—')}</td>
+            <td style="text-align:center">${r.line_count}</td>
+            <td style="text-align:right;font-weight:600">${fmtM(r.total_debit)}</td>
+            <td><span class="badge-${r.status}">${r.status}</span></td>
+            <td>
+              ${r.status==='draft' ? `<button class="gl-btn gl-btn-green" style="padding:3px 10px;font-size:.75rem" onclick="postJE('${r.id}')">Post</button>
+              <button class="gl-btn gl-btn-ghost" style="padding:3px 10px;font-size:.75rem" onclick="voidJE('${r.id}')">Void</button>` : ''}
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch(e) { document.getElementById('jeBody').innerHTML = `<div class="loading-state" style="color:#ef4444">${e.message}</div>`; }
+}
+
+async function postJE(id) {
+  if (!confirm('Post this journal entry? This action cannot be undone.')) return;
+  try {
+    await apiFetch(`/api/gl/journal-entries/${id}/post`, { method:'POST', body:'{}' });
+    loadJE();
+  } catch(e) { alert(e.message); }
+}
+async function voidJE(id) {
+  if (!confirm('Void this draft entry?')) return;
+  try {
+    await apiFetch(`/api/gl/journal-entries/${id}/void`, { method:'POST', body:'{}' });
+    loadJE();
+  } catch(e) { alert(e.message); }
+}
+
+// New JE modal
+let _jeAccounts = [];
+function openNewJEModal() {
+  document.getElementById('jeDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('jeRef').value  = '';
+  document.getElementById('jeDesc').value = '';
+  document.getElementById('jeLinesContainer').innerHTML = '';
+  updateJETotals();
+  document.getElementById('newJEModal').classList.add('active');
+  if (!_jeAccounts.length) apiFetch('/api/gl/accounts').then(d => { _jeAccounts = d.data || []; });
+  addJELine(); addJELine();
+}
+function addJELine() {
+  const idx = document.querySelectorAll('.je-line-row').length;
+  const opts = _jeAccounts.map(a => `<option value="${a.id}">${a.account_number} — ${escGL(a.name)}</option>`).join('');
+  const row = document.createElement('div');
+  row.className = 'je-line-row';
+  row.innerHTML = `
+    <select class="gl-input je-acct" style="padding:5px 8px;font-size:.78rem" onchange="updateJETotals()">${opts}</select>
+    <input class="gl-input je-ldesc" style="padding:5px 8px;font-size:.78rem" placeholder="Line description">
+    <input type="number" class="gl-input je-debit" style="padding:5px 8px;font-size:.78rem;text-align:right" placeholder="0.00" min="0" step="0.01" oninput="updateJETotals()">
+    <input type="number" class="gl-input je-credit" style="padding:5px 8px;font-size:.78rem;text-align:right" placeholder="0.00" min="0" step="0.01" oninput="updateJETotals()">
+    <button onclick="this.closest('.je-line-row').remove();updateJETotals()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:16px" title="Remove">✕</button>`;
+  document.getElementById('jeLinesContainer').appendChild(row);
+}
+function updateJETotals() {
+  const debits  = [...document.querySelectorAll('.je-debit')].reduce((s,i)=>s+parseFloat(i.value||0),0);
+  const credits = [...document.querySelectorAll('.je-credit')].reduce((s,i)=>s+parseFloat(i.value||0),0);
+  document.getElementById('jeTotalDebit').textContent  = fmtM(debits);
+  document.getElementById('jeTotalCredit').textContent = fmtM(credits);
+  const diff = Math.abs(debits - credits);
+  const msg  = document.getElementById('jeBalanceMsg');
+  if (debits === 0 && credits === 0) { msg.textContent = '—'; msg.style.color = '#94a3b8'; }
+  else if (diff < 0.01) { msg.textContent = '✓ Balanced'; msg.style.color = '#16a34a'; }
+  else { msg.textContent = `Out of balance by ${fmtM(diff)}`; msg.style.color = '#dc2626'; }
+}
+async function saveJE(postNow) {
+  const entry_date  = document.getElementById('jeDate').value;
+  const description = document.getElementById('jeDesc').value.trim();
+  const reference   = document.getElementById('jeRef').value.trim();
+  if (!description) return alert('Description is required.');
+  const rows = document.querySelectorAll('.je-line-row');
+  const lines = [...rows].map(row => ({
+    account_id:  row.querySelector('.je-acct').value,
+    description: row.querySelector('.je-ldesc').value.trim() || undefined,
+    debit:       parseFloat(row.querySelector('.je-debit').value  || 0),
+    credit:      parseFloat(row.querySelector('.je-credit').value || 0),
+  })).filter(l => l.debit > 0 || l.credit > 0);
+  if (lines.length < 2) return alert('At least 2 lines required.');
+  const body = { entry_date, description, lines };
+  if (reference) body.reference = reference;
+  try {
+    const created = await apiFetch('/api/gl/journal-entries', { method:'POST', body: JSON.stringify(body) });
+    if (postNow) await apiFetch(`/api/gl/journal-entries/${created.data.id}/post`, { method:'POST', body:'{}' });
+    closeGLModal('newJEModal');
+    loadJE();
+  } catch(e) { alert(e.message); }
+}
+
+// ── Trial Balance ─────────────────────────────────────────────────────────────
+async function loadTrialBalance() {
+  const asOf = document.getElementById('tbAsOf').value || new Date().toISOString().slice(0,10);
+  const card = document.getElementById('tbCard');
+  card.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  try {
+    const d = await apiFetch(`/api/gl/trial-balance?as_of=${asOf}`);
+    const { rows, total_debit, total_credit, is_balanced } = d.data;
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h3 style="margin:0">Trial Balance — As of ${asOf}</h3>
+        <span class="${is_balanced ? 'badge-green' : 'badge-red'}">${is_balanced ? '✓ Balanced' : '✗ Out of Balance'}</span>
+      </div>
+      <table>
+        <thead><tr><th>Account #</th><th>Name</th><th>Type</th><th style="text-align:right">Debits</th><th style="text-align:right">Credits</th></tr></thead>
+        <tbody>${rows.map(r => `<tr>
+          <td><code>${escGL(r.account_number)}</code></td>
+          <td>${escGL(r.name)}</td>
+          <td><span style="background:${typeColors[r.type]||'#aaa'}22;color:${typeColors[r.type]||'#aaa'};padding:2px 7px;border-radius:10px;font-size:.72rem;font-weight:700">${r.type}</span></td>
+          <td style="text-align:right">${parseFloat(r.total_debit) > 0 ? fmtM(r.total_debit) : ''}</td>
+          <td style="text-align:right">${parseFloat(r.total_credit) > 0 ? fmtM(r.total_credit) : ''}</td>
+        </tr>`).join('')}
+        </tbody>
+        <tfoot><tr style="font-weight:700;border-top:2px solid #e2e8f0">
+          <td colspan="3">Totals</td>
+          <td style="text-align:right">${fmtM(total_debit)}</td>
+          <td style="text-align:right">${fmtM(total_credit)}</td>
+        </tr></tfoot>
+      </table>`;
+  } catch(e) { card.innerHTML = `<div class="loading-state" style="color:#ef4444">${e.message}</div>`; }
+}
+
+// ── P&L Statement ─────────────────────────────────────────────────────────────
+async function loadGLPL() {
+  const from = document.getElementById('plFrom').value;
+  const to   = document.getElementById('plTo').value;
+  const card = document.getElementById('plCard');
+  if (!from || !to) { alert('Please select a date range.'); return; }
+  card.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  try {
+    const d = await apiFetch(`/api/gl/pl?from=${from}&to=${to}`);
+    const { accounts, summary } = d.data;
+    const rev  = accounts.filter(a => a.type === 'revenue');
+    const cogs = accounts.filter(a => a.type === 'cogs');
+    const exp  = accounts.filter(a => a.type === 'expense');
+    const sec = (title, rows, color) => `
+      <tr><td colspan="2" class="bs-section" style="border-left-color:${color}">${title}</td></tr>
+      ${rows.map(r => `<tr><td style="padding-left:24px">${escGL(r.name)}</td><td class="num">${fmtM(r.amount)}</td></tr>`).join('')}`;
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h3 style="margin:0">Income Statement — ${from} to ${to}</h3>
+      </div>
+      <table>
+        <thead><tr><th>Account</th><th style="text-align:right;min-width:120px">Amount</th></tr></thead>
+        <tbody>
+          ${sec('Revenue', rev, '#22c55e')}
+          <tr class="bs-total"><td>Total Revenue</td><td class="num">${fmtM(summary.revenue)}</td></tr>
+          ${sec('Cost of Goods Sold', cogs, '#f97316')}
+          <tr class="bs-total"><td>Total COGS</td><td class="num">${fmtM(summary.cogs)}</td></tr>
+          <tr style="font-weight:700;font-size:1rem;background:#f0fdf4"><td>Gross Profit</td><td class="num" style="color:${summary.gross_profit>=0?'#16a34a':'#dc2626'}">${fmtM(summary.gross_profit)}</td></tr>
+          ${sec('Operating Expenses', exp, '#f59e0b')}
+          <tr class="bs-total"><td>Total Expenses</td><td class="num">${fmtM(summary.expenses)}</td></tr>
+          <tr style="font-weight:700;font-size:1.05rem;background:${summary.net_income>=0?'#f0fdf4':'#fef2f2'}">
+            <td>Net Income</td>
+            <td class="num" style="color:${summary.net_income>=0?'#16a34a':'#dc2626'}">${fmtM(summary.net_income)}</td>
+          </tr>
+        </tbody>
+      </table>`;
+  } catch(e) { card.innerHTML = `<div class="loading-state" style="color:#ef4444">${e.message}</div>`; }
+}
+
+// ── Balance Sheet ─────────────────────────────────────────────────────────────
+async function loadBalanceSheet() {
+  const asOf = document.getElementById('bsAsOf').value || new Date().toISOString().slice(0,10);
+  const card = document.getElementById('bsCard');
+  card.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  try {
+    const d = await apiFetch(`/api/gl/balance-sheet?as_of=${asOf}`);
+    const { assets, liabilities, equity, net_income, summary } = d.data;
+    const groupRows = rows => rows.map(r => `
+      <tr><td style="padding-left:20px">${escGL(r.name)}</td><td class="num">${fmtM(r.balance)}</td></tr>`).join('');
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h3 style="margin:0">Balance Sheet — As of ${asOf}</h3>
+        <span class="${summary.balanced ? 'badge-green' : 'badge-red'}">${summary.balanced ? '✓ Balanced' : '✗ Does Not Balance'}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div>
+          <table>
+            <tbody>
+              <tr><td colspan="2" class="bs-section" style="border-left-color:#3b82f6">ASSETS</td></tr>
+              ${groupRows(assets)}
+              <tr class="bs-total"><td><strong>Total Assets</strong></td><td class="num"><strong>${fmtM(summary.total_assets)}</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <table>
+            <tbody>
+              <tr><td colspan="2" class="bs-section" style="border-left-color:#ef4444">LIABILITIES</td></tr>
+              ${groupRows(liabilities)}
+              <tr class="bs-total"><td>Total Liabilities</td><td class="num">${fmtM(summary.total_liabilities)}</td></tr>
+              <tr><td colspan="2" class="bs-section" style="border-left-color:#8b5cf6;margin-top:16px">EQUITY</td></tr>
+              ${groupRows(equity)}
+              <tr><td style="padding-left:20px;color:#22c55e">Net Income (Current Period)</td><td class="num" style="color:${net_income>=0?'#16a34a':'#dc2626'}">${fmtM(net_income)}</td></tr>
+              <tr class="bs-total"><td>Total Equity</td><td class="num">${fmtM(summary.total_equity)}</td></tr>
+              <tr style="font-weight:700;background:#f8fafc"><td>Total Liabilities + Equity</td><td class="num">${fmtM(summary.total_liabilities + summary.total_equity)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  } catch(e) { card.innerHTML = `<div class="loading-state" style="color:#ef4444">${e.message}</div>`; }
+}
+
+// Init GL defaults
+(function initGLDates() {
+  const today = new Date().toISOString().slice(0,10);
+  const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString().slice(0,10);
+  document.getElementById('tbAsOf').value = today;
+  document.getElementById('bsAsOf').value = today;
+  document.getElementById('plFrom').value = yearStart;
+  document.getElementById('plTo').value   = today;
+  loadCOA();
+})();
 </script>
 </body>
 </html>
