@@ -519,6 +519,12 @@ td .cell-sub{font-size:11px;color:var(--text2);margin-top:1px}
         <span class="ni">📈</span> Reports
       </button>
     </div>
+    <div class="nav-section" id="navAdminSection">
+      <div class="nav-label">System</div>
+      <button class="nav-item" onclick="showPage('admin')">
+        <span class="ni">⚙️</span> Admin
+      </button>
+    </div>
   </nav>
   <div class="sidebar-footer">
     <span id="versionFooter">v1.0.0</span>
@@ -1227,6 +1233,118 @@ td .cell-sub{font-size:11px;color:var(--text2);margin-top:1px}
       </div>
     </div>
 
+    <!-- ══ PAGE: Admin ═══════════════════════════════════════ -->
+    <div id="page-admin" class="page">
+      <!-- Tab bar -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+        <div style="display:flex;gap:4px;background:var(--bg2);border-radius:var(--radius-sm);padding:3px">
+          <button id="adminTabUsers"      class="btn btn-sm btn-primary" onclick="adminTab('users')">👤 Users</button>
+          <button id="adminTabWarehouses" class="btn btn-sm btn-ghost"   onclick="adminTab('warehouses')">🏭 Warehouses</button>
+          <button id="adminTabSettings"  class="btn btn-sm btn-ghost"   onclick="adminTab('settings')">⚙️ Settings</button>
+          <button id="adminTabAudit"     class="btn btn-sm btn-ghost"   onclick="adminTab('audit')">📋 Audit Log</button>
+        </div>
+      </div>
+
+      <!-- ── Users panel ─────────────────────────────────── -->
+      <div id="adminPanelUsers">
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+          <button class="btn btn-ghost btn-sm" onclick="loadAdminUsers()">⟳ Refresh</button>
+          <button class="btn btn-primary btn-sm" onclick="openUserModal()">+ New User</button>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">👤 System Users</div>
+            <span id="usersCount" style="font-size:12px;color:var(--text2)"></span>
+          </div>
+          <div class="card-body">
+            <div class="tbl-wrap">
+              <table id="usersTable">
+                <thead><tr>
+                  <th>Name</th><th>Email</th><th>Role</th><th>Status</th>
+                  <th>Created</th><th>Actions</th>
+                </tr></thead>
+                <tbody id="usersBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="usersPagination"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Warehouses panel ─────────────────────────────── -->
+      <div id="adminPanelWarehouses" style="display:none">
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+          <button class="btn btn-ghost btn-sm" onclick="loadAdminWarehouses()">⟳ Refresh</button>
+          <button class="btn btn-primary btn-sm" onclick="openWarehouseModal()">+ New Warehouse</button>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🏭 Warehouses</div>
+            <span id="whCount" style="font-size:12px;color:var(--text2)"></span>
+          </div>
+          <div class="card-body">
+            <div class="tbl-wrap">
+              <table id="whTable">
+                <thead><tr>
+                  <th>Code</th><th>Name</th><th>Address</th>
+                  <th style="text-align:right">Ledger Entries</th>
+                  <th>Status</th><th>Actions</th>
+                </tr></thead>
+                <tbody id="whBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="whPagination"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Settings panel ───────────────────────────────── -->
+      <div id="adminPanelSettings" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">⚙️ Company Settings</div>
+            <button class="btn btn-primary btn-sm" onclick="saveSettings()">💾 Save Changes</button>
+          </div>
+          <div class="card-body" id="settingsBody">
+            <div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-title">Loading…</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Audit Log panel ──────────────────────────────── -->
+      <div id="adminPanelAudit" style="display:none">
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+          <select class="filter-select" id="auditTableFilter" onchange="loadAuditLog()">
+            <option value="">All Tables</option>
+            <option value="users">users</option>
+            <option value="warehouses">warehouses</option>
+            <option value="company_settings">company_settings</option>
+            <option value="items">items</option>
+          </select>
+          <input class="filter-select" style="padding:5px 8px" id="auditActionFilter" placeholder="Filter by action…" oninput="loadAuditLog()">
+          <button class="btn btn-ghost btn-sm" onclick="loadAuditLog()">⟳ Refresh</button>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📋 Audit Log</div>
+            <span id="auditCount" style="font-size:12px;color:var(--text2)"></span>
+          </div>
+          <div class="card-body">
+            <div class="tbl-wrap">
+              <table id="auditTable">
+                <thead><tr>
+                  <th>When</th><th>User</th><th>Action</th>
+                  <th>Table</th><th>Entity</th><th>Details</th>
+                </tr></thead>
+                <tbody id="auditBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="auditPagination"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /content -->
 </div><!-- /main -->
 </div><!-- /app -->
@@ -1624,6 +1742,90 @@ td .cell-sub{font-size:11px;color:var(--text2);margin-top:1px}
   </div>
 </div>
 
+<!-- ── Admin: New/Edit User Modal ── -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title" id="userModalTitle">New User</div>
+      <button class="modal-close" onclick="closeModal('userModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="userEditId">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input class="form-control" id="userName" placeholder="Jane Smith">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Role *</label>
+          <select class="form-control" id="userRole">
+            <option value="sales">Sales</option>
+            <option value="warehouse">Warehouse</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email *</label>
+        <input class="form-control" type="email" id="userEmail" placeholder="jane@ticktockinc.com">
+      </div>
+      <div id="userPasswordRow" class="form-group">
+        <label class="form-label" id="userPasswordLabel">Password *</label>
+        <input class="form-control" type="password" id="userPassword" placeholder="Min 6 characters">
+      </div>
+      <div id="userStatusRow" class="form-group" style="display:none">
+        <label class="form-label">Status</label>
+        <select class="form-control" id="userIsActive">
+          <option value="true">Active</option>
+          <option value="false">Inactive</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('userModal')">Cancel</button>
+      <button class="btn btn-primary" id="userSaveBtn" onclick="saveUser()">Create User</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Admin: New/Edit Warehouse Modal ── -->
+<div class="modal-overlay" id="warehouseModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title" id="whModalTitle">New Warehouse</div>
+      <button class="modal-close" onclick="closeModal('warehouseModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="whEditId">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Code *</label>
+          <input class="form-control" id="whCode" placeholder="NYC" style="text-transform:uppercase">
+        </div>
+        <div class="form-group" id="whStatusRow" style="display:none">
+          <label class="form-label">Status</label>
+          <select class="form-control" id="whIsActive">
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Name *</label>
+        <input class="form-control" id="whName" placeholder="New York City Warehouse">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Address</label>
+        <textarea class="form-control" id="whAddress" rows="2" placeholder="123 Commerce St, New York, NY 10001"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('warehouseModal')">Cancel</button>
+      <button class="btn btn-primary" id="whSaveBtn" onclick="saveWarehouse()">Create Warehouse</button>
+    </div>
+  </div>
+</div>
+
 <script>
 'use strict';
 
@@ -1736,6 +1938,7 @@ const PAGE_TITLES = {
   demand:      'Demand Planning',
   crm:         'CRM',
   reports:     'Reports',
+  admin:       'Admin',
 };
 const PAGE_LOADERS = {
   dashboard:   loadDashboard,
@@ -1752,6 +1955,7 @@ const PAGE_LOADERS = {
   demand:      loadDemand,
   crm:         loadCRM,
   reports:     loadReports,
+  admin:       loadAdmin,
 };
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -3838,6 +4042,302 @@ async function loadCustomerHealth(page) {
     buildPagination('healthPagination', meta.page||1, meta.total||0, meta.limit||25, p => loadCustomerHealth(p));
   } catch(e) {
     tbody.innerHTML = `<tr><td colspan="10" style="color:var(--red);padding:16px">${escHtml(e.message)}</td></tr>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// Module 10 — Admin & Settings
+// ══════════════════════════════════════════════════════════════
+
+let _usersPage = 1, _whPage = 1, _auditPage = 1;
+let _activeAdminTab = 'users';
+
+function adminTab(tab) {
+  _activeAdminTab = tab;
+  ['users','warehouses','settings','audit'].forEach(t => {
+    const panelId = 'adminPanel' + t.charAt(0).toUpperCase() + t.slice(1);
+    const panel = document.getElementById(panelId);
+    if (panel) panel.style.display = t === tab ? '' : 'none';
+    const btnId = 'adminTab' + t.charAt(0).toUpperCase() + t.slice(1);
+    const btn = document.getElementById(btnId);
+    if (btn) {
+      btn.classList.toggle('btn-primary', t === tab);
+      btn.classList.toggle('btn-ghost', t !== tab);
+    }
+  });
+  if (tab === 'users')       loadAdminUsers();
+  else if (tab === 'warehouses') loadAdminWarehouses();
+  else if (tab === 'settings')   loadSettings();
+  else if (tab === 'audit')      loadAuditLog();
+}
+
+function loadAdmin() {
+  adminTab(_activeAdminTab);
+}
+
+// ─── Users ─────────────────────────────────────────────────────
+function roleBadge(role) {
+  const map = { admin:'#ef4444', warehouse:'#f97316', sales:'#3b82f6' };
+  const c = map[role] || '#94a3b8';
+  return `<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;background:${c}20;color:${c}">${role}</span>`;
+}
+
+async function loadAdminUsers(page) {
+  if (page) _usersPage = page;
+  const tbody = document.getElementById('usersBody');
+  if (!tbody) return;
+  tbody.innerHTML = skeletonRows(6);
+  try {
+    const res  = await apiFetch(`/api/admin/users?page=${_usersPage}&limit=25`);
+    const data = await res.json();
+    const rows = data.data || [];
+    const meta = data.meta || {};
+    document.getElementById('usersCount').textContent = meta.total ? `${meta.total} users` : '';
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:24px">No users found</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(u => `
+      <tr style="opacity:${u.is_active ? 1 : 0.5}">
+        <td style="font-weight:600">${escHtml(u.name)}</td>
+        <td style="font-size:12px;color:var(--text2)">${escHtml(u.email)}</td>
+        <td>${roleBadge(u.role)}</td>
+        <td><span style="font-size:12px;color:${u.is_active ? '#10b981' : '#ef4444'};font-weight:600">${u.is_active ? '● Active' : '○ Inactive'}</span></td>
+        <td style="font-size:12px;color:var(--text2)">${new Date(u.created_at).toLocaleDateString()}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-ghost btn-sm" onclick='openUserModal(${JSON.stringify(u)})'>✎ Edit</button>
+          <button class="btn btn-ghost btn-sm" onclick="openResetPasswordModal('${u.id}','${escHtml(u.name)}')">🔑</button>
+        </td>
+      </tr>`).join('');
+    buildPagination('usersPagination', meta.page||1, meta.total||0, meta.limit||25, p => loadAdminUsers(p));
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red);padding:16px">${escHtml(e.message)}</td></tr>`;
+  }
+}
+
+function openUserModal(user) {
+  const editing = user && typeof user === 'object';
+  document.getElementById('userModalTitle').textContent = editing ? '✎ Edit User' : '👤 New User';
+  document.getElementById('userSaveBtn').textContent    = editing ? 'Save Changes' : 'Create User';
+  document.getElementById('userEditId').value   = editing ? user.id    : '';
+  document.getElementById('userName').value     = editing ? user.name  : '';
+  document.getElementById('userEmail').value    = editing ? user.email : '';
+  document.getElementById('userEmail').readOnly = editing;
+  document.getElementById('userRole').value     = editing ? user.role  : 'sales';
+  document.getElementById('userPassword').value = '';
+  document.getElementById('userPasswordLabel').textContent = editing ? 'New Password (leave blank to keep)' : 'Password *';
+  document.getElementById('userStatusRow').style.display  = editing ? '' : 'none';
+  if (editing) document.getElementById('userIsActive').value = String(user.is_active);
+  document.getElementById('userModal').classList.add('open');
+}
+
+async function saveUser() {
+  const id = document.getElementById('userEditId').value;
+  const pw = document.getElementById('userPassword').value;
+  if (id) {
+    // Edit
+    const body = {
+      name:      document.getElementById('userName').value.trim(),
+      role:      document.getElementById('userRole').value,
+      is_active: document.getElementById('userIsActive').value === 'true',
+    };
+    if (!body.name) { showToast('Name is required', 'error'); return; }
+    try {
+      const res  = await apiFetch(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Update failed');
+      // Reset password if provided
+      if (pw) {
+        const rr = await apiFetch(`/api/admin/users/${id}/reset-password`, { method: 'POST', body: JSON.stringify({ password: pw }) });
+        if (!rr.ok) { const rd = await rr.json(); throw new Error(rd.error || 'Password reset failed'); }
+      }
+      showToast('User updated', 'success');
+      closeModal('userModal');
+      loadAdminUsers();
+    } catch(e) { showToast(e.message, 'error'); }
+  } else {
+    // Create
+    const body = {
+      name:     document.getElementById('userName').value.trim(),
+      email:    document.getElementById('userEmail').value.trim(),
+      role:     document.getElementById('userRole').value,
+      password: pw,
+    };
+    if (!body.name || !body.email || !body.password) { showToast('Name, email and password are required', 'error'); return; }
+    try {
+      const res  = await apiFetch('/api/admin/users', { method: 'POST', body: JSON.stringify(body) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Create failed');
+      showToast('User created', 'success');
+      closeModal('userModal');
+      loadAdminUsers();
+    } catch(e) { showToast(e.message, 'error'); }
+  }
+}
+
+async function openResetPasswordModal(id, name) {
+  const pw = prompt(`Reset password for ${name}:\nEnter new password (min 6 chars):`);
+  if (!pw) return;
+  if (pw.length < 6) { showToast('Password must be at least 6 characters', 'error'); return; }
+  try {
+    const res  = await apiFetch(`/api/admin/users/${id}/reset-password`, { method: 'POST', body: JSON.stringify({ password: pw }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Reset failed');
+    showToast(`Password reset for ${name}`, 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+// ─── Warehouses ─────────────────────────────────────────────────
+async function loadAdminWarehouses(page) {
+  if (page) _whPage = page;
+  const tbody = document.getElementById('whBody');
+  if (!tbody) return;
+  tbody.innerHTML = skeletonRows(6);
+  try {
+    const res  = await apiFetch(`/api/admin/warehouses?page=${_whPage}&limit=25`);
+    const data = await res.json();
+    const rows = data.data || [];
+    const meta = data.meta || {};
+    document.getElementById('whCount').textContent = meta.total ? `${meta.total} warehouses` : '';
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:24px">No warehouses</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(w => `
+      <tr style="opacity:${w.is_active ? 1 : 0.5}">
+        <td><code style="font-size:12px;font-weight:700">${escHtml(w.code)}</code></td>
+        <td style="font-weight:500">${escHtml(w.name)}</td>
+        <td style="font-size:12px;color:var(--text2);max-width:220px">${escHtml(w.address||'—')}</td>
+        <td style="text-align:right;font-size:12px">${(w.ledger_entries||0).toLocaleString()}</td>
+        <td><span style="font-size:12px;color:${w.is_active ? '#10b981' : '#ef4444'};font-weight:600">${w.is_active ? '● Active' : '○ Inactive'}</span></td>
+        <td><button class="btn btn-ghost btn-sm" onclick='openWarehouseModal(${JSON.stringify(w)})'>✎ Edit</button></td>
+      </tr>`).join('');
+    buildPagination('whPagination', meta.page||1, meta.total||0, meta.limit||25, p => loadAdminWarehouses(p));
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red);padding:16px">${escHtml(e.message)}</td></tr>`;
+  }
+}
+
+function openWarehouseModal(wh) {
+  const editing = wh && typeof wh === 'object';
+  document.getElementById('whModalTitle').textContent = editing ? '✎ Edit Warehouse' : '🏭 New Warehouse';
+  document.getElementById('whSaveBtn').textContent    = editing ? 'Save Changes' : 'Create Warehouse';
+  document.getElementById('whEditId').value  = editing ? wh.id      : '';
+  document.getElementById('whCode').value    = editing ? wh.code    : '';
+  document.getElementById('whCode').readOnly = editing;
+  document.getElementById('whName').value    = editing ? wh.name    : '';
+  document.getElementById('whAddress').value = editing ? (wh.address||'') : '';
+  document.getElementById('whStatusRow').style.display = editing ? '' : 'none';
+  if (editing) document.getElementById('whIsActive').value = String(wh.is_active);
+  document.getElementById('warehouseModal').classList.add('open');
+}
+
+async function saveWarehouse() {
+  const id = document.getElementById('whEditId').value;
+  const body = {
+    name:    document.getElementById('whName').value.trim(),
+    address: document.getElementById('whAddress').value.trim() || undefined,
+  };
+  if (!body.name) { showToast('Name is required', 'error'); return; }
+  if (id) {
+    body.is_active = document.getElementById('whIsActive').value === 'true';
+    try {
+      const res  = await apiFetch(`/api/admin/warehouses/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Update failed');
+      showToast('Warehouse updated', 'success');
+      closeModal('warehouseModal');
+      loadAdminWarehouses();
+    } catch(e) { showToast(e.message, 'error'); }
+  } else {
+    body.code = document.getElementById('whCode').value.trim().toUpperCase();
+    if (!body.code) { showToast('Code is required', 'error'); return; }
+    try {
+      const res  = await apiFetch('/api/admin/warehouses', { method: 'POST', body: JSON.stringify(body) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Create failed');
+      showToast('Warehouse created', 'success');
+      closeModal('warehouseModal');
+      loadAdminWarehouses();
+    } catch(e) { showToast(e.message, 'error'); }
+  }
+}
+
+// ─── Company Settings ───────────────────────────────────────────
+let _settings = {};
+
+async function loadSettings() {
+  const body = document.getElementById('settingsBody');
+  if (!body) return;
+  body.innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-title">Loading…</div></div>';
+  try {
+    const res  = await apiFetch('/api/admin/settings');
+    const data = await res.json();
+    _settings   = data.data || {};
+    body.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      ${Object.entries(_settings).map(([key, s]) => `
+        <div class="form-group">
+          <label class="form-label" style="font-weight:600">${key.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</label>
+          <input class="form-control" id="setting_${key}" value="${escHtml(s.value||'')}" placeholder="${escHtml(s.description||'')}">
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">${escHtml(s.description||'')}</div>
+        </div>`).join('')}
+    </div>`;
+  } catch(e) {
+    body.innerHTML = `<div style="color:var(--red);padding:16px">${escHtml(e.message)}</div>`;
+  }
+}
+
+async function saveSettings() {
+  const updates = {};
+  for (const key of Object.keys(_settings)) {
+    const el = document.getElementById(`setting_${key}`);
+    if (el) updates[key] = el.value;
+  }
+  try {
+    const res  = await apiFetch('/api/admin/settings', { method: 'PATCH', body: JSON.stringify(updates) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Save failed');
+    showToast('Settings saved', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+// ─── Audit Log ──────────────────────────────────────────────────
+async function loadAuditLog(page) {
+  if (page) _auditPage = page;
+  const tableName = document.getElementById('auditTableFilter')?.value || '';
+  const action    = document.getElementById('auditActionFilter')?.value || '';
+  const params    = new URLSearchParams({ page: _auditPage, limit: 25 });
+  if (tableName) params.set('table_name', tableName);
+  if (action)    params.set('action',     action);
+
+  const tbody = document.getElementById('auditBody');
+  if (!tbody) return;
+  tbody.innerHTML = skeletonRows(6);
+  try {
+    const res  = await apiFetch(`/api/admin/audit-log?${params}`);
+    const data = await res.json();
+    const rows = data.data || [];
+    const meta = data.meta || {};
+    document.getElementById('auditCount').textContent = meta.total ? `${meta.total} entries` : '';
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:24px">No audit entries found</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(r => {
+      const when = new Date(r.created_at);
+      const detail = r.new_values ? JSON.stringify(r.new_values).slice(0,80) : (r.old_values ? '(deleted)' : '');
+      return `<tr>
+        <td style="font-size:11px;white-space:nowrap;color:var(--text2)">${when.toLocaleDateString()} ${when.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</td>
+        <td style="font-size:12px">${escHtml(r.user_name||'System')}</td>
+        <td><code style="font-size:11px;background:var(--bg2);padding:2px 5px;border-radius:4px">${escHtml(r.action)}</code></td>
+        <td style="font-size:12px;color:var(--text2)">${escHtml(r.table_name||'')}</td>
+        <td style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(r.entity_label||r.record_id||'')}</td>
+        <td style="font-size:11px;color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(detail)}">${escHtml(detail)}</td>
+      </tr>`;
+    }).join('');
+    buildPagination('auditPagination', meta.page||1, meta.total||0, meta.limit||25, p => loadAuditLog(p));
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red);padding:16px">${escHtml(e.message)}</td></tr>`;
   }
 }
 </script>

@@ -38,6 +38,7 @@ const shippingRouter    = require('./routes/shipping.routes');
 const glRouter          = require('./routes/gl.routes');
 const demandRouter      = require('./routes/demand.routes');
 const crmRouter         = require('./routes/crm.routes');
+const adminRouter       = require('./routes/admin.routes');
 
 // ─── App setup ────────────────────────────────────────────────────────────────
 const app = express();
@@ -120,6 +121,7 @@ app.use('/api/shipping',            shippingRouter);
 app.use('/api/gl',                  glRouter);
 app.use('/api/demand',              demandRouter);
 app.use('/api/crm',                 crmRouter);
+app.use('/api/admin',               adminRouter);
 
 // ─── Error handling ───────────────────────────────────────────────────────────
 app.use(errorHandler);
