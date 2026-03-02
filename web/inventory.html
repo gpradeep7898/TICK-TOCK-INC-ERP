@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>TICK TOCK INC. | Inventory Management</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 /* ── Reset & Root ─────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -515,6 +516,9 @@ td .cell-sub{font-size:11px;color:var(--text2);margin-top:1px}
     </div>
     <div class="nav-section">
       <div class="nav-label">Reports</div>
+      <button class="nav-item" onclick="showPage('analytics')">
+        <span class="ni">📊</span> Analytics
+      </button>
       <button class="nav-item" onclick="showPage('reports')">
         <span class="ni">📈</span> Reports
       </button>
@@ -1233,6 +1237,87 @@ td .cell-sub{font-size:11px;color:var(--text2);margin-top:1px}
       </div>
     </div>
 
+    <!-- ══ PAGE: Analytics ═══════════════════════════════════ -->
+    <div id="page-analytics" class="page">
+      <!-- KPI strip -->
+      <div class="kpi-grid" id="analyticsKpi" style="margin-bottom:20px"></div>
+
+      <!-- Row 1: Revenue Trend + Category Mix -->
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📈 Revenue Trend — Last 12 Months</div>
+            <button class="btn btn-ghost btn-sm" onclick="loadRevenueTrend()">⟳</button>
+          </div>
+          <div class="card-body" style="height:260px;position:relative">
+            <canvas id="chartRevenue"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🍩 Category Mix</div>
+            <button class="btn btn-ghost btn-sm" onclick="loadCategoryMix()">⟳</button>
+          </div>
+          <div class="card-body" style="height:260px;position:relative">
+            <canvas id="chartCategory"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 2: Top Customers + Top Items -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🏆 Top 10 Customers — 12m Revenue</div>
+            <button class="btn btn-ghost btn-sm" onclick="loadTopCustomers()">⟳</button>
+          </div>
+          <div class="card-body" style="height:280px;position:relative">
+            <canvas id="chartCustomers"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📦 Top 10 Items — 12m Revenue</div>
+            <button class="btn btn-ghost btn-sm" onclick="loadTopItems()">⟳</button>
+          </div>
+          <div class="card-body" style="height:280px;position:relative">
+            <canvas id="chartItems"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 3: Cash Flow + Inventory Health + CRM Pipeline -->
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:16px">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">💵 Cash Flow — Last 6 Months</div>
+            <button class="btn btn-ghost btn-sm" onclick="loadCashFlow()">⟳</button>
+          </div>
+          <div class="card-body" style="height:220px;position:relative">
+            <canvas id="chartCashFlow"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🏥 Inventory Health</div>
+            <button class="btn btn-ghost btn-sm" onclick="loadInventoryHealth()">⟳</button>
+          </div>
+          <div class="card-body" style="height:220px;position:relative">
+            <canvas id="chartHealth"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🔮 CRM Pipeline</div>
+            <button class="btn btn-ghost btn-sm" onclick="loadPipelineChart()">⟳</button>
+          </div>
+          <div class="card-body" style="position:relative">
+            <div id="pipelineChartBody"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ══ PAGE: Admin ═══════════════════════════════════════ -->
     <div id="page-admin" class="page">
       <!-- Tab bar -->
@@ -1937,6 +2022,7 @@ const PAGE_TITLES = {
   shipping:    'Shipping',
   demand:      'Demand Planning',
   crm:         'CRM',
+  analytics:   'Analytics',
   reports:     'Reports',
   admin:       'Admin',
 };
@@ -1954,6 +2040,7 @@ const PAGE_LOADERS = {
   shipping:    loadShipping,
   demand:      loadDemand,
   crm:         loadCRM,
+  analytics:   loadAnalytics,
   reports:     loadReports,
   admin:       loadAdmin,
 };
@@ -4339,6 +4426,278 @@ async function loadAuditLog(page) {
   } catch(e) {
     tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red);padding:16px">${escHtml(e.message)}</td></tr>`;
   }
+}
+
+// ══════════════════════════════════════════════════════════════
+// Module 11 — Advanced Analytics
+// ══════════════════════════════════════════════════════════════
+
+// Destroy a Chart.js instance if one exists on a canvas
+const _charts = {};
+function destroyChart(id) {
+  if (_charts[id]) { _charts[id].destroy(); delete _charts[id]; }
+}
+
+// Palette
+const PALETTE = ['#2563eb','#10b981','#f59e0b','#ef4444','#8b5cf6','#f97316','#06b6d4','#ec4899','#84cc16','#6366f1'];
+const URGENCY_COLORS = { critical:'#ef4444', high:'#f59e0b', normal:'#3b82f6', ok:'#10b981' };
+
+async function loadAnalytics() {
+  await Promise.allSettled([
+    loadAnalyticsKpi(),
+    loadRevenueTrend(),
+    loadCategoryMix(),
+    loadTopCustomers(),
+    loadTopItems(),
+    loadCashFlow(),
+    loadInventoryHealth(),
+    loadPipelineChart(),
+  ]);
+}
+
+async function loadAnalyticsKpi() {
+  try {
+    const res  = await apiFetch('/api/analytics/overview');
+    const data = await res.json();
+    const d    = data.data || {};
+    const fmt  = n => '$' + Number(n||0).toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0});
+    document.getElementById('analyticsKpi').innerHTML = `
+      <div class="kpi-card"><div class="kpi-label">Revenue (30d)</div><div class="kpi-value">${fmt(d.revenue_30d)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Orders (30d)</div><div class="kpi-value">${d.orders_30d||0}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Active Customers (30d)</div><div class="kpi-value">${d.customers_30d||0}</div></div>
+      <div class="kpi-card"><div class="kpi-label">AR Balance</div><div class="kpi-value" style="color:var(--blue)">${fmt(d.ar_balance)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">AP Balance</div><div class="kpi-value" style="color:var(--orange)">${fmt(d.ap_balance)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Active SKUs</div><div class="kpi-value">${d.item_count||0}</div></div>
+    `;
+  } catch(e) { console.error('analytics kpi', e); }
+}
+
+async function loadRevenueTrend() {
+  destroyChart('revenue');
+  try {
+    const res  = await apiFetch('/api/analytics/revenue-trend');
+    const data = await res.json();
+    const rows = data.data || [];
+    if (!rows.length) return;
+    const ctx = document.getElementById('chartRevenue').getContext('2d');
+    _charts['revenue'] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels:   rows.map(r => r.month),
+        datasets: [{
+          label:           'Revenue',
+          data:            rows.map(r => parseFloat(r.revenue)),
+          borderColor:     '#2563eb',
+          backgroundColor: 'rgba(37,99,235,.10)',
+          fill:            true,
+          tension:         0.4,
+          pointRadius:     4,
+          pointHoverRadius: 6,
+        }, {
+          label:       'Orders',
+          data:        rows.map(r => r.order_count),
+          borderColor: '#10b981',
+          backgroundColor: 'transparent',
+          yAxisID:     'y2',
+          tension:     0.4,
+          pointRadius: 3,
+          borderDash:  [4, 4],
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } },
+        scales: {
+          y:  { ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k', font: { size: 10 } }, grid: { color: '#e2e8f0' } },
+          y2: { position: 'right', ticks: { font: { size: 10 } }, grid: { display: false } },
+          x:  { ticks: { font: { size: 10 } } },
+        },
+      },
+    });
+  } catch(e) { console.error('revenue trend', e); }
+}
+
+async function loadCategoryMix() {
+  destroyChart('category');
+  try {
+    const res  = await apiFetch('/api/analytics/category-mix');
+    const data = await res.json();
+    const rows = data.data || [];
+    if (!rows.length) return;
+    const ctx = document.getElementById('chartCategory').getContext('2d');
+    _charts['category'] = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels:   rows.map(r => r.category),
+        datasets: [{ data: rows.map(r => parseFloat(r.revenue)), backgroundColor: PALETTE }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'right', labels: { font: { size: 10 }, boxWidth: 10 } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: $${Number(ctx.raw).toLocaleString('en-US', {maximumFractionDigits:0})}` } },
+        },
+        cutout: '60%',
+      },
+    });
+  } catch(e) { console.error('category mix', e); }
+}
+
+async function loadTopCustomers() {
+  destroyChart('customers');
+  try {
+    const res  = await apiFetch('/api/analytics/top-customers');
+    const data = await res.json();
+    const rows = data.data || [];
+    if (!rows.length) return;
+    const ctx = document.getElementById('chartCustomers').getContext('2d');
+    _charts['customers'] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels:   rows.map(r => r.customer_name.length > 16 ? r.customer_name.slice(0,14)+'…' : r.customer_name),
+        datasets: [{
+          label:           'Revenue (12m)',
+          data:            rows.map(r => parseFloat(r.revenue_12m)),
+          backgroundColor: rows.map((_, i) => PALETTE[i % PALETTE.length] + 'cc'),
+          borderRadius:    4,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k', font: { size: 10 } }, grid: { color: '#e2e8f0' } },
+          y: { ticks: { font: { size: 10 } } },
+        },
+      },
+    });
+  } catch(e) { console.error('top customers', e); }
+}
+
+async function loadTopItems() {
+  destroyChart('items');
+  try {
+    const res  = await apiFetch('/api/analytics/top-items');
+    const data = await res.json();
+    const rows = data.data || [];
+    if (!rows.length) return;
+    const ctx = document.getElementById('chartItems').getContext('2d');
+    _charts['items'] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels:   rows.map(r => r.item_name.length > 18 ? r.item_name.slice(0,16)+'…' : r.item_name),
+        datasets: [{
+          label:           'Revenue (12m)',
+          data:            rows.map(r => parseFloat(r.revenue_12m)),
+          backgroundColor: '#8b5cf6cc',
+          borderRadius:    4,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k', font: { size: 10 } }, grid: { color: '#e2e8f0' } },
+          y: { ticks: { font: { size: 10 } } },
+        },
+      },
+    });
+  } catch(e) { console.error('top items', e); }
+}
+
+async function loadCashFlow() {
+  destroyChart('cashflow');
+  try {
+    const res  = await apiFetch('/api/analytics/cash-flow');
+    const data = await res.json();
+    const rows = data.data || [];
+    if (!rows.length) return;
+    const ctx = document.getElementById('chartCashFlow').getContext('2d');
+    _charts['cashflow'] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels:   rows.map(r => r.month),
+        datasets: [{
+          label:           'Collected (AR)',
+          data:            rows.map(r => r.collected),
+          backgroundColor: '#10b981cc',
+          borderRadius:    3,
+        }, {
+          label:           'Paid Out (AP)',
+          data:            rows.map(r => r.paid_out),
+          backgroundColor: '#f97316cc',
+          borderRadius:    3,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top', labels: { font: { size: 10 }, boxWidth: 10 } } },
+        scales: {
+          y: { ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k', font: { size: 10 } }, grid: { color: '#e2e8f0' } },
+          x: { ticks: { font: { size: 10 } } },
+        },
+      },
+    });
+  } catch(e) { console.error('cash flow', e); }
+}
+
+async function loadInventoryHealth() {
+  destroyChart('health-chart');
+  try {
+    const res  = await apiFetch('/api/analytics/inventory-health');
+    const data = await res.json();
+    const rows = data.data || [];
+    if (!rows.length) return;
+    const ctx = document.getElementById('chartHealth').getContext('2d');
+    _charts['health-chart'] = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels:   rows.map(r => r.urgency.charAt(0).toUpperCase() + r.urgency.slice(1)),
+        datasets: [{
+          data:            rows.map(r => r.item_count),
+          backgroundColor: rows.map(r => URGENCY_COLORS[r.urgency] || '#94a3b8'),
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 10 } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} items` } },
+        },
+        cutout: '55%',
+      },
+    });
+  } catch(e) { console.error('inventory health', e); }
+}
+
+async function loadPipelineChart() {
+  const el = document.getElementById('pipelineChartBody');
+  if (!el) return;
+  try {
+    const res  = await apiFetch('/api/analytics/pipeline');
+    const data = await res.json();
+    const rows = data.data || [];
+    if (!rows.length) {
+      el.innerHTML = '<div style="color:var(--text2);font-size:12px;padding:16px">No active opportunities</div>';
+      return;
+    }
+    const maxVal = Math.max(...rows.map(r => parseFloat(r.total_value)));
+    const stageColors = { lead:'#94a3b8', qualified:'#3b82f6', proposal:'#8b5cf6', negotiation:'#f97316' };
+    el.innerHTML = rows.map(r => {
+      const pct = maxVal > 0 ? (parseFloat(r.total_value) / maxVal * 100) : 0;
+      const c   = stageColors[r.stage] || '#94a3b8';
+      return `<div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px;font-size:11px">
+          <span style="font-weight:600;color:${c}">${r.stage}</span>
+          <span style="color:var(--text2)">${r.count} · $${Number(r.total_value).toLocaleString('en-US',{maximumFractionDigits:0})}</span>
+        </div>
+        <div style="height:8px;border-radius:4px;background:#e2e8f0;overflow:hidden">
+          <div style="height:100%;width:${pct.toFixed(1)}%;background:${c};border-radius:4px;transition:width .4s"></div>
+        </div>
+        <div style="font-size:10px;color:var(--text2);margin-top:2px">Weighted: $${Number(r.weighted_value).toLocaleString('en-US',{maximumFractionDigits:0})}</div>
+      </div>`;
+    }).join('');
+  } catch(e) { console.error('pipeline chart', e); }
 }
 </script>
 </body>
